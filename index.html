@@ -7039,7 +7039,7 @@ function processImportLibur(data, inputElement) {
 // via HostingService / atau upload ke ImgBB / GitHub (raw.githubusercontent.com) yang
 // support CORS dengan baik.
 
-// Cache logo base64 supaya tidak panggil server berulang setiap generate PDF
+// Cache logo base64 supaya tidak panggil server berulang setiap generate 
 let _cachedLogoBase64 = null;
 // Cache versi grayscale (hitam putih) untuk watermark background kartu
 let _cachedLogoGrayscaleBase64 = null;
@@ -7269,10 +7269,12 @@ async function downloadKartuSiswaBulk() {
                 // 1b. WATERMARK LOGO (grayscale, transparan, di tengah kartu, di belakang teks detail)
                 if (logoWatermarkBase64) {
                     try {
-                        const wmSize = cardHeight * 0.75; // proporsional terhadap tinggi kartu
+                        const wmSize = cardHeight * 0.55; // diperkecil dari 0.75 agar tidak menabrak header
                         const wmX = x + (cardWidth / 2) - (wmSize / 2);
-                        const wmY = y + (cardHeight / 2) - (wmSize / 2);
-
+                        // pusat watermark digeser ke area body (di bawah header), bukan tengah kartu penuh
+                        const bodyCenterY = y + headerHeight + ((cardHeight - headerHeight) / 2);
+                        const wmY = bodyCenterY - (wmSize / 2);
+                
                         doc.saveGraphicsState();
                         doc.setGState(new doc.GState({ opacity: 0.10 }));
                         doc.addImage(logoWatermarkBase64, 'PNG', wmX, wmY, wmSize, wmSize);
@@ -7282,10 +7284,30 @@ async function downloadKartuSiswaBulk() {
                     }
                 }
 
-                // 2. HEADER UTAMA (Hijau muda senada dengan warna logo)
-                const headerHeight = 14;
+                // 2. HEADER UTAMA DENGAN BENTUK BERGELOMBANG (WAVE) DI BAGIAN BAWAH
+                const headerBaseHeight = 12;      // tinggi header di titik terendah gelombang
+                const waveAmplitude = 2;          // seberapa tinggi naik-turun gelombang
+                const waveCount = 2.5;            // jumlah gelombang penuh sepanjang lebar kartu
+                const maxHeaderHeight = headerBaseHeight + waveAmplitude;
+                
+                // 1) Gambar blok hijau penuh mencakup area maksimum (termasuk puncak gelombang)
                 doc.setFillColor(6, 78, 59);
-                doc.rect(x, y, cardWidth, headerHeight, 'F');
+                doc.rect(x, y, cardWidth, maxHeaderHeight, 'F');
+                
+                // 2) "Pahat" tepi bawah jadi gelombang: timpa dengan strip putih tipis
+                //    mengikuti kurva sinus, sehingga sisa hijau di atasnya berbentuk wave
+                const stripWidth = 0.6; // makin kecil nilainya, makin halus gelombangnya
+                doc.setFillColor(255, 255, 255);
+                for (let sx = x; sx < x + cardWidth; sx += stripWidth) {
+                    const waveY = y + headerBaseHeight + Math.sin(((sx - x) / cardWidth) * waveCount * Math.PI * 2) * waveAmplitude;
+                    const stripHeight = (y + maxHeaderHeight) - waveY;
+                    if (stripHeight > 0) {
+                        doc.rect(sx, waveY, stripWidth + 0.05, stripHeight, 'F');
+                    }
+                }
+                
+                // Variabel headerHeight tetap dipakai untuk elemen lain (logo, teks, garis aksen)
+                const headerHeight = headerBaseHeight;
 
                 // 2b. LOGO (langsung tanpa backing lingkaran putih)
                 const logoSize = 10;
