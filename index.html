@@ -7110,64 +7110,14 @@ function loadLogoGrayscaleBase64() {
 }
 
 // ====================================
-// HELPER: Ambil field alamat dengan fallback berbagai kemungkinan nama key
+// HELPER: Ambil field kelas dengan fallback berbagai kemungkinan nama key
 // (mengantisipasi header sheet yang tidak konsisten / beda kapitalisasi)
 // ====================================
-function getAlamat(s) {
-    const raw = s.alamat || s.Alamat || s.ALAMAT || s.address || s.Address || null;
+function getKelas(s) {
+    const raw = s.kelas || s.Kelas || s.KELAS || s.class || s.Class || null;
     if (!raw) return null;
     const trimmed = String(raw).trim();
     return trimmed.length > 0 ? trimmed : null;
-}
-
-// ====================================
-// HELPER: Format alamat jadi maksimal 3 baris (split by koma) + auto-shrink font
-// Struktur alamat selalu: "Ds/Kel, Kec, Kabupaten"
-// ====================================
-function formatAlamatAutoShrink(doc, alamat, maxWidth, options = {}) {
-    const {
-        maxLines = 3,
-        startFontSize = 7,
-        minFontSize = 4,
-        step = 0.25,
-        font = "helvetica",
-        fontStyle = "bold"
-    } = options;
-
-    const text = alamat || "-";
-    let parts = text.split(",").map(p => p.trim()).filter(p => p.length > 0);
-
-    // Kalau bagian koma lebih banyak dari maxLines, gabungkan sisanya ke baris terakhir
-    if (parts.length > maxLines) {
-        const head = parts.slice(0, maxLines - 1);
-        const tail = parts.slice(maxLines - 1).join(", ");
-        parts = [...head, tail];
-    }
-    if (parts.length === 0) parts = ["-"];
-
-    doc.setFont(font, fontStyle);
-
-    // Cari font size terbesar yang muat untuk SEMUA baris
-    let fontSize = startFontSize;
-    while (fontSize > minFontSize) {
-        doc.setFontSize(fontSize);
-        const allFit = parts.every(line => doc.getTextWidth(line) <= maxWidth);
-        if (allFit) break;
-        fontSize -= step;
-    }
-    doc.setFontSize(fontSize);
-
-    // Fallback: kalau di font minimum masih kepanjangan, potong dengan "..."
-    parts = parts.map(line => {
-        if (doc.getTextWidth(line) <= maxWidth) return line;
-        let truncated = line;
-        while (doc.getTextWidth(truncated + "...") > maxWidth && truncated.length > 0) {
-            truncated = truncated.slice(0, -1);
-        }
-        return truncated + "...";
-    });
-
-    return { lines: parts, fontSize };
 }
 
 async function downloadKartuSiswaBulk() {
@@ -7191,12 +7141,12 @@ async function downloadKartuSiswaBulk() {
         return;
     }
 
-    // ===== VALIDASI DATA SEBELUM CETAK (debug alamat kosong) =====
-    const kosongAlamat = dataToPrint.filter(s => !getAlamat(s));
-    if (kosongAlamat.length > 0) {
+    // ===== VALIDASI DATA SEBELUM CETAK (debug kelas kosong) =====
+    const kosongKelas = dataToPrint.filter(s => !getKelas(s));
+    if (kosongKelas.length > 0) {
         console.warn(
-            `⚠️ ${kosongAlamat.length} dari ${dataToPrint.length} siswa memiliki alamat kosong:`,
-            kosongAlamat.map(s => `${s.nama || '(tanpa nama)'} - NISN: ${s.nisn || '-'}`)
+            `⚠️ ${kosongKelas.length} dari ${dataToPrint.length} siswa memiliki kelas kosong:`,
+            kosongKelas.map(s => `${s.nama || '(tanpa nama)'} - NISN: ${s.nisn || '-'}`)
         );
     }
     // ================================================================
@@ -7255,6 +7205,11 @@ async function downloadKartuSiswaBulk() {
             tempDiv.style.top = '-9999px';
             document.body.appendChild(tempDiv);
 
+            // Konstanta header dipakai bersama oleh watermark & header itu sendiri
+            // supaya watermark selalu dijamin berhenti tepat di bawah garis aksen emas.
+            const headerHeight = 14;
+            const accentHeight = 1;
+
             for (let i = 0; i < dataToPrint.length; i++) {
                 const s = dataToPrint[i];
 
@@ -7266,12 +7221,17 @@ async function downloadKartuSiswaBulk() {
                 doc.setFillColor(255, 255, 255);
                 doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'FD');
 
-                // 1b. WATERMARK LOGO (grayscale, transparan, di tengah kartu, di belakang teks detail)
+                // 1b. WATERMARK LOGO (grayscale, transparan, DI BAWAH HEADER, tidak menyentuh header)
                 if (logoWatermarkBase64) {
                     try {
-                        const wmSize = cardHeight * 0.75; // proporsional terhadap tinggi kartu
+                        const bodyTop = y + headerHeight + accentHeight;
+                        const bodyHeight = cardHeight - headerHeight - accentHeight;
+
+                        // Diperkecil: 65% dari tinggi area body (bukan tinggi kartu penuh),
+                        // dan dipusatkan di area body saja supaya tidak pernah mengenai header.
+                        const wmSize = bodyHeight * 0.65;
                         const wmX = x + (cardWidth / 2) - (wmSize / 2);
-                        const wmY = y + (cardHeight / 2) - (wmSize / 2);
+                        const wmY = bodyTop + (bodyHeight / 2) - (wmSize / 2);
 
                         doc.saveGraphicsState();
                         doc.setGState(new doc.GState({ opacity: 0.10 }));
@@ -7282,10 +7242,40 @@ async function downloadKartuSiswaBulk() {
                     }
                 }
 
-                // 2. HEADER UTAMA (Hijau muda senada dengan warna logo)
-                const headerHeight = 14;
+                // 2. HEADER UTAMA (Hijau tua) + EFEK GLASSMORPHISM PREMIUM
                 doc.setFillColor(6, 78, 59);
                 doc.rect(x, y, cardWidth, headerHeight, 'F');
+
+                // --- GLASSMORPHISM LAYER ---
+                // a) Highlight band besar (kaca terang) di bagian atas header, opacity rendah
+                doc.saveGraphicsState();
+                doc.setGState(new doc.GState({ opacity: 0.14 }));
+                doc.setFillColor(255, 255, 255);
+                doc.roundedRect(x + 1, y + 0.8, cardWidth - 2, headerHeight * 0.55, 1.5, 1.5, 'F');
+                doc.restoreGraphicsState();
+
+                // b) Highlight tipis kedua (lebih terang, lebih sempit) untuk kesan "kilau kaca"
+                doc.saveGraphicsState();
+                doc.setGState(new doc.GState({ opacity: 0.22 }));
+                doc.setFillColor(255, 255, 255);
+                doc.roundedRect(x + 1.5, y + 1, cardWidth - 3, headerHeight * 0.28, 1.2, 1.2, 'F');
+                doc.restoreGraphicsState();
+
+                // c) Border "shine" tipis di seluruh tepi header (efek kaca dengan pinggiran)
+                doc.saveGraphicsState();
+                doc.setGState(new doc.GState({ opacity: 0.35 }));
+                doc.setDrawColor(255, 255, 255);
+                doc.setLineWidth(0.25);
+                doc.roundedRect(x + 0.4, y + 0.4, cardWidth - 0.8, headerHeight - 0.8, 1.5, 1.5, 'S');
+                doc.restoreGraphicsState();
+
+                // d) Vignette halus di bagian bawah header (menambah kedalaman kaca)
+                doc.saveGraphicsState();
+                doc.setGState(new doc.GState({ opacity: 0.10 }));
+                doc.setFillColor(0, 0, 0);
+                doc.rect(x, y + headerHeight * 0.75, cardWidth, headerHeight * 0.25, 'F');
+                doc.restoreGraphicsState();
+                // --- END GLASSMORPHISM LAYER ---
 
                 // 2b. LOGO (langsung tanpa backing lingkaran putih)
                 const logoSize = 10;
@@ -7326,7 +7316,7 @@ async function downloadKartuSiswaBulk() {
 
                 // 4. GARIS AKSEN EMAS
                 doc.setFillColor(245, 158, 11);
-                doc.rect(x, y + headerHeight, cardWidth, 1, 'F');
+                doc.rect(x, y + headerHeight, cardWidth, accentHeight, 'F');
 
                 // 4b. ORNAMEN ISLAMI (motif geometris kecil, garis tepi bawah kartu)
                 doc.setDrawColor(245, 158, 11);
@@ -7403,24 +7393,25 @@ async function downloadKartuSiswaBulk() {
                 doc.setTextColor(15, 23, 42);
                 doc.text(cleanNisn, textX + 15, y + 38);
 
-                // ALAMAT (split per koma, maksimal 3 baris, auto-shrink font)
+                // KELAS (menggantikan Alamat — single line, auto-shrink ringan kalau perlu)
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
                 doc.setFontSize(8.5);
-                doc.text("Alamat   :", textX, y + 45);
+                doc.text("Kelas     :", textX, y + 45);
 
-                const alamatMaxWidth = (x + cardWidth - 5) - (textX + 15);
-                const { lines: alamatLines, fontSize: alamatFontSize } = formatAlamatAutoShrink(
-                    doc,
-                    getAlamat(s),
-                    alamatMaxWidth,
-                    { maxLines: 3, startFontSize: 7.5, minFontSize: 4, step: 0.25 }
-                );
+                const kelasMaxWidth = (x + cardWidth - 5) - (textX + 15);
+                const kelasValue = getKelas(s) || "-";
 
+                let kelasFontSize = 8.5;
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(alamatFontSize);
+                doc.setFontSize(kelasFontSize);
+                while (kelasFontSize > 5 && doc.getTextWidth(kelasValue) > kelasMaxWidth) {
+                    kelasFontSize -= 0.25;
+                    doc.setFontSize(kelasFontSize);
+                }
+
                 doc.setTextColor(15, 23, 42);
-                doc.text(alamatLines, textX + 15, y + 45, { lineHeightFactor: 1.15 });
+                doc.text(kelasValue, textX + 15, y + 45);
 
                 // GRID LOGIC
                 col++;
