@@ -7284,30 +7284,27 @@ async function downloadKartuSiswaBulk() {
                     }
                 }
 
-                // 2. HEADER UTAMA DENGAN BENTUK BERGELOMBANG (WAVE) DI BAGIAN BAWAH
-                const headerBaseHeight = 12;      // tinggi header di titik terendah gelombang
-                const waveAmplitude = 2;          // seberapa tinggi naik-turun gelombang
-                const waveCount = 2.5;            // jumlah gelombang penuh sepanjang lebar kartu
-                const maxHeaderHeight = headerBaseHeight + waveAmplitude;
-                
-                // 1) Gambar blok hijau penuh mencakup area maksimum (termasuk puncak gelombang)
+                // 2. HEADER UTAMA (Hijau tua senada dengan warna logo)
+                const headerHeight = 14;
                 doc.setFillColor(6, 78, 59);
-                doc.rect(x, y, cardWidth, maxHeaderHeight, 'F');
+                doc.rect(x, y, cardWidth, headerHeight, 'F');
                 
-                // 2) "Pahat" tepi bawah jadi gelombang: timpa dengan strip putih tipis
-                //    mengikuti kurva sinus, sehingga sisa hijau di atasnya berbentuk wave
-                const stripWidth = 0.6; // makin kecil nilainya, makin halus gelombangnya
-                doc.setFillColor(255, 255, 255);
-                for (let sx = x; sx < x + cardWidth; sx += stripWidth) {
-                    const waveY = y + headerBaseHeight + Math.sin(((sx - x) / cardWidth) * waveCount * Math.PI * 2) * waveAmplitude;
-                    const stripHeight = (y + maxHeaderHeight) - waveY;
-                    if (stripHeight > 0) {
-                        doc.rect(sx, waveY, stripWidth + 0.05, stripHeight, 'F');
-                    }
+                // 2a. MOTIF GEOMETRIS ISLAMI DI BACKGROUND HEADER (garis tipis, opacity rendah)
+                doc.saveGraphicsState();
+                doc.setGState(new doc.GState({ opacity: 0.12 }));
+                doc.setDrawColor(245, 158, 11); // emas, senada aksen
+                doc.setLineWidth(0.15);
+                
+                const motifStep = 6;
+                for (let mx = x; mx < x + cardWidth; mx += motifStep) {
+                    // motif belah ketupat kecil berulang, mengisi seluruh lebar header
+                    doc.lines(
+                        [[1.5, -1.5], [1.5, 1.5], [-1.5, 1.5], [-1.5, -1.5]],
+                        mx, y + (headerHeight / 2),
+                        [1, 1], 'S', true
+                    );
                 }
-                
-                // Variabel headerHeight tetap dipakai untuk elemen lain (logo, teks, garis aksen)
-                const headerHeight = headerBaseHeight;
+                doc.restoreGraphicsState();
 
                 // 2b. LOGO (langsung tanpa backing lingkaran putih)
                 const logoSize = 10;
