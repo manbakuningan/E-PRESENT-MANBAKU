@@ -7026,14 +7026,15 @@ function processImportLibur(data, inputElement) {
     }
 
 // ====================================
-// ====================================
 // FITUR DOWNLOAD KARTU MASSAL (BULK) - LOGO DARI URL (Google Drive)
 // ====================================
 //
 // CATATAN:
 // - Logo tunggal dari server GAS, dipakai untuk header dan watermark (grayscale).
 // - Header solid satu warna, tanpa glassmorphism.
-// - NISN, Kelas, Alamat pakai font TETAP (tidak auto-shrink) — hanya Nama yang bisa mengecil.
+// - Nama: auto-shrink berdasarkan lebar teks asli (bukan jumlah karakter).
+// - NISN, Kelas, Alamat: font TETAP (tidak auto-shrink), dipotong "..." kalau kepanjangan.
+// - Bagian atas QR sejajar dengan bagian atas teks Nama.
 
 let _cachedLogoBase64 = null;
 let _cachedLogoGrayscaleBase64 = null;
@@ -7122,7 +7123,6 @@ function getAlamat(s) {
 
 // ====================================
 // HELPER: Format alamat jadi maksimal 3 baris (split by koma), font TETAP (tidak shrink)
-// Kalau baris terlalu panjang untuk lebar kolom, dipotong dengan "..." (bukan mengecilkan font).
 // ====================================
 function formatAlamatFixedFont(doc, alamat, maxWidth, options = {}) {
     const {
@@ -7145,7 +7145,6 @@ function formatAlamatFixedFont(doc, alamat, maxWidth, options = {}) {
     doc.setFont(font, fontStyle);
     doc.setFontSize(fontSize);
 
-    // Font TETAP di fontSize — kalau kepanjangan, dipotong dengan "..." (bukan mengecil)
     parts = parts.map(line => {
         if (doc.getTextWidth(line) <= maxWidth) return line;
         let truncated = line;
@@ -7245,6 +7244,13 @@ async function downloadKartuSiswaBulk() {
             const headerHeight = 14;
             const accentHeight = 1;
 
+            // Tanggal cetak — sama untuk semua kartu dalam satu proses generate
+            const tanggalCetak = new Date().toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+
             for (let i = 0; i < dataToPrint.length; i++) {
                 const s = dataToPrint[i];
 
@@ -7279,7 +7285,7 @@ async function downloadKartuSiswaBulk() {
                 doc.setFillColor(6, 78, 59);
                 doc.rect(x, y, cardWidth, headerHeight, 'F');
 
-                // 2b. LOGO — digeser sedikit ke tengah (padding kiri diperbesar dari 5 -> 8)
+                // 2b. LOGO — digeser sedikit ke tengah
                 const logoSize = 10;
                 const logoPadding = 8;
                 const logoCenterX = x + logoPadding + (logoSize / 2);
@@ -7335,10 +7341,10 @@ async function downloadKartuSiswaBulk() {
                     );
                 }
 
-                // 5. QR CODE
+                // 5. QR CODE — bagian atas sejajar dengan bagian atas teks Nama (y + 21)
                 const qrSize = 24;
                 const qrX = x + 9;
-                const qrY = y + 24;
+                const qrY = y + 21;
 
                 tempDiv.innerHTML = '';
 
@@ -7361,58 +7367,78 @@ async function downloadKartuSiswaBulk() {
                     }
                 }
 
+                // "Scan untuk Absensi" — di bawah QR
                 doc.setFontSize(5);
+                doc.setFont("helvetica", "normal");
                 doc.setTextColor(100, 116, 139);
-                doc.text("Scan untuk Absensi", qrX + (qrSize / 2), qrY + qrSize + 3, { align: 'center' });
+                doc.text("Scan untuk Absensi", qrX + (qrSize / 2), qrY + qrSize + 2.5, { align: 'center' });
+
+                // "Dicetak: [tanggal]" — di bawah "Scan untuk Absensi"
+                doc.setFontSize(4.5);
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(100, 116, 139);
+                doc.text(`Dicetak: ${tanggalCetak}`, qrX + (qrSize / 2), qrY + qrSize + 6, { align: 'center' });
 
                 // 6. DATA SISWA
                 const textX = x + 39;
 
-                // NAMA — HANYA INI yang boleh mengecil kalau kepanjangan
+                // NAMA — auto-shrink berdasarkan lebar teks asli; bagian atas sejajar dengan QR
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
+
+                const namaMaxWidth = (x + cardWidth - 5) - textX;
                 let namaCetak = (s.nama || "").toUpperCase();
+
                 let namaFontSize = 11;
-                if (namaCetak.length > 26) {
-                    namaFontSize = 8;
-                } else if (namaCetak.length > 22) {
-                    namaFontSize = 9;
-                } else if (namaCetak.length > 18) {
-                    namaFontSize = 10;
-                }
+                const namaMinFontSize = 7;
                 doc.setFontSize(namaFontSize);
-                doc.text(namaCetak, textX, y + 27);
 
-                // GARIS PEMISAH — ditambahkan lagi di bawah Nama
+                while (namaFontSize > namaMinFontSize && doc.getTextWidth(namaCetak) > namaMaxWidth) {
+                    namaFontSize -= 0.25;
+                    doc.setFontSize(namaFontSize);
+                }
+
+                if (doc.getTextWidth(namaCetak) > namaMaxWidth) {
+                    let truncated = namaCetak;
+                    while (doc.getTextWidth(truncated + "...") > namaMaxWidth && truncated.length > 0) {
+                        truncated = truncated.slice(0, -1);
+                    }
+                    namaCetak = truncated + "...";
+                }
+
+                doc.setFontSize(namaFontSize);
+                doc.text(namaCetak, textX, y + 25);
+
+                // GARIS PEMISAH
                 doc.setDrawColor(226, 232, 240);
-                doc.line(textX, y + 30, x + cardWidth - 5, y + 30);
+                doc.line(textX, y + 28, x + cardWidth - 5, y + 28);
 
-                // NISN — font TETAP (fixed), tidak mengecil
+                // NISN — font tetap
                 doc.setFontSize(9);
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
-                doc.text("NISN    :", textX, y + 36);
+                doc.text("NISN    :", textX, y + 33.5);
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
-                doc.text(cleanNisn, textX + 14, y + 36);
+                doc.text(cleanNisn, textX + 14, y + 33.5);
 
-                // KELAS — font TETAP (fixed), tidak mengecil
+                // KELAS — font tetap
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
                 doc.setFontSize(9);
-                doc.text("Kelas   :", textX, y + 41.5);
+                doc.text("Kelas   :", textX, y + 38.5);
 
                 const kelasValue = getKelas(s) || "-";
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(9);
                 doc.setTextColor(15, 23, 42);
-                doc.text(kelasValue, textX + 14, y + 41.5);
+                doc.text(kelasValue, textX + 14, y + 38.5);
 
-                // ALAMAT — font TETAP (fixed) 7pt, 3 baris; kalau kepanjangan dipotong "..." bukan mengecil
+                // ALAMAT — font tetap, jarak antar baris diperlebar
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
                 doc.setFontSize(9);
-                doc.text("Alamat :", textX, y + 47);
+                doc.text("Alamat :", textX, y + 43.5);
 
                 const alamatMaxWidth = (x + cardWidth - 5) - (textX + 14);
                 const { lines: alamatLines, fontSize: alamatFontSize } = formatAlamatFixedFont(
@@ -7425,7 +7451,7 @@ async function downloadKartuSiswaBulk() {
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(alamatFontSize);
                 doc.setTextColor(15, 23, 42);
-                doc.text(alamatLines, textX + 14, y + 47, { lineHeightFactor: 1.15 });
+                doc.text(alamatLines, textX + 14, y + 43.5, { lineHeightFactor: 1.6 });
 
                 // GRID LOGIC
                 col++;
