@@ -7352,7 +7352,7 @@ async function downloadKartuSiswaBulk() {
                     try {
                         new QRCode(tempDiv, {
                             text: cleanNisn,
-                            width: 120, height: 120,
+                            width: 500, height: 500,   // dari 120 -> 500, jauh lebih tajam
                             correctLevel: QRCode.CorrectLevel.L,
                             colorDark: "#000000", colorLight: "#ffffff"
                         });
