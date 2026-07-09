@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>E-PRESENT MANBAKU</title>
+  <link rel="icon" type="image/png" href="https://iili.io/CAoR6e2.png">
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
@@ -7040,6 +7041,8 @@ function processImportLibur(data, inputElement) {
 
 // Cache logo base64 supaya tidak panggil server berulang setiap generate PDF
 let _cachedLogoBase64 = null;
+// Cache versi grayscale (hitam putih) untuk watermark background kartu
+let _cachedLogoGrayscaleBase64 = null;
 
 // Mengambil logo base64 dari server Apps Script (bypass CORS, lihat getLogoBase64() di .gs)
 function loadLogoAsBase64() {
@@ -7052,6 +7055,57 @@ function loadLogoAsBase64() {
                 console.error("Gagal load logo dari server:", err);
                 resolve(null);
             });
+    });
+}
+
+// Mengubah logo base64 menjadi versi grayscale (hitam putih) untuk dipakai
+// sebagai watermark background di tengah kartu.
+function loadLogoGrayscaleBase64() {
+    if (_cachedLogoGrayscaleBase64) return Promise.resolve(_cachedLogoGrayscaleBase64);
+
+    return new Promise((resolve) => {
+        loadLogoAsBase64().then((base64) => {
+            if (!base64) return resolve(null);
+
+            try {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (data[i + 3] === 0) continue; // skip pixel transparan
+                            const gray = (data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114);
+                            data[i] = gray;
+                            data[i + 1] = gray;
+                            data[i + 2] = gray;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+
+                        const grayBase64 = canvas.toDataURL('image/png');
+                        _cachedLogoGrayscaleBase64 = grayBase64;
+                        resolve(grayBase64);
+                    } catch (e) {
+                        console.error("Gagal konversi logo ke grayscale:", e);
+                        resolve(base64); // fallback ke logo asli
+                    }
+                };
+                img.onerror = () => {
+                    console.error("Gagal load image untuk grayscale conversion");
+                    resolve(base64);
+                };
+                img.src = base64;
+            } catch (e) {
+                console.error("Gagal konversi logo ke grayscale:", e);
+                resolve(base64);
+            }
+        });
     });
 }
 
@@ -7166,8 +7220,11 @@ async function downloadKartuSiswaBulk() {
         didOpen: () => Swal.showLoading()
     });
 
-    // Load logo dulu sebelum mulai render kartu
-    const logoBase64 = await loadLogoAsBase64();
+    // Load logo dulu sebelum mulai render kartu (versi warna untuk header, versi grayscale untuk watermark)
+    const [logoBase64, logoWatermarkBase64] = await Promise.all([
+        loadLogoAsBase64(),
+        loadLogoGrayscaleBase64()
+    ]);
 
     setTimeout(async () => {
         try {
@@ -7176,11 +7233,13 @@ async function downloadKartuSiswaBulk() {
 
             const pageWidth = 210;
             const pageHeight = 297;
-            const cardWidth = 86;
-            const cardHeight = 54;
 
-            const gapX = 10;
-            const gapY = 10;
+            // Ukuran kartu diperbesar dari 86x54 -> 92x60 (tetap 2 kolom x 4 baris per halaman A4)
+            const cardWidth = 92;
+            const cardHeight = 60;
+
+            const gapX = 8;
+            const gapY = 6;
 
             const marginX = (pageWidth - ((cardWidth * 2) + gapX)) / 2;
             const marginY = (pageHeight - ((cardHeight * 4) + (gapY * 3))) / 2;
@@ -7206,6 +7265,22 @@ async function downloadKartuSiswaBulk() {
                 doc.setDrawColor(200, 200, 200);
                 doc.setFillColor(255, 255, 255);
                 doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'FD');
+
+                // 1b. WATERMARK LOGO (grayscale, transparan, di tengah kartu, di belakang teks detail)
+                if (logoWatermarkBase64) {
+                    try {
+                        const wmSize = cardHeight * 0.75; // proporsional terhadap tinggi kartu
+                        const wmX = x + (cardWidth / 2) - (wmSize / 2);
+                        const wmY = y + (cardHeight / 2) - (wmSize / 2);
+
+                        doc.saveGraphicsState();
+                        doc.setGState(new doc.GState({ opacity: 0.10 }));
+                        doc.addImage(logoWatermarkBase64, 'PNG', wmX, wmY, wmSize, wmSize);
+                        doc.restoreGraphicsState();
+                    } catch (e) {
+                        console.error("Gagal menambahkan watermark logo:", e);
+                    }
+                }
 
                 // 2. HEADER UTAMA (Hijau muda senada dengan warna logo)
                 const headerHeight = 14;
@@ -7270,9 +7345,9 @@ async function downloadKartuSiswaBulk() {
                 }
 
                 // 3. QR CODE
-                const qrSize = 22;
-                const qrX = x + 8;
-                const qrY = y + 22;
+                const qrSize = 24;
+                const qrX = x + 9;
+                const qrY = y + 24;
 
                 tempDiv.innerHTML = '';
 
@@ -7300,52 +7375,52 @@ async function downloadKartuSiswaBulk() {
                 doc.text("Scan untuk Absensi", qrX + (qrSize / 2), qrY + qrSize + 3, { align: 'center' });
 
                 // 4. DATA SISWA
-                const textX = x + 36;
+                const textX = x + 39;
 
                 // NAMA (font size otomatis mengecil kalau nama panjang, tanpa dipotong)
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
                 let namaCetak = (s.nama || "").toUpperCase();
-                let namaFontSize = 10;
+                let namaFontSize = 11;
                 if (namaCetak.length > 26) {
-                    namaFontSize = 7;
-                } else if (namaCetak.length > 22) {
                     namaFontSize = 8;
-                } else if (namaCetak.length > 18) {
+                } else if (namaCetak.length > 22) {
                     namaFontSize = 9;
+                } else if (namaCetak.length > 18) {
+                    namaFontSize = 10;
                 }
                 doc.setFontSize(namaFontSize);
-                doc.text(namaCetak, textX, y + 26);
+                doc.text(namaCetak, textX, y + 28);
 
                 doc.setDrawColor(226, 232, 240);
-                doc.line(textX, y + 28, x + cardWidth - 5, y + 28);
+                doc.line(textX, y + 31, x + cardWidth - 5, y + 31);
 
-                doc.setFontSize(8);
+                doc.setFontSize(8.5);
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
-                doc.text("NISN      :", textX, y + 34);
+                doc.text("NISN      :", textX, y + 38);
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
-                doc.text(cleanNisn, textX + 14, y + 34);
+                doc.text(cleanNisn, textX + 15, y + 38);
 
                 // ALAMAT (split per koma, maksimal 3 baris, auto-shrink font)
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
-                doc.setFontSize(8);
-                doc.text("Alamat   :", textX, y + 40);
+                doc.setFontSize(8.5);
+                doc.text("Alamat   :", textX, y + 45);
 
-                const alamatMaxWidth = (x + cardWidth - 5) - (textX + 14);
+                const alamatMaxWidth = (x + cardWidth - 5) - (textX + 15);
                 const { lines: alamatLines, fontSize: alamatFontSize } = formatAlamatAutoShrink(
                     doc,
                     getAlamat(s),
                     alamatMaxWidth,
-                    { maxLines: 3, startFontSize: 7, minFontSize: 4, step: 0.25 }
+                    { maxLines: 3, startFontSize: 7.5, minFontSize: 4, step: 0.25 }
                 );
 
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(alamatFontSize);
                 doc.setTextColor(15, 23, 42);
-                doc.text(alamatLines, textX + 14, y + 40, { lineHeightFactor: 1.15 });
+                doc.text(alamatLines, textX + 15, y + 45, { lineHeightFactor: 1.15 });
 
                 // GRID LOGIC
                 col++;
@@ -7384,7 +7459,6 @@ async function downloadKartuSiswaBulk() {
         }
     }, 500);
 }
-
     function deleteGuruConfirm(username) {
         if (confirm(`Hapus akses untuk guru: ${username}?`)) {
             showLoading(); // Tampilkan overlay loading
