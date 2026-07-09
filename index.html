@@ -7026,14 +7026,18 @@ function processImportLibur(data, inputElement) {
     }
 
 // ====================================
-// FITUR DOWNLOAD KARTU MASSAL (BULK) - LOGO DARI SERVER (Google Apps Script)
+// FITUR DOWNLOAD KARTU MASSAL (BULK) - LOGO DARI URL (Google Drive)
 // ====================================
 //
-// CATATAN:
-// - Hanya SATU logo yang dipakai (dari getLogoBase64 di server GAS),
-//   dipakai untuk HEADER dan untuk WATERMARK (versi grayscale).
-// - Header solid satu warna (hijau emerald pekat), tanpa efek glassmorphism.
-// - Logo tidak pakai backing lingkaran putih — langsung di atas background hijau.
+// CARA SETUP:
+// 1. Upload logo ke Google Drive, set sharing "Anyone with the link".
+// 2. Ambil FILE_ID dari URL Drive (contoh: https://drive.google.com/file/d/FILE_ID/view)
+// 3. Isi LOGO_URL di bawah ini.
+//
+// CATATAN: Google Drive kadang memblokir hotlink langsung dari fetch() karena CORS.
+// Kalau gagal, alternatif paling stabil adalah host logo di Google Apps Script sendiri
+// via HostingService / atau upload ke ImgBB / GitHub (raw.githubusercontent.com) yang
+// support CORS dengan baik.
 
 // Cache logo base64 supaya tidak panggil server berulang setiap generate PDF
 let _cachedLogoBase64 = null;
@@ -7166,7 +7170,7 @@ async function downloadKartuSiswaBulk() {
         didOpen: () => Swal.showLoading()
     });
 
-    // Load logo (versi asli untuk header, versi grayscale untuk watermark)
+    // Load logo dulu sebelum mulai render kartu (versi warna untuk header, versi grayscale untuk watermark)
     const [logoBase64, logoWatermarkBase64] = await Promise.all([
         loadLogoAsBase64(),
         loadLogoGrayscaleBase64()
@@ -7180,7 +7184,7 @@ async function downloadKartuSiswaBulk() {
             const pageWidth = 210;
             const pageHeight = 297;
 
-            // Ukuran kartu 92x60 (2 kolom x 4 baris per halaman A4)
+            // Ukuran kartu diperbesar dari 86x54 -> 92x60 (tetap 2 kolom x 4 baris per halaman A4)
             const cardWidth = 92;
             const cardHeight = 60;
 
@@ -7201,10 +7205,10 @@ async function downloadKartuSiswaBulk() {
             tempDiv.style.top = '-9999px';
             document.body.appendChild(tempDiv);
 
-            // Konstanta layout header — dipakai bersama oleh watermark, header, dan blok judul
+            // Konstanta header dipakai bersama oleh watermark & header itu sendiri
+            // supaya watermark selalu dijamin berhenti tepat di bawah garis aksen emas.
             const headerHeight = 14;
             const accentHeight = 1;
-            const titleBlockHeight = 8; // ruang untuk "KARTU TANDA SANTRI" + garis emas kecil di bawah header
 
             for (let i = 0; i < dataToPrint.length; i++) {
                 const s = dataToPrint[i];
@@ -7217,12 +7221,14 @@ async function downloadKartuSiswaBulk() {
                 doc.setFillColor(255, 255, 255);
                 doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'FD');
 
-                // 1b. WATERMARK LOGO (grayscale, transparan, di bawah header + blok judul)
+                // 1b. WATERMARK LOGO (grayscale, transparan, DI BAWAH HEADER, tidak menyentuh header)
                 if (logoWatermarkBase64) {
                     try {
-                        const bodyTop = y + headerHeight + accentHeight + titleBlockHeight;
-                        const bodyHeight = cardHeight - headerHeight - accentHeight - titleBlockHeight;
+                        const bodyTop = y + headerHeight + accentHeight;
+                        const bodyHeight = cardHeight - headerHeight - accentHeight;
 
+                        // Diperkecil: 65% dari tinggi area body (bukan tinggi kartu penuh),
+                        // dan dipusatkan di area body saja supaya tidak pernah mengenai header.
                         const wmSize = bodyHeight * 0.65;
                         const wmX = x + (cardWidth / 2) - (wmSize / 2);
                         const wmY = bodyTop + (bodyHeight / 2) - (wmSize / 2);
@@ -7236,12 +7242,12 @@ async function downloadKartuSiswaBulk() {
                     }
                 }
 
-                // 2. HEADER UTAMA — HIJAU PREMIUM, SOLID, SATU WARNA (tanpa efek kaca)
-                doc.setFillColor(4, 46, 37); // hijau emerald tua pekat
+                // 2. HEADER UTAMA (Hijau muda senada dengan warna logo)
+                doc.setFillColor(6, 78, 59);
                 doc.rect(x, y, cardWidth, headerHeight, 'F');
 
-                // 2b. LOGO — langsung di atas hijau, TANPA backing lingkaran putih
-                const logoSize = 12;
+                // 2b. LOGO (langsung tanpa backing lingkaran putih)
+                const logoSize = 10;
                 const logoPadding = 5;
                 const logoCenterX = x + logoPadding + (logoSize / 2);
                 const logoCenterY = y + (headerHeight / 2);
@@ -7261,35 +7267,27 @@ async function downloadKartuSiswaBulk() {
                     }
                 }
 
-                // 3. TEKS HEADER — 3 baris: Yayasan, Madrasah, Alamat pesantren
+                // 3. TEKS HEADER
                 const headerTextCenterX = x + (cardWidth / 2) + (logoSize / 2) - 1;
 
                 doc.setTextColor(255, 255, 255);
-
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.text("YAYASAN MANBA'UL HUDA", headerTextCenterX, y + 4.5, { align: 'center' });
+                doc.setFontSize(10);
+                doc.text("KARTU TANDA PELAJAR", headerTextCenterX, y + 5, { align: 'center' });
 
-                doc.setFont("helvetica", "bold");
                 doc.setFontSize(7);
+                doc.setFont("helvetica", "bold");
                 doc.text("Madrasah Mu'allimin Mu'allimat Manba'ul Huda", headerTextCenterX, y + 8, { align: 'center' });
 
+                doc.setFontSize(5.5);
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(6);
-                doc.text("Pondok Pesantren Sidaraja, Ciawigebang, Kuningan", headerTextCenterX, y + 11.2, { align: 'center' });
+                doc.text("Pondok Pesantren Sidaraja, Ciawigebang, Kuningan", headerTextCenterX, y + 10.6, { align: 'center' });
 
                 // 4. GARIS AKSEN EMAS
                 doc.setFillColor(245, 158, 11);
                 doc.rect(x, y + headerHeight, cardWidth, accentHeight, 'F');
 
-                // 4c. JUDUL KARTU — dipindah ke BAWAH header, di badan kartu
-                doc.setTextColor(4, 46, 37);
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(12);
-                doc.text("KARTU TANDA SANTRI", x + (cardWidth / 4), y + headerHeight + accentHeight + 4.5, { align: 'center' });
-                );
-
-                // 4d. ORNAMEN ISLAMI (motif geometris kecil, garis tepi bawah kartu)
+                // 4b. ORNAMEN ISLAMI (motif geometris kecil, garis tepi bawah kartu)
                 doc.setDrawColor(245, 158, 11);
                 doc.setLineWidth(0.15);
                 const ornamentY = y + cardHeight - 3;
@@ -7297,6 +7295,7 @@ async function downloadKartuSiswaBulk() {
                 const ornamentEndX = x + cardWidth - 4;
                 const ornamentStep = 4;
                 for (let ox = ornamentStartX; ox < ornamentEndX; ox += ornamentStep) {
+                    // motif belah ketupat kecil berulang (khas geometri islami)
                     doc.lines(
                         [[1, -1], [1, 1], [-1, 1], [-1, -1]],
                         ox, ornamentY,
@@ -7304,10 +7303,10 @@ async function downloadKartuSiswaBulk() {
                     );
                 }
 
-                // 5. QR CODE — digeser turun untuk kasih ruang blok judul "KARTU TANDA SANTRI"
-                const qrSize = 22;
+                // 3. QR CODE
+                const qrSize = 24;
                 const qrX = x + 9;
-                const qrY = y + 28;
+                const qrY = y + 24;
 
                 tempDiv.innerHTML = '';
 
@@ -7334,7 +7333,7 @@ async function downloadKartuSiswaBulk() {
                 doc.setTextColor(100, 116, 139);
                 doc.text("Scan untuk Absensi", qrX + (qrSize / 2), qrY + qrSize + 3, { align: 'center' });
 
-                // 6. DATA SISWA
+                // 4. DATA SISWA
                 const textX = x + 39;
 
                 // NAMA (font size otomatis mengecil kalau nama panjang, tanpa dipotong)
@@ -7350,24 +7349,24 @@ async function downloadKartuSiswaBulk() {
                     namaFontSize = 10;
                 }
                 doc.setFontSize(namaFontSize);
-                doc.text(namaCetak, textX, y + 30);
+                doc.text(namaCetak, textX, y + 28);
 
                 doc.setDrawColor(226, 232, 240);
-                doc.line(textX, y + 33, x + cardWidth - 5, y + 33);
+                doc.line(textX, y + 31, x + cardWidth - 5, y + 31);
 
                 doc.setFontSize(8.5);
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
-                doc.text("NISN      :", textX, y + 40);
+                doc.text("NISN      :", textX, y + 38);
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
-                doc.text(cleanNisn, textX + 15, y + 40);
+                doc.text(cleanNisn, textX + 15, y + 38);
 
                 // KELAS (menggantikan Alamat — single line, auto-shrink ringan kalau perlu)
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
                 doc.setFontSize(8.5);
-                doc.text("Kelas     :", textX, y + 47);
+                doc.text("Kelas     :", textX, y + 45);
 
                 const kelasMaxWidth = (x + cardWidth - 5) - (textX + 15);
                 const kelasValue = getKelas(s) || "-";
@@ -7381,7 +7380,7 @@ async function downloadKartuSiswaBulk() {
                 }
 
                 doc.setTextColor(15, 23, 42);
-                doc.text(kelasValue, textX + 15, y + 47);
+                doc.text(kelasValue, textX + 15, y + 45);
 
                 // GRID LOGIC
                 col++;
