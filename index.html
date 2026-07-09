@@ -7241,7 +7241,7 @@ async function downloadKartuSiswaBulk() {
                 doc.rect(x, y, cardWidth, headerHeight, 'F');
 
                 // 2b. LOGO — langsung di atas hijau, TANPA backing lingkaran putih
-                const logoSize = 10;
+                const logoSize = 12;
                 const logoPadding = 5;
                 const logoCenterX = x + logoPadding + (logoSize / 2);
                 const logoCenterY = y + (headerHeight / 2);
@@ -7267,15 +7267,15 @@ async function downloadKartuSiswaBulk() {
                 doc.setTextColor(255, 255, 255);
 
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(7.5);
+                doc.setFontSize(9);
                 doc.text("YAYASAN MANBA'UL HUDA", headerTextCenterX, y + 4.5, { align: 'center' });
 
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(6);
+                doc.setFontSize(7);
                 doc.text("Madrasah Mu'allimin Mu'allimat Manba'ul Huda", headerTextCenterX, y + 8, { align: 'center' });
 
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(5);
+                doc.setFontSize(6);
                 doc.text("Pondok Pesantren Sidaraja, Ciawigebang, Kuningan", headerTextCenterX, y + 11.2, { align: 'center' });
 
                 // 4. GARIS AKSEN EMAS
@@ -7285,14 +7285,8 @@ async function downloadKartuSiswaBulk() {
                 // 4c. JUDUL KARTU — dipindah ke BAWAH header, di badan kartu
                 doc.setTextColor(4, 46, 37);
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.text("KARTU TANDA SANTRI", x + (cardWidth / 2), y + headerHeight + accentHeight + 4.5, { align: 'center' });
-
-                doc.setDrawColor(245, 158, 11);
-                doc.setLineWidth(0.2);
-                doc.line(
-                    x + (cardWidth / 2) - 16, y + headerHeight + accentHeight + 6,
-                    x + (cardWidth / 2) + 16, y + headerHeight + accentHeight + 6
+                doc.setFontSize(12);
+                doc.text("KARTU TANDA SANTRI", x + (cardWidth / 4), y + headerHeight + accentHeight + 4.5, { align: 'center' });
                 );
 
                 // 4d. ORNAMEN ISLAMI (motif geometris kecil, garis tepi bawah kartu)
