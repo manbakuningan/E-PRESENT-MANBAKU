@@ -7055,6 +7055,67 @@ function loadLogoAsBase64() {
     });
 }
 
+// ====================================
+// HELPER: Ambil field alamat dengan fallback berbagai kemungkinan nama key
+// (mengantisipasi header sheet yang tidak konsisten / beda kapitalisasi)
+// ====================================
+function getAlamat(s) {
+    const raw = s.alamat || s.Alamat || s.ALAMAT || s.address || s.Address || null;
+    if (!raw) return null;
+    const trimmed = String(raw).trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+
+// ====================================
+// HELPER: Format alamat jadi maksimal 3 baris (split by koma) + auto-shrink font
+// Struktur alamat selalu: "Ds/Kel, Kec, Kabupaten"
+// ====================================
+function formatAlamatAutoShrink(doc, alamat, maxWidth, options = {}) {
+    const {
+        maxLines = 3,
+        startFontSize = 7,
+        minFontSize = 4,
+        step = 0.25,
+        font = "helvetica",
+        fontStyle = "bold"
+    } = options;
+
+    const text = alamat || "-";
+    let parts = text.split(",").map(p => p.trim()).filter(p => p.length > 0);
+
+    // Kalau bagian koma lebih banyak dari maxLines, gabungkan sisanya ke baris terakhir
+    if (parts.length > maxLines) {
+        const head = parts.slice(0, maxLines - 1);
+        const tail = parts.slice(maxLines - 1).join(", ");
+        parts = [...head, tail];
+    }
+    if (parts.length === 0) parts = ["-"];
+
+    doc.setFont(font, fontStyle);
+
+    // Cari font size terbesar yang muat untuk SEMUA baris
+    let fontSize = startFontSize;
+    while (fontSize > minFontSize) {
+        doc.setFontSize(fontSize);
+        const allFit = parts.every(line => doc.getTextWidth(line) <= maxWidth);
+        if (allFit) break;
+        fontSize -= step;
+    }
+    doc.setFontSize(fontSize);
+
+    // Fallback: kalau di font minimum masih kepanjangan, potong dengan "..."
+    parts = parts.map(line => {
+        if (doc.getTextWidth(line) <= maxWidth) return line;
+        let truncated = line;
+        while (doc.getTextWidth(truncated + "...") > maxWidth && truncated.length > 0) {
+            truncated = truncated.slice(0, -1);
+        }
+        return truncated + "...";
+    });
+
+    return { lines: parts, fontSize };
+}
+
 async function downloadKartuSiswaBulk() {
     // 1. Cek Filter & Data
     const filterKelas = document.getElementById('filterKelasSiswa').value;
@@ -7075,6 +7136,16 @@ async function downloadKartuSiswaBulk() {
         showAlert('error', 'Tidak ada siswa ditemukan.');
         return;
     }
+
+    // ===== VALIDASI DATA SEBELUM CETAK (debug alamat kosong) =====
+    const kosongAlamat = dataToPrint.filter(s => !getAlamat(s));
+    if (kosongAlamat.length > 0) {
+        console.warn(
+            `⚠️ ${kosongAlamat.length} dari ${dataToPrint.length} siswa memiliki alamat kosong:`,
+            kosongAlamat.map(s => `${s.nama || '(tanpa nama)'} - NISN: ${s.nisn || '-'}`)
+        );
+    }
+    // ================================================================
 
     // Konfirmasi
     const result = await Swal.fire({
@@ -7198,7 +7269,6 @@ async function downloadKartuSiswaBulk() {
                     );
                 }
 
-
                 // 3. QR CODE
                 const qrSize = 22;
                 const qrX = x + 8;
@@ -7258,15 +7328,23 @@ async function downloadKartuSiswaBulk() {
                 doc.setTextColor(15, 23, 42);
                 doc.text(cleanNisn, textX + 14, y + 34);
 
+                // ALAMAT (split per koma, maksimal 3 baris, auto-shrink font)
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
                 doc.setFontSize(8);
                 doc.text("Alamat   :", textX, y + 40);
-                doc.setFont("helvetica", "bold");
-                doc.setTextColor(15, 23, 42);
-                doc.setFontSize(7);
+
                 const alamatMaxWidth = (x + cardWidth - 5) - (textX + 14);
-                const alamatLines = doc.splitTextToSize((s.alamat || "-"), alamatMaxWidth);
+                const { lines: alamatLines, fontSize: alamatFontSize } = formatAlamatAutoShrink(
+                    doc,
+                    getAlamat(s),
+                    alamatMaxWidth,
+                    { maxLines: 3, startFontSize: 7, minFontSize: 4, step: 0.25 }
+                );
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(alamatFontSize);
+                doc.setTextColor(15, 23, 42);
                 doc.text(alamatLines, textX + 14, y + 40, { lineHeightFactor: 1.15 });
 
                 // GRID LOGIC
