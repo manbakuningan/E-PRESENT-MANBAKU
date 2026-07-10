@@ -3513,6 +3513,8 @@ function dhPlayBeep(type = 'success') {
 
 var dhLastScannedNisn = null;
 
+var dhLastScannedNisn = null;
+
 function dhOnScanResult(rawNisn) {
     const nisn = String(rawNisn).replace(/[^a-zA-Z0-9]/g,'').trim();
     const notif = document.getElementById('dhScanNotif');
@@ -3521,6 +3523,7 @@ function dhOnScanResult(rawNisn) {
     const siswa = dhStudents.find(s => s.nisn === nisn);
     if (!siswa) {
         dhPlayBeep('error');
+        showBigScanPopup({ type: 'error', customMsg: 'NISN [' + nisn + '] tidak ada di kelas ini' });
         notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
         notif.textContent = '❌ NISN [' + nisn + '] tidak ada di kelas ini';
         notif.classList.remove('hidden');
@@ -3540,6 +3543,7 @@ function dhOnScanResult(rawNisn) {
         dhPlayBeep('error');
         const lockedObj = dhLockedMap[nisn];
         const st = (lockedObj && typeof lockedObj === 'object') ? lockedObj.status : String(lockedObj);
+        showBigScanPopup({ type: 'error', nama: siswa.nama, customMsg: siswa.nama + ' sudah absen (' + st + ')' });
         notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-yellow-50 text-yellow-700 border border-yellow-100';
         notif.textContent = '🔒 ' + siswa.nama + ' sudah absen (' + st.charAt(0).toUpperCase() + st.slice(1) + ')';
         notif.classList.remove('hidden');
@@ -3549,6 +3553,7 @@ function dhOnScanResult(rawNisn) {
     dhLastScannedNisn = nisn;
     dhStatusMap[nisn] = 'hadir';
     dhPlayBeep('success');
+    showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk' });
     dhRenderStudentTable();
 
     notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
@@ -3560,6 +3565,7 @@ function dhOnScanResult(rawNisn) {
     if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// -- Handler scan pulang --
 // -- Handler scan pulang --
 function dhOnPulangResult(nisn, nama) {
     const notif  = document.getElementById('dhScanNotif');
@@ -3580,6 +3586,7 @@ function dhOnPulangResult(nisn, nama) {
     const d = dhPulangMap[nisn];
     if (d && d.jamPulang && d.jamPulang.trim()) {
         dhPlayBeep('error');
+        showBigScanPopup({ type: 'error', nama: nama, customMsg: (nama||nisn) + ' sudah pulang (' + d.jamPulang + ')' });
         notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-yellow-50 text-yellow-700 border border-yellow-100';
         notif.textContent = '⚠️ ' + (nama||nisn) + ' sudah pulang (' + d.jamPulang + ')';
         notif.classList.remove('hidden');
@@ -3594,6 +3601,7 @@ function dhOnPulangResult(nisn, nama) {
     callGAS('submitPulangSatu', nisn, kelas, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru').then(res => {
             if (res.success) {
                 dhPlayBeep('success');
+                showBigScanPopup({ type: 'success', nama: res.nama, mode: 'pulang' });
                 notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
                 notif.textContent = '✅ ' + res.nama + ' pulang — ' + res.jamPulang;
                 // Update lokal agar baris langsung berubah tanpa reload penuh
@@ -3610,6 +3618,7 @@ function dhOnPulangResult(nisn, nama) {
                 }
             } else {
                 dhPlayBeep('error');
+                showBigScanPopup({ type: 'error', nama: nama, customMsg: res.message });
                 notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
                 notif.textContent = '❌ ' + res.message;
                 if (dhCameraPopup && !dhCameraPopup.closed) {
@@ -3619,6 +3628,7 @@ function dhOnPulangResult(nisn, nama) {
             setTimeout(() => notif.classList.add('hidden'), 3000);
         }).catch(err => {
             dhPlayBeep('error');
+            showBigScanPopup({ type: 'error', customMsg: String(err) });
             notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
             notif.textContent = '❌ Error: ' + String(err);
             setTimeout(() => notif.classList.add('hidden'), 3000);
@@ -5424,11 +5434,13 @@ function onScanSuccess(decodedText) {
         isScanning = false;
         if (found) {
             addToScanQueue({ nisn: key, nama: found.nama, kelas: found.kelas });
+            showBigScanPopup({ type: 'success', nama: found.nama });
             if (cameraPopup && !cameraPopup.closed) {
                 try { cameraPopup.postMessage({ type: 'SCAN_SUCCESS', nama: found.nama, kelas: found.kelas }, '*'); } catch(e) {}
             }
         } else {
             showAlert('error', 'NISN [' + key + '] tidak terdaftar');
+            showBigScanPopup({ type: 'error', customMsg: 'NISN tidak terdaftar' });
             if (cameraPopup && !cameraPopup.closed) {
                 try { cameraPopup.postMessage({ type: 'SCAN_ERROR', message: 'NISN tidak terdaftar' }, '*'); } catch(e) {}
             }
@@ -5439,11 +5451,13 @@ function onScanSuccess(decodedText) {
                 isScanning = false;
                 if (result.success) {
                     addToScanQueue({ nisn: key, nama: result.nama, kelas: result.kelas });
+                    showBigScanPopup({ type: 'success', nama: result.nama });
                     if (cameraPopup && !cameraPopup.closed) {
                         try { cameraPopup.postMessage({ type: 'SCAN_SUCCESS', nama: result.nama, kelas: result.kelas }, '*'); } catch(e) {}
                     }
                 } else {
                     showAlert('error', result.message || 'NISN tidak ditemukan');
+                    showBigScanPopup({ type: 'error', customMsg: result.message || 'NISN tidak ditemukan' });
                     if (cameraPopup && !cameraPopup.closed) {
                         try { cameraPopup.postMessage({ type: 'SCAN_ERROR', message: result.message || 'NISN tidak ditemukan' }, '*'); } catch(e) {}
                     }
@@ -5451,6 +5465,7 @@ function onScanSuccess(decodedText) {
             }).catch(err => {
                 isScanning = false;
                 showAlert('error', 'Error lookup: ' + (err.message || String(err)));
+                showBigScanPopup({ type: 'error', customMsg: String(err.message || err) });
             });
     }
 }
@@ -7893,7 +7908,81 @@ function handleArchiveAndReset() {
       XLSX.utils.book_append_sheet(wb, ws, 'Rekap Sholat');
       XLSX.writeFile(wb, `Rekap_Sholat_${document.getElementById('sholatRekapBulan').value || 'semua'}.xlsx`);
     }
-
+    // ==========================================================================
+    // POPUP BESAR + SUARA HASIL SCAN
+    // ==========================================================================
+    function speakScan(text) {
+        try {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'en-US';
+            utter.rate = 0.95;
+            utter.pitch = 1;
+            window.speechSynthesis.speak(utter);
+        } catch (e) { console.warn('TTS gagal:', e); }
+    }
+    
+    function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg = '' }) {
+        const old = document.getElementById('bigScanPopup');
+        if (old) old.remove();
+    
+        const isSuccess = type === 'success';
+        const bg = isSuccess
+            ? 'linear-gradient(135deg,#059669,#10b981)'
+            : 'linear-gradient(135deg,#dc2626,#ef4444)';
+        const icon = isSuccess ? '✅' : '❌';
+    
+        let title, sub;
+        if (isSuccess) {
+            title = mode === 'pulang' ? 'ABSEN PULANG BERHASIL' : 'ABSEN MASUK BERHASIL';
+            sub = nama ? `Selamat ${mode === 'pulang' ? 'jalan' : 'datang'}, ${nama}!` : '';
+        } else {
+            title = 'SCAN GAGAL';
+            sub = customMsg || (nama ? `${nama}` : 'Periksa kembali QR / NISN');
+        }
+    
+        const el = document.createElement('div');
+        el.id = 'bigScanPopup';
+        el.style.cssText = `
+            position:fixed; top:0; left:0; right:0; z-index:99999;
+            display:flex; justify-content:center; padding-top:24px;
+            pointer-events:none; animation:bigScanIn .35s cubic-bezier(.34,1.56,.64,1);
+        `;
+        el.innerHTML = `
+            <div style="background:${bg};color:#fff;padding:22px 40px;border-radius:22px;
+                box-shadow:0 20px 50px rgba(0,0,0,.35);display:flex;align-items:center;gap:16px;
+                min-width:320px;max-width:90vw;">
+                <div style="font-size:42px;line-height:1;">${icon}</div>
+                <div>
+                    <div style="font-size:20px;font-weight:800;letter-spacing:.5px;">${title}</div>
+                    <div style="font-size:15px;opacity:.95;font-weight:700;margin-top:2px;">${sub}</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(el);
+    
+        if (isSuccess) {
+            if (mode === 'masuk') speakScan(nama ? `Good morning, ${nama}` : 'Good morning, student');
+            else if (mode === 'pulang') speakScan(nama ? `Good bye, ${nama}` : 'Good bye, student');
+            else speakScan(nama ? `Absensi berhasil, ${nama}` : 'Absensi berhasil');
+        } else {
+            speakScan(customMsg ? `Scan failed. ${customMsg}` : 'Scan failed');
+        }
+    
+        setTimeout(() => {
+            el.style.animation = 'bigScanOut .3s ease forwards';
+            setTimeout(() => el.remove(), 300);
+        }, 2400);
+    }
+    
+    const bigScanStyle = document.createElement('style');
+    bigScanStyle.textContent = `
+    @keyframes bigScanIn { from{opacity:0; transform:translateY(-30px) scale(.9);} to{opacity:1; transform:translateY(0) scale(1);} }
+    @keyframes bigScanOut { from{opacity:1; transform:translateY(0) scale(1);} to{opacity:0; transform:translateY(-20px) scale(.9);} }
+    `;
+    document.head.appendChild(bigScanStyle);
+  
     checkSession();
 </script>
 </body>
