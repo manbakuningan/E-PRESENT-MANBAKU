@@ -2014,6 +2014,115 @@
                   <div id="kartuSiswaContainer"></div>
               </div>
 
+            <!-- ====================================================== -->
+            <!-- VIEW: ABSENSI GURU (Scan + Monitoring)                 -->
+            <!-- ====================================================== -->
+            <div id="view-absensi-guru" class="view-section animate-fade-in hidden">
+              <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-3">
+                <div>
+                  <h2 class="text-2xl font-bold text-gray-800 tracking-tight flex items-center gap-2">
+                    <i class="fas fa-user-tie text-amber-600"></i> Absensi Guru
+                  </h2>
+                  <p class="text-sm text-gray-500 mt-1">Scan QR NIP guru untuk absen masuk/pulang.</p>
+                </div>
+                <button onclick="loadMonitoringGuru()" class="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-4 py-2 rounded-lg hover:bg-amber-100 transition">
+                  <i class="fas fa-chart-bar"></i> Lihat Monitoring
+                </button>
+              </div>
+            
+              <div id="guruScanSection">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+            
+                  <div class="lg:col-span-2 space-y-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div class="bg-gradient-to-r from-amber-600 to-orange-600 p-4 text-white text-center">
+                        <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <i class="fas fa-qrcode text-xl"></i>
+                        </div>
+                        <h3 class="font-bold text-sm">Scan QR Guru</h3>
+                        <p class="text-amber-100 text-[10px] mt-0.5">Scan otomatis deteksi Masuk/Pulang</p>
+                      </div>
+                      <div class="p-4 space-y-3">
+                        <button onclick="openCameraPopupGuru()" class="w-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white py-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-md">
+                          <i class="fas fa-video text-lg"></i> Buka Kamera Live
+                        </button>
+                        <div class="flex items-center gap-3"><div class="flex-1 h-px bg-gray-200"></div><span class="text-[10px] text-gray-400 font-bold uppercase">atau</span><div class="flex-1 h-px bg-gray-200"></div></div>
+                        <div>
+                          <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Input NIP Manual</label>
+                          <div class="flex gap-2">
+                            <input type="text" id="manualNipGuru" placeholder="Ketik NIP guru..."
+                              class="flex-1 border border-gray-200 bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-amber-400 outline-none transition"
+                              onkeydown="if(event.key==='Enter') submitManualNipGuru()">
+                            <button onclick="submitManualNipGuru()" class="bg-gray-900 hover:bg-black text-white px-4 py-3 rounded-xl text-sm font-bold transition"><i class="fas fa-check"></i></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+            
+                  <div class="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col" style="max-height: 70vh;">
+                    <div class="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white flex items-center justify-between shrink-0">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center"><i class="fas fa-list-check text-sm"></i></div>
+                        <h3 class="font-bold text-sm">Riwayat Scan Sesi Ini</h3>
+                      </div>
+                      <span id="guruScanCountBadge" class="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">0 Scan</span>
+                    </div>
+                    <div class="overflow-y-auto flex-1">
+                      <table class="w-full text-sm">
+                        <thead class="sticky top-0 z-10 bg-gray-50 border-b-2 border-gray-100">
+                          <tr>
+                            <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase w-8">#</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Guru</th>
+                            <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">Jenis</th>
+                            <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">Jam</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tbody-scan-guru">
+                          <tr id="guru-scan-empty-row">
+                            <td colspan="4" class="py-16 text-center">
+                              <div class="flex flex-col items-center gap-3">
+                                <i class="fas fa-user-tie text-5xl text-gray-200"></i>
+                                <p class="font-semibold text-sm text-gray-400">Belum ada scan</p>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            
+              <div id="guruMonitoringSection" class="hidden">
+                <div class="flex items-center gap-3 mb-4">
+                  <button onclick="showGuruScanSection()" class="flex items-center gap-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition">
+                    <i class="fas fa-arrow-left"></i> Kembali Scan
+                  </button>
+                  <h3 class="font-bold text-gray-700 text-sm">Monitoring Absensi Guru Hari Ini</h3>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-semibold">
+                      <tr>
+                        <th class="p-3 text-center w-10">No</th>
+                        <th class="p-3">NIP</th>
+                        <th class="p-3">Nama</th>
+                        <th class="p-3 text-center">Jam Datang</th>
+                        <th class="p-3 text-center">Jam Pulang</th>
+                        <th class="p-3 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-monitoring-guru"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            
+            <div id="view-kartu-guru" class="view-section animate-fade-in hidden">
+                <div id="kartuGuruContainer"></div>
+            </div>
+            
           </div>
       </main>
   </div>
@@ -2350,6 +2459,187 @@ function processTableData(type) {
         }
     }
     // ==========================================================================
+// ABSENSI GURU
+// ==========================================================================
+let guruLocalCache = {};
+let guruLocalCacheLoaded = false;
+let guruScanCount = 0;
+let cameraPopupGuru = null;
+
+function loadAbsensiGuruMenu() {
+    setActiveMenu('Absensi Guru');
+    showView('view-absensi-guru');
+    showGuruScanSection();
+    resetGuruScanTable();
+
+    if (!guruLocalCacheLoaded) {
+        callGAS('getGuruForScanCache').then(res => {
+            if (res.success) {
+                guruLocalCache = {};
+                res.data.forEach(g => { guruLocalCache[g.nip] = { nama: g.nama }; });
+                guruLocalCacheLoaded = true;
+            }
+        }).catch(() => {});
+    }
+}
+
+function showGuruScanSection() {
+    document.getElementById('guruScanSection').classList.remove('hidden');
+    document.getElementById('guruMonitoringSection').classList.add('hidden');
+}
+
+function loadMonitoringGuru() {
+    document.getElementById('guruScanSection').classList.add('hidden');
+    document.getElementById('guruMonitoringSection').classList.remove('hidden');
+    const tbody = document.getElementById('tbody-monitoring-guru');
+    tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat...</td></tr>';
+
+    callGAS('getMonitoringGuruRealtime').then(res => {
+        if (!res.success) { tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">${res.message}</td></tr>`; return; }
+        if (res.data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400">Belum ada data guru.</td></tr>'; return; }
+        tbody.innerHTML = res.data.map((g, i) => {
+            const badge = g.status === 'Hadir'
+                ? '<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-full">✓ Hadir</span>'
+                : '<span class="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-full">Belum Absen</span>';
+            return `<tr class="border-b border-gray-50 hover:bg-gray-50">
+                <td class="p-3 text-center text-gray-400 text-xs">${i+1}</td>
+                <td class="p-3 text-xs font-mono text-gray-600">${g.nip}</td>
+                <td class="p-3 text-sm font-bold text-gray-800">${g.nama}</td>
+                <td class="p-3 text-center text-xs font-mono">${g.jamDatang}</td>
+                <td class="p-3 text-center text-xs font-mono">${g.jamPulang}</td>
+                <td class="p-3 text-center">${badge}</td>
+            </tr>`;
+        }).join('');
+    }).catch(err => showAlert('error', 'Gagal koneksi: ' + err));
+}
+
+function openCameraPopupGuru() {
+    openInlineScanner({
+        title: '&#128247; SCAN QR GURU',
+        onDetect: (text) => { onScanSuccessGuru(text); }
+    });
+}
+
+function submitManualNipGuru() {
+    const inp = document.getElementById('manualNipGuru');
+    const val = inp.value.trim();
+    if (!val) { showAlert('error', 'Masukkan NIP terlebih dahulu'); return; }
+    inp.value = '';
+    onScanSuccessGuru(val);
+}
+
+function onScanSuccessGuru(decodedText) {
+    const key = String(decodedText).replace(/[^a-zA-Z0-9]/g, '').trim();
+    if (!key) return;
+
+    const doSubmit = (nama) => {
+        callGAS('batchScanAbsensiGuru', [key]).then(res => {
+            if (res.success && res.results && res.results[0]) {
+                const r = res.results[0];
+                if (r.success) {
+                    showBigScanPopup({ type: 'success', nama: r.nama, mode: r.type === 'datang' ? 'masuk' : 'pulang' });
+                    addToGuruScanQueue(r.nama, r.type, r.jamDatang || r.jamPulang);
+                } else {
+                    showBigScanPopup({ type: 'error', nama: r.nama || '', customMsg: r.message });
+                }
+            } else {
+                showBigScanPopup({ type: 'error', customMsg: res.message || 'Gagal memproses absensi' });
+            }
+        }).catch(err => {
+            showBigScanPopup({ type: 'error', customMsg: String(err) });
+        });
+    };
+
+    if (guruLocalCacheLoaded && guruLocalCache[key]) {
+        doSubmit(guruLocalCache[key].nama);
+    } else {
+        callGAS('lookupGuruForScan', key).then(res => {
+            if (res.success) doSubmit(res.nama);
+            else showBigScanPopup({ type: 'error', customMsg: res.message || 'NIP tidak terdaftar' });
+        }).catch(err => showBigScanPopup({ type: 'error', customMsg: String(err) }));
+    }
+}
+
+function addToGuruScanQueue(nama, type, jam) {
+    const tbody = document.getElementById('tbody-scan-guru');
+    const emptyRow = document.getElementById('guru-scan-empty-row');
+    if (emptyRow) emptyRow.remove();
+
+    guruScanCount++;
+    const tr = document.createElement('tr');
+    tr.className = 'border-b border-gray-50 scan-row-highlight';
+    const badge = type === 'datang'
+        ? '<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-full">Masuk</span>'
+        : '<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full">Pulang</span>';
+    tr.innerHTML = `
+        <td class="px-3 py-3 text-center text-xs text-gray-400">${guruScanCount}</td>
+        <td class="px-4 py-3 font-bold text-sm text-gray-800">${nama}</td>
+        <td class="px-3 py-3 text-center">${badge}</td>
+        <td class="px-3 py-3 text-center text-xs font-mono text-gray-600">${jam}</td>
+    `;
+    tbody.prepend(tr);
+    document.getElementById('guruScanCountBadge').textContent = guruScanCount + ' Scan';
+    setTimeout(() => tr.classList.remove('scan-row-highlight'), 2000);
+}
+
+function resetGuruScanTable() {
+    const tbody = document.getElementById('tbody-scan-guru');
+    tbody.innerHTML = `<tr id="guru-scan-empty-row"><td colspan="4" class="py-16 text-center">
+        <div class="flex flex-col items-center gap-3">
+            <i class="fas fa-user-tie text-5xl text-gray-200"></i>
+            <p class="font-semibold text-sm text-gray-400">Belum ada scan</p>
+        </div></td></tr>`;
+    guruScanCount = 0;
+    document.getElementById('guruScanCountBadge').textContent = '0 Scan';
+}
+
+// ==========================================================================
+// KARTU TANDA PENGAJAR (Guru)
+// ==========================================================================
+function loadQRCodeGuru(nipParam, namaParam) {
+    stopAndBack(false);
+    showView('view-kartu-guru');
+
+    let rawNip = nipParam || (currentUser ? currentUser.nip : "G000");
+    const namaGuru = namaParam || (currentUser ? currentUser.nama : "Guru");
+    let cleanNip = String(rawNip).replace(/[^a-zA-Z0-9]/g, "").trim();
+
+    const container = document.getElementById('kartuGuruContainer');
+    container.innerHTML = `
+        <div class="flex justify-center items-center h-full py-12 animate-slide-up">
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-sm relative transform hover:scale-[1.02] transition duration-300">
+                <div class="bg-gradient-to-r from-amber-700 to-orange-700 p-6 text-white text-center relative">
+                    <h2 class="text-2xl font-bold tracking-tight">KARTU TANDA PENGAJAR</h2>
+                    <p class="text-xs tracking-[0.2em] uppercase opacity-80 mt-1">MANBA'UL HUDA</p>
+                </div>
+                <div class="p-8 text-center bg-gray-50">
+                    <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-200 inline-block mb-5">
+                        <div id="myQrcodeGuru"></div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-1">${namaGuru}</h3>
+                    <p class="text-amber-600 font-mono font-bold text-lg mb-3 tracking-wider">${cleanNip}</p>
+                    <span class="inline-block px-4 py-1.5 bg-gray-200 text-gray-700 rounded-full text-sm font-bold shadow-sm">Tenaga Pendidik</span>
+                </div>
+                <div class="p-5 bg-white border-t border-gray-100 flex gap-4">
+                    <button onclick="window.print()" class="flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold text-sm shadow hover:bg-black transition"><i class="fas fa-print mr-2"></i>Cetak</button>
+                    <button onclick="loadDataGuru()" class="flex-1 border border-gray-300 text-gray-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition">Tutup</button>
+                </div>
+            </div>
+        </div>`;
+
+    setTimeout(() => {
+        const qrElement = document.getElementById("myQrcodeGuru");
+        if (qrElement && cleanNip) {
+            qrElement.innerHTML = "";
+            new QRCode(qrElement, {
+                text: cleanNip, width: 160, height: 160,
+                colorDark: "#7c2d12", colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.L
+            });
+        }
+    }, 100);
+} 
+    // ==========================================================================
     // 2. SESSION MANAGEMENT
     // ==========================================================================
     function checkSession() {
@@ -2618,7 +2908,7 @@ function initDashboard() {
         menuHTML += createItem('Manajemen Kelas', 'fa-th-large', 'loadManajemenKelas()'); 
         menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
         menuHTML += createItem('Absensi Sholat', 'fa-mosque', 'loadAbsensiSholat()');
-        
+        menuHTML += createItem('Absensi Guru', 'fa-user-tie', 'loadAbsensiGuruMenu()');
         loadAdminDashboard();
     } 
     // --- MENU UNTUK GURU ---
@@ -4656,7 +4946,6 @@ function renderGuruRows(data, startIdx) {
         return;
     }
     tbody.innerHTML = data.map((guru, i) => {
-        // Render semua kelas sebagai badge terpisah
         const kelasBadges = guru.kelas
             ? String(guru.kelas).split(',').map(k => k.trim()).filter(Boolean)
                 .map(k => `<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-bold">${k}</span>`)
@@ -4665,7 +4954,10 @@ function renderGuruRows(data, startIdx) {
         return `
     <tr class="hover:bg-gray-50 transition border-b border-gray-50 group">
         <td class="p-4 text-center text-gray-500 text-sm">${startIdx + i + 1}</td>
-        <td class="p-4 text-sm font-bold text-gray-800">${guru.username}</td>
+        <td class="p-4 text-sm">
+            <div class="font-bold text-gray-800">${guru.username}</div>
+            <div class="text-[10px] text-amber-600 font-mono font-bold">${guru.nip || '-'}</div>
+        </td>
         <td class="p-4 text-sm">
             <div class="flex flex-wrap gap-1">${kelasBadges}</div>
         </td>
@@ -4673,6 +4965,7 @@ function renderGuruRows(data, startIdx) {
         <td class="p-4 text-center">
             <div class="flex justify-center space-x-2 opacity-80 group-hover:opacity-100">
                 <button onclick='editGuru(${JSON.stringify(guru)})' class="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition" title="Edit Akun"><i class="fas fa-edit"></i></button>
+                <button onclick="loadQRCodeGuru('${guru.nip}', '${guru.username}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="Kartu Pengajar"><i class="fas fa-id-card"></i></button>
                 <button onclick="deleteGuruConfirm('${guru.username}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition" title="Hapus Akun"><i class="fas fa-trash"></i></button>
             </div>
         </td>
