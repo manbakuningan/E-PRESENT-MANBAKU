@@ -2523,7 +2523,7 @@ function openCameraPopupGuru() {
 function submitManualNipGuru() {
     const inp = document.getElementById('manualNipGuru');
     const val = inp.value.trim();
-    if (!val) { showAlert('error', 'Masukkan NIP terlebih dahulu'); return; }
+    if (!val) { showAlert('error', 'Masukkan ID Guru terlebih dahulu'); return; }
     inp.value = '';
     onScanSuccessGuru(val);
 }
