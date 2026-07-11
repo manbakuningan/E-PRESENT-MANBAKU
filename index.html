@@ -2023,7 +2023,7 @@
                   <h2 class="text-2xl font-bold text-gray-800 tracking-tight flex items-center gap-2">
                     <i class="fas fa-user-tie text-amber-600"></i> Absensi Guru
                   </h2>
-                  <p class="text-sm text-gray-500 mt-1">Scan QR NIP guru untuk absen masuk/pulang.</p>
+                  <p class="text-sm text-gray-500 mt-1">Scan QR ID Guru untuk absen masuk/pulang.</p>
                 </div>
                 <button onclick="loadMonitoringGuru()" class="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-4 py-2 rounded-lg hover:bg-amber-100 transition">
                   <i class="fas fa-chart-bar"></i> Lihat Monitoring
@@ -2050,7 +2050,7 @@
                         <div>
                           <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Input NIP Manual</label>
                           <div class="flex gap-2">
-                            <input type="text" id="manualNipGuru" placeholder="Ketik NIP guru..."
+                            <input type="text" id="manualNipGuru" placeholder="Ketik ID Guru..."
                               class="flex-1 border border-gray-200 bg-gray-50 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-amber-400 outline-none transition"
                               onkeydown="if(event.key==='Enter') submitManualNipGuru()">
                             <button onclick="submitManualNipGuru()" class="bg-gray-900 hover:bg-black text-white px-4 py-3 rounded-xl text-sm font-bold transition"><i class="fas fa-check"></i></button>
@@ -2106,7 +2106,7 @@
                     <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-semibold">
                       <tr>
                         <th class="p-3 text-center w-10">No</th>
-                        <th class="p-3">NIP</th>
+                        <th class="p-3">ID Guru</th>
                         <th class="p-3">Nama</th>
                         <th class="p-3 text-center">Jam Datang</th>
                         <th class="p-3 text-center">Jam Pulang</th>
