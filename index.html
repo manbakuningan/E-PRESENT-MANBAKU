@@ -2555,7 +2555,7 @@ function onScanSuccessGuru(decodedText) {
     } else {
         callGAS('lookupGuruForScan', key).then(res => {
             if (res.success) doSubmit(res.nama);
-            else showBigScanPopup({ type: 'error', customMsg: res.message || 'NIP tidak terdaftar' });
+            else showBigScanPopup({ type: 'error', customMsg: res.message || 'ID Guru tidak terdaftar' });
         }).catch(err => showBigScanPopup({ type: 'error', customMsg: String(err) }));
     }
 }
