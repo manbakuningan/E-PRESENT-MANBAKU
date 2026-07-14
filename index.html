@@ -291,6 +291,12 @@
                       </div>
                   </div>
 
+                  <!-- ═══════════ SECTION: SISWA ═══════════ -->
+                  <div class="flex items-center gap-2 mb-4">
+                      <div class="w-1 h-4 bg-indigo-500 rounded-full"></div>
+                      <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Ringkasan Kehadiran Siswa</h3>
+                  </div>
+
                   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                       
                       <div class="bg-white p-5 rounded-xl shadow-sm border border-indigo-100 flex flex-col justify-between relative overflow-hidden group">
@@ -339,41 +345,12 @@
                       </div>
                   </div>
 
-                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" id="adminGuruStatSection">
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-amber-100 flex flex-col justify-between relative overflow-hidden">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Guru</p>
-                        <div class="flex items-center justify-between mt-2">
-                            <h3 id="admStatGuruTotal" class="text-2xl font-bold text-gray-800">-</h3>
-                            <div class="text-amber-500 bg-amber-50 p-2 rounded-lg"><i class="fas fa-user-tie"></i></div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-emerald-100 flex flex-col justify-between relative overflow-hidden">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Guru Hadir Hari Ini</p>
-                        <div class="flex items-center justify-between mt-2">
-                            <h3 id="admStatGuruHadir" class="text-2xl font-bold text-gray-800">-</h3>
-                            <div class="text-emerald-500 bg-emerald-50 p-2 rounded-lg"><i class="fas fa-check"></i></div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-red-100 flex flex-col justify-between relative overflow-hidden">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Guru Belum Absen</p>
-                        <div class="flex items-center justify-between mt-2">
-                            <h3 id="admStatGuruBelum" class="text-2xl font-bold text-gray-800">-</h3>
-                            <div class="text-red-500 bg-red-50 p-2 rounded-lg"><i class="fas fa-times"></i></div>
-                        </div>
-                    </div>
-                  </div>
-
-                  <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-8">
-                      <h3 class="text-sm font-bold text-gray-700 flex items-center mb-6"><i class="fas fa-user-tie text-amber-500 mr-2"></i> Grafik Kehadiran Guru Hari Ini</h3>
-                      <div class="relative w-full h-[280px]"><canvas id="adminGuruAttendanceChart"></canvas></div>
-                  </div>
-
-                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
                       
                       <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                           <div class="flex justify-between items-center mb-6">
                               <h3 class="text-sm font-bold text-gray-700 flex items-center">
-                                  <i class="fas fa-chart-bar text-indigo-500 mr-2"></i> Grafik Statistik Kehadiran
+                                  <i class="fas fa-chart-bar text-indigo-500 mr-2"></i> Grafik Statistik Kehadiran Siswa
                               </h3>
                           </div>
                           <div class="relative w-full h-[350px]">
@@ -423,107 +400,64 @@
                       </div>
 
                   </div>
-              </div>
 
-<div id="view-guru-dashboard" class="view-section animate-fade-in">
-                  
-                  <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
-                      <div>
-                           <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Dashboard Guru</h2>
-                           <p class="text-sm text-gray-500 mt-1">Ringkasan aktivitas siswa hari ini.</p>
-                      </div>
-                      <div class="flex items-center gap-3">
-                          <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-100">
-                              <i class="far fa-calendar-alt mr-2"></i> <span id="guruDashboardDate">...</span>
-                          </span>
-                          <button onclick="refreshData('dashboard')" class="flex items-center space-x-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition">
-                              <i class="fas fa-sync-alt"></i> <span>Refresh</span>
+                  <!-- ═══════════ SECTION: GURU ═══════════ -->
+                  <div class="flex items-center gap-2 mb-4">
+                      <div class="w-1 h-4 bg-amber-500 rounded-full"></div>
+                      <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Ringkasan Kehadiran Guru</h3>
+                  </div>
+
+                  <div class="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden mb-6">
+                      <div class="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-4 border-b border-amber-100 flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                              <div class="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-white shadow-sm">
+                                  <i class="fas fa-user-tie text-sm"></i>
+                              </div>
+                              <div>
+                                  <h4 class="font-bold text-sm text-gray-800">Absensi Guru Hari Ini</h4>
+                                  <p class="text-[10px] text-gray-500">Data realtime dari sistem scan QR</p>
+                              </div>
+                          </div>
+                          <button onclick="loadAbsensiGuruMenu()" class="text-xs font-bold text-amber-700 bg-white border border-amber-200 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition shadow-sm">
+                              <i class="fas fa-qrcode mr-1"></i> Buka Absensi
                           </button>
                       </div>
-                  </div>
 
-                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                      
-                      <div class="relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-indigo-100 group hover:shadow-md transition-all">
-                          <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                          <div class="relative z-10 flex flex-col h-full justify-between">
-                              <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-xl mb-4 shadow-sm">
-                                  <i class="fas fa-user-graduate"></i>
+                      <div class="p-6">
+                          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                              <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between relative overflow-hidden group">
+                                  <div class="absolute right-0 top-0 w-14 h-14 bg-amber-50 rounded-bl-full -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
+                                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest relative z-10">Total Guru</p>
+                                  <div class="flex items-center justify-between mt-2 relative z-10">
+                                      <h3 id="admStatGuruTotal" class="text-2xl font-bold text-gray-800">-</h3>
+                                      <div class="text-amber-500 bg-amber-100 p-2 rounded-lg"><i class="fas fa-user-tie"></i></div>
+                                  </div>
                               </div>
-                              <div>
-                                  <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Siswa</p>
-                                  <h3 id="statGuruTotal" class="text-3xl font-bold text-gray-800 mt-1">-</h3>
+                              <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between relative overflow-hidden group">
+                                  <div class="absolute right-0 top-0 w-14 h-14 bg-emerald-50 rounded-bl-full -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
+                                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest relative z-10">Hadir</p>
+                                  <div class="flex items-center justify-between mt-2 relative z-10">
+                                      <h3 id="admStatGuruHadir" class="text-2xl font-bold text-gray-800">-</h3>
+                                      <div class="text-emerald-500 bg-emerald-100 p-2 rounded-lg"><i class="fas fa-check"></i></div>
+                                  </div>
+                              </div>
+                              <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between relative overflow-hidden group">
+                                  <div class="absolute right-0 top-0 w-14 h-14 bg-red-50 rounded-bl-full -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
+                                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest relative z-10">Belum Absen</p>
+                                  <div class="flex items-center justify-between mt-2 relative z-10">
+                                      <h3 id="admStatGuruBelum" class="text-2xl font-bold text-gray-800">-</h3>
+                                      <div class="text-red-500 bg-red-100 p-2 rounded-lg"><i class="fas fa-times"></i></div>
+                                  </div>
                               </div>
                           </div>
-                      </div>
 
-                      <div class="relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-yellow-100 group hover:shadow-md transition-all">
-                          <div class="absolute top-0 right-0 w-24 h-24 bg-yellow-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                          <div class="relative z-10 flex flex-col h-full justify-between">
-                              <div class="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center text-xl mb-4 shadow-sm">
-                                  <i class="fas fa-procedures"></i>
-                              </div>
-                              <div>
-                                  <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Sakit</p>
-                                  <h3 id="statGuruSakit" class="text-3xl font-bold text-gray-800 mt-1">-</h3>
-                              </div>
-                          </div>
-                      </div>
-
-                      <div class="relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-blue-100 group hover:shadow-md transition-all">
-                          <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                          <div class="relative z-10 flex flex-col h-full justify-between">
-                              <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl mb-4 shadow-sm">
-                                  <i class="fas fa-envelope-open-text"></i>
-                              </div>
-                              <div>
-                                  <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Izin</p>
-                                  <h3 id="statGuruIzin" class="text-3xl font-bold text-gray-800 mt-1">-</h3>
-                              </div>
-                          </div>
-                      </div>
-
-                      <div class="relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-red-100 group hover:shadow-md transition-all">
-                          <div class="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                          <div class="relative z-10 flex flex-col h-full justify-between">
-                              <div class="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center text-xl mb-4 shadow-sm">
-                                  <i class="fas fa-times-circle"></i>
-                              </div>
-                              <div>
-                                  <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Alpa</p>
-                                  <h3 id="statGuruAlpa" class="text-3xl font-bold text-gray-800 mt-1">-</h3>
-                              </div>
+                          <div class="relative w-full h-[240px]">
+                              <canvas id="adminGuruAttendanceChart"></canvas>
                           </div>
                       </div>
                   </div>
 
-                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                          <h3 class="text-sm font-bold text-gray-700 mb-6 flex items-center justify-between">
-                              <span><i class="fas fa-chart-bar text-indigo-500 mr-2"></i> Statistik Kehadiran Hari Ini</span>
-                              <span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded">Realtime</span>
-                          </h3>
-                          <div class="relative w-full h-[300px]">
-                              <canvas id="guruAttendanceChart"></canvas>
-                          </div>
-                      </div>
-
-                      <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 text-white shadow-xl shadow-indigo-200 relative overflow-hidden flex flex-col justify-center items-center text-center">
-                          <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                          <div class="relative z-10">
-                              <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-2xl mb-4 mx-auto border border-white/20">
-                                  <i class="fas fa-clipboard-check"></i>
-                              </div>
-                              <h3 class="text-lg font-bold mb-2">Daftar Hadir</h3>
-                              <p class="text-indigo-100 text-xs mb-6 px-4">Isi daftar hadir siswa secara manual untuk kelas Anda.</p>
-                              <button onclick="loadDaftarHadirGuru()" class="bg-white text-indigo-700 px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-gray-50 transition transform active:scale-95 w-full">
-                                  Buka Daftar Hadir
-                              </button>
-                          </div>
-                      </div>
-                  </div>
               </div>
-
 <!-- ====================================================== -->
 <!-- VIEW: DAFTAR HADIR GURU (Scan + Manual)                -->
 <!-- ====================================================== -->
