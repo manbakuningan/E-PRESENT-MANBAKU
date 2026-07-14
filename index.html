@@ -337,33 +337,35 @@
                               <div class="text-red-500 bg-red-50 p-2 rounded-lg"><i class="fas fa-times"></i></div>
                           </div>
                       </div>
-                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" id="adminGuruStatSection">
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-amber-100 flex flex-col justify-between relative overflow-hidden">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Guru</p>
-                            <div class="flex items-center justify-between mt-2">
-                                <h3 id="admStatGuruTotal" class="text-2xl font-bold text-gray-800">-</h3>
-                                <div class="text-amber-500 bg-amber-50 p-2 rounded-lg"><i class="fas fa-user-tie"></i></div>
-                            </div>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-emerald-100 flex flex-col justify-between relative overflow-hidden">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Guru Hadir Hari Ini</p>
-                            <div class="flex items-center justify-between mt-2">
-                                <h3 id="admStatGuruHadir" class="text-2xl font-bold text-gray-800">-</h3>
-                                <div class="text-emerald-500 bg-emerald-50 p-2 rounded-lg"><i class="fas fa-check"></i></div>
-                            </div>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-red-100 flex flex-col justify-between relative overflow-hidden">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Guru Belum Absen</p>
-                            <div class="flex items-center justify-between mt-2">
-                                <h3 id="admStatGuruBelum" class="text-2xl font-bold text-gray-800">-</h3>
-                                <div class="text-red-500 bg-red-50 p-2 rounded-lg"><i class="fas fa-times"></i></div>
-                            </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" id="adminGuruStatSection">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-amber-100 flex flex-col justify-between relative overflow-hidden">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Guru</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <h3 id="admStatGuruTotal" class="text-2xl font-bold text-gray-800">-</h3>
+                            <div class="text-amber-500 bg-amber-50 p-2 rounded-lg"><i class="fas fa-user-tie"></i></div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-8">
-                        <h3 class="text-sm font-bold text-gray-700 flex items-center mb-6"><i class="fas fa-user-tie text-amber-500 mr-2"></i> Grafik Kehadiran Guru Hari Ini</h3>
-                        <div class="relative w-full h-[280px]"><canvas id="adminGuruAttendanceChart"></canvas></div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-emerald-100 flex flex-col justify-between relative overflow-hidden">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Guru Hadir Hari Ini</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <h3 id="admStatGuruHadir" class="text-2xl font-bold text-gray-800">-</h3>
+                            <div class="text-emerald-500 bg-emerald-50 p-2 rounded-lg"><i class="fas fa-check"></i></div>
+                        </div>
                     </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-red-100 flex flex-col justify-between relative overflow-hidden">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Guru Belum Absen</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <h3 id="admStatGuruBelum" class="text-2xl font-bold text-gray-800">-</h3>
+                            <div class="text-red-500 bg-red-50 p-2 rounded-lg"><i class="fas fa-times"></i></div>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-8">
+                      <h3 class="text-sm font-bold text-gray-700 flex items-center mb-6"><i class="fas fa-user-tie text-amber-500 mr-2"></i> Grafik Kehadiran Guru Hari Ini</h3>
+                      <div class="relative w-full h-[280px]"><canvas id="adminGuruAttendanceChart"></canvas></div>
                   </div>
 
                   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -521,7 +523,6 @@
                       </div>
                   </div>
               </div>
-
 
 <!-- ====================================================== -->
 <!-- VIEW: DAFTAR HADIR GURU (Scan + Manual)                -->
@@ -3147,19 +3148,21 @@ function loadAdminDashboard() {
     stopAndBack(false);
     setActiveMenu('Dashboard');
     showView('view-admin-dashboard');
-    
+
     document.getElementById('adminDateDisplay').textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const quickAccessPanel = document.getElementById('adminQuickAccess');
     const dashboardTitle = document.querySelector('#view-admin-dashboard h2');
+
     if (currentUser.role === 'pimpinan') {
-        if(quickAccessPanel) quickAccessPanel.style.display = 'none';
-        if(dashboardTitle) dashboardTitle.textContent = 'Dashboard Pimpinan';
+        if (quickAccessPanel) quickAccessPanel.style.display = 'none';
+        if (dashboardTitle) dashboardTitle.textContent = 'Dashboard Pimpinan';
     } else {
-        if(quickAccessPanel) quickAccessPanel.style.display = 'block';
-        if(dashboardTitle) dashboardTitle.textContent = 'Dashboard Admin';
+        if (quickAccessPanel) quickAccessPanel.style.display = 'block';
+        if (dashboardTitle) dashboardTitle.textContent = 'Dashboard Admin';
     }
 
+    // --- Statistik & Chart Siswa ---
     callGAS('getMonitoringRealtime').then(result => {
         if (result.success) {
             const data = result.data;
@@ -3169,16 +3172,18 @@ function loadAdminDashboard() {
             const izin = data.filter(d => d.status === 'Izin').length;
             const alpa = data.filter(d => d.status === 'Alpa').length;
             const belum = data.filter(d => d.status === 'Belum Absen').length;
+
             animateValue("admStatTotal", 0, total, 800);
             animateValue("admStatHadir", 0, hadir, 800);
             animateValue("admStatSakit", 0, sakit, 800);
             animateValue("admStatIzin", 0, izin, 800);
             animateValue("admStatAlpa", 0, alpa, 800);
+
             renderAdminChart(hadir, sakit, izin, alpa, belum);
         }
     }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
 
-    // Statistik & Chart Guru
+    // --- Statistik & Chart Guru ---
     callGAS('getMonitoringGuruRealtime').then(res => {
         if (res.success) {
             const data = res.data;
@@ -3189,9 +3194,10 @@ function loadAdminDashboard() {
             animateValue("admStatGuruHadir", 0, hadir, 800);
             animateValue("admStatGuruBelum", 0, belum, 800);
             renderAdminGuruChart(hadir, belum);
+        } else {
+            console.warn('getMonitoringGuruRealtime gagal:', res.message);
         }
-    }).catch(() => {});
-
+    }).catch(err => console.error('Error ambil data guru dashboard:', err));
 }   // ⬅ HANYA SATU tanda penutup di sini, untuk seluruh fungsi loadAdminDashboard()
 
 let adminGuruChartInstance = null;
