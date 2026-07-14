@@ -8361,7 +8361,7 @@ function handleArchiveAndReset() {
     // ==========================================================================
     // CETAK KARTU GURU MASSAL (8 per halaman, reuse logika kartu siswa)
     // ==========================================================================
-    async function downloadKartuGuruBulk() {
+        async function downloadKartuGuruBulk() {
         const token = currentUser ? currentUser.token : null;
         showLoading();
         const res = await new Promise(resolve => {
@@ -8373,9 +8373,9 @@ function handleArchiveAndReset() {
             showAlert('error', 'Data guru tidak ditemukan.');
             return;
         }
-        const dataToPrint = res.data.filter(g => g.nip);
+        const dataToPrint = res.data.filter(g => g.idGuru);
         if (dataToPrint.length === 0) {
-            showAlert('error', 'Belum ada guru dengan NIP. Jalankan backfill NIP dulu.');
+            showAlert('error', 'Belum ada guru dengan ID Guru. Jalankan backfillNipGuru() dulu dari Apps Script editor.');
             return;
         }
     
@@ -8427,7 +8427,6 @@ function handleArchiveAndReset() {
                         doc.restoreGraphicsState();
                     }
     
-                    // Header — warna amber/oranye (beda dari siswa)
                     doc.setFillColor(124, 45, 18);
                     doc.rect(x, y, cardWidth, headerHeight, 'F');
     
@@ -8477,14 +8476,14 @@ function handleArchiveAndReset() {
                         namaFontSize -= 0.25; doc.setFontSize(namaFontSize);
                     }
                     doc.text(namaCetak, textX, y+25);
-                    
+    
                     doc.setDrawColor(226,232,240);
                     doc.line(textX, y+28, x+cardWidth-5, y+28);
-                    
+    
                     doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(15,23,42);
                     doc.text("ID      :", textX, y+33.5);
                     doc.text(cleanNip, textX+14, y+33.5);
-                    
+    
                     doc.text("Jabatan :", textX, y+38.5);
                     const jabatanList = g.jabatan ? String(g.jabatan).split(',').map(j => j.trim()).filter(Boolean) : ['Tenaga Pendidik'];
                     doc.setFontSize(7.5);
