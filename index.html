@@ -8481,8 +8481,8 @@ function handleArchiveAndReset() {
                     doc.line(textX, y+28, x+cardWidth-5, y+28);
     
                     doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(15,23,42);
-                    doc.text("ID Guru :", textX, y+33.5);
-                    doc.text(cleanNip, textX+14, y+33.5);
+                    doc.text("ID Guru  :", textX, y+33.5);
+                    doc.text(cleanNip, textX+16, y+33.5);
     
                     doc.text("Jabatan :", textX, y+38.5);
                     const jabatanList = g.jabatan ? String(g.jabatan).split(',').map(j => j.trim()).filter(Boolean) : ['Tenaga Pendidik'];
