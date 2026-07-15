@@ -811,7 +811,15 @@
             </button>
 
             <button onclick="downloadKartuSiswaBulk()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-700 transition transform active:scale-95">
-                <i class="fas fa-id-card mr-1"></i> Cetak Kartu
+                <i class="fas fa-id-card mr-1"></i> Cetak Semua
+            </button>
+
+            <button onclick="toggleSelectModeSiswa()" id="btnToggleSelectSiswa" class="bg-white text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-50 transition transform active:scale-95">
+                <i class="fas fa-check-square mr-1"></i> Cetak Beberapa
+            </button>
+
+            <button onclick="downloadKartuSiswaSelected()" id="btnPrintSelectedSiswa" class="hidden bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition transform active:scale-95">
+                <i class="fas fa-print mr-1"></i> Cetak Terpilih (<span id="countSelectedSiswa">0</span>)
             </button>
 
             <button onclick="triggerImportSiswa()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition transform active:scale-95">
@@ -856,6 +864,9 @@
           <table class="w-full text-left border-collapse">
               <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-semibold border-b border-gray-200">
                   <tr>
+                      <th class="p-3 text-center w-10 hidden" id="thCheckSiswa">
+                          <input type="checkbox" id="checkAllSiswa" onchange="toggleCheckAllSiswa(this.checked)" class="w-4 h-4 cursor-pointer">
+                      </th>
                       <th class="p-3 text-center w-12">No</th>
                       <th class="p-3">Nama Lengkap</th>
                       <th class="p-3 hidden md:table-cell">NISN</th>
@@ -894,7 +905,15 @@
                 <i class="fas fa-download mr-1"></i> Template
             </button>
             <button onclick="downloadKartuGuruBulk()" class="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-700 transition">
-                <i class="fas fa-id-card mr-1"></i> Cetak Kartu
+                <i class="fas fa-id-card mr-1"></i> Cetak Semua
+            </button>
+
+            <button onclick="toggleSelectModeGuru()" id="btnToggleSelectGuru" class="bg-white text-amber-600 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-50 transition">
+                <i class="fas fa-check-square mr-1"></i> Cetak Beberapa
+            </button>
+
+            <button onclick="downloadKartuGuruSelected()" id="btnPrintSelectedGuru" class="hidden bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition">
+                <i class="fas fa-print mr-1"></i> Cetak Terpilih (<span id="countSelectedGuru">0</span>)
             </button>
             <button onclick="triggerImportGuru()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition">
                 <i class="fas fa-file-excel mr-1"></i> Import Excel
@@ -937,6 +956,9 @@
           <table class="w-full text-left">
             <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-semibold">
                 <tr>
+                    <th class="p-3 text-center w-10 hidden" id="thCheckGuru">
+                        <input type="checkbox" id="checkAllGuru" onchange="toggleCheckAllGuru(this.checked)" class="w-4 h-4 cursor-pointer">
+                    </th>
                     <th class="p-3 text-center w-10">No</th>
                     <th class="p-3">ID Guru</th>
                     <th class="p-3">Nama Lengkap</th>
@@ -4885,11 +4907,20 @@ function loadDataSiswa() {
 function renderSiswaRows(data, startIdx) {
         const tbody = document.getElementById('tbody-siswa');
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">Data tidak ditemukan.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400">Data tidak ditemukan.</td></tr>';
             return;
         }
-        tbody.innerHTML = data.map((siswa, i) => `
+        tbody.innerHTML = data.map((siswa, i) => {
+            const checkCell = selectModeSiswa
+                ? `<td class="p-4 text-center">
+                     <input type="checkbox" class="w-4 h-4 cursor-pointer siswa-check" value="${siswa.nisn}"
+                       ${selectedSiswaSet.has(String(siswa.nisn)) ? 'checked' : ''}
+                       onchange="toggleSiswaSelected('${siswa.nisn}', this.checked)">
+                   </td>`
+                : '';
+            return `
         <tr class="hover:bg-gray-50 transition border-b border-gray-50 group">
+            ${checkCell}
             <td class="p-4 text-center text-gray-500 text-sm">${startIdx + i + 1}</td>
             <td class="p-4">
                 <div class="flex items-center">
@@ -4909,13 +4940,13 @@ function renderSiswaRows(data, startIdx) {
                     <button onclick='viewSiswa(${JSON.stringify(siswa)})' class="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition" title="Lihat Detail">
                         <i class="fas fa-eye"></i>
                     </button>
-                    
                     <button onclick='editSiswa(${JSON.stringify(siswa)})' class="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition" title="Edit"><i class="fas fa-edit"></i></button>
                     <button onclick="deleteSiswaConfirm('${siswa.nisn}', '${siswa.nama}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition" title="Hapus"><i class="fas fa-trash"></i></button>
                     <button onclick="generateQRForSiswa('${siswa.nisn}', '${siswa.nama}', '${siswa.kelas}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="QR Code"><i class="fas fa-qrcode"></i></button>
                 </div>
             </td>
-        </tr>`).join('');
+        </tr>`;
+        }).join('');
     }
 
     // --- DATA GURU ---
@@ -4975,11 +5006,20 @@ function formatJabatanBullets(jabatanStr) {
 function renderGuruRows(data, startIdx) {
     const tbody = document.getElementById('tbody-guru');
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">Data tidak ditemukan.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400">Data tidak ditemukan.</td></tr>';
         return;
     }
-    tbody.innerHTML = data.map((guru, i) => `
+    tbody.innerHTML = data.map((guru, i) => {
+        const checkCell = selectModeGuru
+            ? `<td class="p-4 text-center">
+                 <input type="checkbox" class="w-4 h-4 cursor-pointer guru-check" value="${guru.idGuru}"
+                   ${selectedGuruSet.has(String(guru.idGuru)) ? 'checked' : ''}
+                   onchange="toggleGuruSelected('${guru.idGuru}', this.checked)">
+               </td>`
+            : '';
+        return `
     <tr class="hover:bg-gray-50 transition border-b border-gray-50 group">
+        ${checkCell}
         <td class="p-4 text-center text-gray-500 text-sm">${startIdx + i + 1}</td>
         <td class="p-4 text-xs font-mono font-bold text-amber-600">${guru.idGuru || '-'}</td>
         <td class="p-4 text-sm font-bold text-gray-800">${guru.nama || guru.username}</td>
@@ -4991,7 +5031,7 @@ function renderGuruRows(data, startIdx) {
                 <button onclick="deleteGuruConfirm('${guru.username}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition" title="Hapus Akun"><i class="fas fa-trash"></i></button>
             </div>
         </td>
-    </tr>`).join('');
+    </tr>`}).join('');
 }
 function saveSiswa(e, isEdit) {
     e.preventDefault();
@@ -7473,7 +7513,7 @@ function formatAlamatFixedFont(doc, alamat, maxWidth, options = {}) {
     return { lines: parts, fontSize };
 }
 
-async function downloadKartuSiswaBulk() {
+async function downloadKartuSiswaBulk(nisnListTerpilih) {
     const filterKelas = document.getElementById('filterKelasSiswa').value;
     const allSiswa = (tableState.siswa && tableState.siswa.fullData) ? tableState.siswa.fullData : [];
 
@@ -7483,7 +7523,12 @@ async function downloadKartuSiswaBulk() {
     }
 
     let dataToPrint = allSiswa;
-    if (filterKelas && filterKelas !== "") {
+
+    if (nisnListTerpilih && nisnListTerpilih.length > 0) {
+        // Mode "Cetak Terpilih" — abaikan filter kelas, pakai daftar NISN yang dicontreng
+        const nisnSet = new Set(nisnListTerpilih.map(String));
+        dataToPrint = allSiswa.filter(s => nisnSet.has(String(s.nisn)));
+    } else if (filterKelas && filterKelas !== "") {
         dataToPrint = allSiswa.filter(s => s.kelas === filterKelas);
     }
 
@@ -8361,7 +8406,7 @@ function handleArchiveAndReset() {
     // ==========================================================================
     // CETAK KARTU GURU MASSAL (8 per halaman, reuse logika kartu siswa)
     // ==========================================================================
-        async function downloadKartuGuruBulk() {
+        async function downloadKartuGuruBulk(idGuruListTerpilih) {
         const token = currentUser ? currentUser.token : null;
         showLoading();
         const res = await new Promise(resolve => {
@@ -8373,7 +8418,13 @@ function handleArchiveAndReset() {
             showAlert('error', 'Data guru tidak ditemukan.');
             return;
         }
-        const dataToPrint = res.data.filter(g => g.idGuru);
+    
+        let dataToPrint = res.data.filter(g => g.idGuru);
+    
+        if (idGuruListTerpilih && idGuruListTerpilih.length > 0) {
+            const idSet = new Set(idGuruListTerpilih.map(String));
+            dataToPrint = dataToPrint.filter(g => idSet.has(String(g.idGuru)));
+        }
         if (dataToPrint.length === 0) {
             showAlert('error', 'Belum ada guru dengan ID Guru. Jalankan backfillNipGuru() dulu dari Apps Script editor.');
             return;
@@ -8510,6 +8561,104 @@ function handleArchiveAndReset() {
             }
         }, 500);
     }
+
+    // ==========================================================================
+    // CETAK BEBERAPA — SISWA
+    // ==========================================================================
+    let selectModeSiswa = false;
+    let selectedSiswaSet = new Set();
+    
+    function toggleSelectModeSiswa() {
+        selectModeSiswa = !selectModeSiswa;
+        if (!selectModeSiswa) selectedSiswaSet.clear();
+    
+        document.getElementById('thCheckSiswa').classList.toggle('hidden', !selectModeSiswa);
+        document.getElementById('btnPrintSelectedSiswa').classList.toggle('hidden', !selectModeSiswa);
+    
+        const btnToggle = document.getElementById('btnToggleSelectSiswa');
+        btnToggle.innerHTML = selectModeSiswa
+            ? '<i class="fas fa-times mr-1"></i> Batal Pilih'
+            : '<i class="fas fa-check-square mr-1"></i> Cetak Beberapa';
+    
+        updateSiswaSelectedCount();
+        processTableData('siswa');
+    }
+    
+    function toggleSiswaSelected(nisn, checked) {
+        if (checked) selectedSiswaSet.add(String(nisn));
+        else selectedSiswaSet.delete(String(nisn));
+        updateSiswaSelectedCount();
+    }
+    
+    function toggleCheckAllSiswa(checked) {
+        document.querySelectorAll('.siswa-check').forEach(cb => {
+            cb.checked = checked;
+            if (checked) selectedSiswaSet.add(cb.value);
+            else selectedSiswaSet.delete(cb.value);
+        });
+        updateSiswaSelectedCount();
+    }
+    
+    function updateSiswaSelectedCount() {
+        document.getElementById('countSelectedSiswa').textContent = selectedSiswaSet.size;
+    }
+    
+    function downloadKartuSiswaSelected() {
+        if (selectedSiswaSet.size === 0) {
+            showAlert('error', 'Pilih minimal 1 siswa terlebih dahulu.');
+            return;
+        }
+        downloadKartuSiswaBulk(Array.from(selectedSiswaSet));
+    }
+
+    // ==========================================================================
+    // CETAK BEBERAPA — GURU
+    // ==========================================================================
+    let selectModeGuru = false;
+    let selectedGuruSet = new Set();
+    
+    function toggleSelectModeGuru() {
+        selectModeGuru = !selectModeGuru;
+        if (!selectModeGuru) selectedGuruSet.clear();
+    
+        document.getElementById('thCheckGuru').classList.toggle('hidden', !selectModeGuru);
+        document.getElementById('btnPrintSelectedGuru').classList.toggle('hidden', !selectModeGuru);
+    
+        const btnToggle = document.getElementById('btnToggleSelectGuru');
+        btnToggle.innerHTML = selectModeGuru
+            ? '<i class="fas fa-times mr-1"></i> Batal Pilih'
+            : '<i class="fas fa-check-square mr-1"></i> Cetak Beberapa';
+    
+        updateGuruSelectedCount();
+        processTableData('guru');
+    }
+    
+    function toggleGuruSelected(idGuru, checked) {
+        if (checked) selectedGuruSet.add(String(idGuru));
+        else selectedGuruSet.delete(String(idGuru));
+        updateGuruSelectedCount();
+    }
+    
+    function toggleCheckAllGuru(checked) {
+        document.querySelectorAll('.guru-check').forEach(cb => {
+            cb.checked = checked;
+            if (checked) selectedGuruSet.add(cb.value);
+            else selectedGuruSet.delete(cb.value);
+        });
+        updateGuruSelectedCount();
+    }
+    
+    function updateGuruSelectedCount() {
+        document.getElementById('countSelectedGuru').textContent = selectedGuruSet.size;
+    }
+    
+    function downloadKartuGuruSelected() {
+        if (selectedGuruSet.size === 0) {
+            showAlert('error', 'Pilih minimal 1 guru terlebih dahulu.');
+            return;
+        }
+        downloadKartuGuruBulk(Array.from(selectedGuruSet));
+}
     checkSession();
 </script>
 </body>
