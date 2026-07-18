@@ -8662,12 +8662,14 @@ function handleArchiveAndReset() {
                         doc.lines([[1, -1], [1, 1], [-1, 1], [-1, -1]], ox, ornamentY, [0.6, 0.6], 'S', true);
                     }
     
-                    // 5. QR CODE — diperbesar mengisi ruang kosong (tanpa teks di bawahnya)
+                    // 5. QR CODE — diperkecil, dengan jarak (gap) dari header
                     const bodyTop2 = y + headerHeight + accentHeight;
                     const bodyBottom2 = y + cardHeight - 4; // sisakan ruang utk ornamen bawah
-                    const qrSize = Math.min(30, (bodyBottom2 - bodyTop2) - 2);
-                    const qrX = x + 8;
-                    const qrY = bodyTop2 + ((bodyBottom2 - bodyTop2) - qrSize) / 2;
+                    const headerGap = 3; // jarak antara garis aksen header dan QR
+                    const qrAreaTop = bodyTop2 + headerGap;
+                    const qrSize = Math.min(22, (bodyBottom2 - qrAreaTop) - 2);
+                    const qrX = x + 9;
+                    const qrY = qrAreaTop + ((bodyBottom2 - qrAreaTop) - qrSize) / 2;
     
                     tempDiv.innerHTML = '';
                     if (cleanNip) {
@@ -8686,31 +8688,40 @@ function handleArchiveAndReset() {
                         }
                     }
     
-                    // 6. DATA GURU — Hanya Nama dan Jabatan (tanpa label & tanpa ID Guru)
-                    const textX = x + 42;
+                    // 6. DATA GURU — Hanya Nama (sesuai database, tidak all-caps) dan Jabatan
+                    const textX = x + 38;
                     const textAreaWidth = (x + cardWidth - 5) - textX;
                     const bodyCenterY = bodyTop2 + (bodyBottom2 - bodyTop2) / 2;
     
-                    // NAMA — auto-shrink agar muat, posisi mengikuti tinggi konten (nama + jabatan)
                     const jabatanList = g.jabatan
                         ? String(g.jabatan).split(',').map(j => j.trim()).filter(Boolean)
                         : ['Tenaga Pendidik'];
                     const jabatanShown = jabatanList.slice(0, 4);
     
-                    const namaFontSizeBase = 11;
+                    const namaFontSizeMax = 10.5;
+                    const namaFontSizeMin = 6.5;
                     const jabatanFontSize = 7.5;
                     const jabatanLineHeight = 3.4;
-                    const blockHeight = 6 + (jabatanShown.length * jabatanLineHeight); // perkiraan tinggi total blok teks
+                    const blockHeight = 6 + (jabatanShown.length * jabatanLineHeight);
                     let textStartY = bodyCenterY - (blockHeight / 2) + 4;
     
+                    // NAMA — sesuai database (bukan uppercase), auto-shrink, dengan pemotongan "..." sebagai jaring pengaman
                     doc.setFont("helvetica", "bold");
                     doc.setTextColor(15, 23, 42);
-                    let namaFontSize = namaFontSizeBase;
-                    let namaCetak = (g.nama || g.username || "").toUpperCase();
+                    let namaFontSize = namaFontSizeMax;
+                    let namaCetak = String(g.nama || g.username || "").trim();
                     doc.setFontSize(namaFontSize);
-                    while (namaFontSize > 7 && doc.getTextWidth(namaCetak) > textAreaWidth) {
+                    while (namaFontSize > namaFontSizeMin && doc.getTextWidth(namaCetak) > textAreaWidth) {
                         namaFontSize -= 0.25;
                         doc.setFontSize(namaFontSize);
+                    }
+                    // Jaring pengaman: jika di font minimum masih kepanjangan, potong dengan "..."
+                    if (doc.getTextWidth(namaCetak) > textAreaWidth) {
+                        let truncated = namaCetak;
+                        while (doc.getTextWidth(truncated + "...") > textAreaWidth && truncated.length > 0) {
+                            truncated = truncated.slice(0, -1);
+                        }
+                        namaCetak = truncated + "...";
                     }
                     doc.text(namaCetak, textX, textStartY);
     
@@ -8718,7 +8729,7 @@ function handleArchiveAndReset() {
                     doc.setDrawColor(226, 232, 240);
                     doc.line(textX, textStartY + 2.2, x + cardWidth - 5, textStartY + 2.2);
     
-                    // JABATAN — langsung ditampilkan sebagai daftar bullet, tanpa label "Jabatan :"
+                    // JABATAN — daftar bullet, tanpa label "Jabatan :"
                     doc.setFont("helvetica", "bold");
                     doc.setFontSize(jabatanFontSize);
                     doc.setTextColor(71, 85, 105);
