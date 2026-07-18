@@ -8410,16 +8410,40 @@ function handleArchiveAndReset() {
     // ==========================================================================
     // POPUP BESAR + SUARA HASIL SCAN
     // ==========================================================================
-    function speakScan(text) {
+        function speakScan(text) {
         try {
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
             const utter = new SpeechSynthesisUtterance(text);
-            utter.lang = 'en-US';
+            utter.lang = 'id-ID';
             utter.rate = 0.95;
             utter.pitch = 1;
             window.speechSynthesis.speak(utter);
         } catch (e) { console.warn('TTS gagal:', e); }
+    }
+    
+    // Kumpulan sapaan lucu untuk absen masuk
+    const SAPAAN_MASUK = [
+        'Yeay, sudah datang!',
+        'Hai, semangat pagi!',
+        'Asyik, sudah hadir!',
+        'Wah, rajin sekali!',
+        'Halo, selamat belajar!',
+        'Cieee sudah datang!'
+    ];
+    
+    // Kumpulan sapaan lucu untuk absen pulang
+    const SAPAAN_PULANG = [
+        'Dadah, hati-hati di jalan!',
+        'Sampai jumpa besok lagi!',
+        'Yeay, waktunya pulang!',
+        'Selamat pulang, jangan jajan sembarangan!',
+        'Bye bye, sampai ketemu lagi!',
+        'Pulang dulu ya, semangat!'
+    ];
+    
+    function pilihAcak(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
     }
     
     function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg = '' }) {
@@ -8462,11 +8486,17 @@ function handleArchiveAndReset() {
         document.body.appendChild(el);
     
         if (isSuccess) {
-            if (mode === 'masuk') speakScan(nama ? `Good morning, ${nama}` : 'Good morning, student');
-            else if (mode === 'pulang') speakScan(nama ? `Good bye, ${nama}` : 'Good bye, student');
-            else speakScan(nama ? `Absensi berhasil, ${nama}` : 'Absensi berhasil');
+            if (mode === 'masuk') {
+                const sapaan = pilihAcak(SAPAAN_MASUK);
+                speakScan(nama ? `${sapaan} ${nama}` : sapaan);
+            } else if (mode === 'pulang') {
+                const sapaan = pilihAcak(SAPAAN_PULANG);
+                speakScan(nama ? `${sapaan} ${nama}` : sapaan);
+            } else {
+                speakScan(nama ? `Absensi berhasil, ${nama}` : 'Absensi berhasil');
+            }
         } else {
-            speakScan(customMsg ? `Scan failed. ${customMsg}` : 'Scan failed');
+            speakScan(customMsg ? `Yah, scan gagal. ${customMsg}` : 'Yah, scan gagal, coba lagi ya');
         }
     
         setTimeout(() => {
@@ -8688,24 +8718,19 @@ function handleArchiveAndReset() {
                         }
                     }
     
-                    // 6. DATA GURU — Hanya Nama (sesuai database, tidak all-caps) dan Jabatan
+                    // 6. DATA GURU — Nama (sesuai database) + SEMUA Jabatan (auto-shrink agar muat)
                     const textX = x + 38;
                     const textAreaWidth = (x + cardWidth - 5) - textX;
-                    const bodyCenterY = bodyTop2 + (bodyBottom2 - bodyTop2) / 2;
     
                     const jabatanList = g.jabatan
                         ? String(g.jabatan).split(',').map(j => j.trim()).filter(Boolean)
                         : ['Tenaga Pendidik'];
-                    const jabatanShown = jabatanList.slice(0, 4);
     
+                    // --- NAMA: posisi tetap di bagian atas area body ---
                     const namaFontSizeMax = 10.5;
                     const namaFontSizeMin = 6.5;
-                    const jabatanFontSize = 7.5;
-                    const jabatanLineHeight = 3.4;
-                    const blockHeight = 6 + (jabatanShown.length * jabatanLineHeight);
-                    let textStartY = bodyCenterY - (blockHeight / 2) + 4;
+                    const namaY = bodyTop2 + headerGap + 3;
     
-                    // NAMA — sesuai database (bukan uppercase), auto-shrink, dengan pemotongan "..." sebagai jaring pengaman
                     doc.setFont("helvetica", "bold");
                     doc.setTextColor(15, 23, 42);
                     let namaFontSize = namaFontSizeMax;
@@ -8723,18 +8748,42 @@ function handleArchiveAndReset() {
                         }
                         namaCetak = truncated + "...";
                     }
-                    doc.text(namaCetak, textX, textStartY);
+                    doc.text(namaCetak, textX, namaY);
     
                     // Garis pemisah tipis di bawah nama
                     doc.setDrawColor(226, 232, 240);
-                    doc.line(textX, textStartY + 2.2, x + cardWidth - 5, textStartY + 2.2);
+                    const separatorY = namaY + 2.2;
+                    doc.line(textX, separatorY, x + cardWidth - 5, separatorY);
     
-                    // JABATAN — daftar bullet, tanpa label "Jabatan :"
+                    // --- JABATAN: SEMUA item ditampilkan, font & jarak baris auto-shrink agar muat ---
+                    const jabatanTop = separatorY + 3;
+                    const jabatanAvailableHeight = bodyBottom2 - jabatanTop;
+                    const jabatanCount = jabatanList.length;
+    
+                    let jabatanFontSize = 7.5;
+                    let jabatanLineHeight = 3.4;
+                    const jabatanFontSizeMin = 4.2;
+                    const jabatanLineHeightMin = 2.1;
+    
+                    // Shrink bertahap sampai semua baris muat dalam ruang yang tersedia
+                    while (
+                        (jabatanCount * jabatanLineHeight) > jabatanAvailableHeight &&
+                        jabatanFontSize > jabatanFontSizeMin
+                    ) {
+                        jabatanFontSize -= 0.25;
+                        jabatanLineHeight -= 0.13;
+                        if (jabatanLineHeight < jabatanLineHeightMin) jabatanLineHeight = jabatanLineHeightMin;
+                    }
+                    // Jaga-jaga batas minimum absolut
+                    if (jabatanFontSize < jabatanFontSizeMin) jabatanFontSize = jabatanFontSizeMin;
+                    if (jabatanLineHeight < jabatanLineHeightMin) jabatanLineHeight = jabatanLineHeightMin;
+    
                     doc.setFont("helvetica", "bold");
                     doc.setFontSize(jabatanFontSize);
                     doc.setTextColor(71, 85, 105);
-                    let jabatanY = textStartY + 6.5;
-                    jabatanShown.forEach(j => {
+    
+                    let jabatanY = jabatanTop + jabatanLineHeight * 0.75;
+                    jabatanList.forEach(j => {
                         let line = '• ' + j;
                         const maxW = textAreaWidth;
                         if (doc.getTextWidth(line) > maxW) {
