@@ -8620,7 +8620,6 @@ function handleArchiveAndReset() {
                 document.body.appendChild(tempDiv);
     
                 const headerHeight = 14, accentHeight = 1;
-                const tanggalCetak = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     
                 for (let i = 0; i < dataToPrint.length; i++) {
                     const g = dataToPrint[i];
@@ -8640,7 +8639,7 @@ function handleArchiveAndReset() {
                         doc.restoreGraphicsState();
                     }
     
-                    // 2. HEADER UTAMA — Biru Kemendikbud, tanpa logo
+                    // 2. HEADER UTAMA — Biru Kemendikbud
                     doc.setFillColor(0, 61, 121);
                     doc.rect(x, y, cardWidth, headerHeight, 'F');
     
@@ -8663,8 +8662,13 @@ function handleArchiveAndReset() {
                         doc.lines([[1, -1], [1, 1], [-1, 1], [-1, -1]], ox, ornamentY, [0.6, 0.6], 'S', true);
                     }
     
-                    // 5. QR CODE + Logo di tengah
-                    const qrSize = 24, qrX = x + 9, qrY = y + 21;
+                    // 5. QR CODE — diperbesar mengisi ruang kosong (tanpa teks di bawahnya)
+                    const bodyTop2 = y + headerHeight + accentHeight;
+                    const bodyBottom2 = y + cardHeight - 4; // sisakan ruang utk ornamen bawah
+                    const qrSize = Math.min(30, (bodyBottom2 - bodyTop2) - 2);
+                    const qrX = x + 8;
+                    const qrY = bodyTop2 + ((bodyBottom2 - bodyTop2) - qrSize) / 2;
+    
                     tempDiv.innerHTML = '';
                     if (cleanNip) {
                         new QRCode(tempDiv, { text: cleanNip, width: 500, height: 500, correctLevel: QRCode.CorrectLevel.H, colorDark: "#000000", colorLight: "#ffffff" });
@@ -8681,38 +8685,58 @@ function handleArchiveAndReset() {
                             }
                         }
                     }
-                    doc.setFontSize(5); doc.setFont("helvetica", "normal"); doc.setTextColor(100, 116, 139);
-                    doc.text("Scan untuk Absensi", qrX + (qrSize / 2), qrY + qrSize + 2.5, { align: 'center' });
-                    doc.setFontSize(4.5);
-                    doc.text(`Dicetak: ${tanggalCetak}`, qrX + (qrSize / 2), qrY + qrSize + 6, { align: 'center' });
     
-                    const textX = x + 39;
-                    doc.setFont("helvetica", "bold"); doc.setTextColor(15, 23, 42);
-                    const namaMaxWidth = (x + cardWidth - 5) - textX;
+                    // 6. DATA GURU — Hanya Nama dan Jabatan (tanpa label & tanpa ID Guru)
+                    const textX = x + 42;
+                    const textAreaWidth = (x + cardWidth - 5) - textX;
+                    const bodyCenterY = bodyTop2 + (bodyBottom2 - bodyTop2) / 2;
+    
+                    // NAMA — auto-shrink agar muat, posisi mengikuti tinggi konten (nama + jabatan)
+                    const jabatanList = g.jabatan
+                        ? String(g.jabatan).split(',').map(j => j.trim()).filter(Boolean)
+                        : ['Tenaga Pendidik'];
+                    const jabatanShown = jabatanList.slice(0, 4);
+    
+                    const namaFontSizeBase = 11;
+                    const jabatanFontSize = 7.5;
+                    const jabatanLineHeight = 3.4;
+                    const blockHeight = 6 + (jabatanShown.length * jabatanLineHeight); // perkiraan tinggi total blok teks
+                    let textStartY = bodyCenterY - (blockHeight / 2) + 4;
+    
+                    doc.setFont("helvetica", "bold");
+                    doc.setTextColor(15, 23, 42);
+                    let namaFontSize = namaFontSizeBase;
                     let namaCetak = (g.nama || g.username || "").toUpperCase();
-                    let namaFontSize = 11;
                     doc.setFontSize(namaFontSize);
-                    while (namaFontSize > 7 && doc.getTextWidth(namaCetak) > namaMaxWidth) {
-                        namaFontSize -= 0.25; doc.setFontSize(namaFontSize);
+                    while (namaFontSize > 7 && doc.getTextWidth(namaCetak) > textAreaWidth) {
+                        namaFontSize -= 0.25;
+                        doc.setFontSize(namaFontSize);
                     }
-                    doc.text(namaCetak, textX, y + 25);
+                    doc.text(namaCetak, textX, textStartY);
     
+                    // Garis pemisah tipis di bawah nama
                     doc.setDrawColor(226, 232, 240);
-                    doc.line(textX, y + 28, x + cardWidth - 5, y + 28);
+                    doc.line(textX, textStartY + 2.2, x + cardWidth - 5, textStartY + 2.2);
     
-                    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(15, 23, 42);
-                    doc.text("ID Guru  :", textX, y + 33.5);
-                    doc.text(cleanNip, textX + 20, y + 33.5);
-    
-                    doc.text("Jabatan :", textX, y + 38.5);
-                    const jabatanList = g.jabatan ? String(g.jabatan).split(',').map(j => j.trim()).filter(Boolean) : ['Tenaga Pendidik'];
-                    doc.setFontSize(7.5);
-                    let jabatanY = y + 42.5;
-                    jabatanList.slice(0, 3).forEach(j => {
-                        doc.text('• ' + j, textX + 7, jabatanY);
-                        jabatanY += 3.2;
+                    // JABATAN — langsung ditampilkan sebagai daftar bullet, tanpa label "Jabatan :"
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(jabatanFontSize);
+                    doc.setTextColor(71, 85, 105);
+                    let jabatanY = textStartY + 6.5;
+                    jabatanShown.forEach(j => {
+                        let line = '• ' + j;
+                        const maxW = textAreaWidth;
+                        if (doc.getTextWidth(line) > maxW) {
+                            while (doc.getTextWidth(line + "...") > maxW && line.length > 2) {
+                                line = line.slice(0, -1);
+                            }
+                            line += "...";
+                        }
+                        doc.text(line, textX, jabatanY);
+                        jabatanY += jabatanLineHeight;
                     });
     
+                    // GRID LOGIC
                     col++;
                     if (col >= 2) { col = 0; row++; x = marginX; y += cardHeight + gapY; }
                     else { x += cardWidth + gapX; }
