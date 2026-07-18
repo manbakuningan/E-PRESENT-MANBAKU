@@ -7774,19 +7774,19 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
     setTimeout(async () => {
         try {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-
-            const pageWidth = 210;
-            const pageHeight = 297;
-
-            const cardWidth = 92;
-            const cardHeight = 60;
-
-            const gapX = 8;
-            const gapY = 6;
-
+            const doc = new jsPDF('p', 'mm', [215, 330]); // F4/Legal Indonesia
+            
+            const pageWidth = 215;
+            const pageHeight = 330;
+            
+            const cardWidth = 89;
+            const cardHeight = 52;
+            
+            const gapX = 6;
+            const gapY = 3;
+            
             const marginX = (pageWidth - ((cardWidth * 2) + gapX)) / 2;
-            const marginY = (pageHeight - ((cardHeight * 4) + (gapY * 3))) / 2;
+            const marginY = (pageHeight - ((cardHeight * 6) + (gapY * 5))) / 2;
 
             let x = marginX;
             let y = marginY;
@@ -7899,22 +7899,22 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
                     );
                 }
 
-                // 5. QR CODE — bagian atas sejajar dengan bagian atas teks Nama (y + 21)
-                const qrSize = 24;
-                const qrX = x + 9;
-                const qrY = y + 21;
-
+                // 5. QR CODE — diperbesar, tanpa teks di bawahnya
+                const qrSize = 32;
+                const qrX = x + 8;
+                const qrY = y + 17;
+                
                 tempDiv.innerHTML = '';
-
+                
                 if (cleanNisn) {
                     try {
                         new QRCode(tempDiv, {
                             text: cleanNisn,
-                            width: 500, height: 500,   // dari 120 -> 500, jauh lebih tajam
+                            width: 500, height: 500,
                             correctLevel: QRCode.CorrectLevel.L,
                             colorDark: "#000000", colorLight: "#ffffff"
                         });
-
+                
                         const canvas = tempDiv.querySelector('canvas');
                         if (canvas) {
                             const qrUrl = canvas.toDataURL("image/png");
@@ -7924,19 +7924,6 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
                         console.error("Gagal buat QR untuk " + s.nama, e);
                     }
                 }
-
-                // "Scan untuk Absensi" — di bawah QR
-                doc.setFontSize(5);
-                doc.setFont("helvetica", "normal");
-                doc.setTextColor(100, 116, 139);
-                doc.text("Scan untuk Absensi", qrX + (qrSize / 2), qrY + qrSize + 2.5, { align: 'center' });
-
-                // "Dicetak: [tanggal]" — di bawah "Scan untuk Absensi"
-                doc.setFontSize(4.5);
-                doc.setFont("helvetica", "normal");
-                doc.setTextColor(100, 116, 139);
-                doc.text(`Dicetak: ${tanggalCetak}`, qrX + (qrSize / 2), qrY + qrSize + 6, { align: 'center' });
-
                 // 6. DATA SISWA
                 const textX = x + 39;
 
@@ -7971,45 +7958,24 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
                 doc.setDrawColor(226, 232, 240);
                 doc.line(textX, y + 28, x + cardWidth - 5, y + 28);
 
-                // NISN — font tetap
-                doc.setFontSize(9);
-                doc.setFont("helvetica", "bold");
-                doc.setTextColor(15, 23, 42);
-                doc.text("NISN    :", textX, y + 33.5);
-                doc.setFont("helvetica", "bold");
-                doc.setTextColor(15, 23, 42);
-                doc.text(cleanNisn, textX + 14, y + 33.5);
-
-                // KELAS — font tetap
+                // ALAMAT — font tetap, langsung di bawah garis pemisah nama
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(15, 23, 42);
                 doc.setFontSize(9);
-                doc.text("Kelas   :", textX, y + 38.5);
-
-                const kelasValue = getKelas(s) || "-";
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.setTextColor(15, 23, 42);
-                doc.text(kelasValue, textX + 14, y + 38.5);
-
-                // ALAMAT — font tetap, jarak antar baris diperlebar
-                doc.setFont("helvetica", "bold");
-                doc.setTextColor(15, 23, 42);
-                doc.setFontSize(9);
-                doc.text("Alamat :", textX, y + 43.5);
-
+                doc.text("Alamat :", textX, y + 33.5);
+                
                 const alamatMaxWidth = (x + cardWidth - 5) - (textX + 14);
                 const { lines: alamatLines, fontSize: alamatFontSize } = formatAlamatFixedFont(
                     doc,
                     getAlamat(s),
                     alamatMaxWidth,
-                    { maxLines: 3, fontSize: 7 }
+                    { maxLines: 5, fontSize: 7 } // maxLines ditambah karena ruang lebih lega tanpa NISN/Kelas
                 );
-
+                
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(alamatFontSize);
                 doc.setTextColor(15, 23, 42);
-                doc.text(alamatLines, textX + 14, y + 43.5, { lineHeightFactor: 1.6 });
+                doc.text(alamatLines, textX + 14, y + 33.5, { lineHeightFactor: 1.6 });
 
                 // GRID LOGIC
                 col++;
@@ -8022,7 +7988,7 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
                     x += cardWidth + gapX;
                 }
 
-                if (row >= 4 && i < dataToPrint.length - 1) {
+                if (row >= 6 && i < dataToPrint.length - 1) {
                     doc.addPage();
                     col = 0;
                     row = 0;
@@ -8644,10 +8610,19 @@ function handleArchiveAndReset() {
         setTimeout(async () => {
             try {
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const cardWidth = 92, cardHeight = 60, gapX = 8, gapY = 6;
-                const marginX = (210 - ((cardWidth * 2) + gapX)) / 2;
-                const marginY = (297 - ((cardHeight * 4) + (gapY * 3))) / 2;
+                const doc = new jsPDF('p', 'mm', [215, 330]); // F4/Legal Indonesia
+                
+                const pageWidth = 215;
+                const pageHeight = 330;
+                
+                const cardWidth = 89;
+                const cardHeight = 52;
+                
+                const gapX = 6;
+                const gapY = 3;
+                
+                const marginX = (pageWidth - ((cardWidth * 2) + gapX)) / 2;
+                const marginY = (pageHeight - ((cardHeight * 6) + (gapY * 5))) / 2;
                 let x = marginX, y = marginY, col = 0, row = 0;
     
                 const tempDiv = document.createElement('div');
@@ -8744,7 +8719,7 @@ function handleArchiveAndReset() {
                     col++;
                     if (col >= 2) { col=0; row++; x=marginX; y+=cardHeight+gapY; }
                     else { x += cardWidth+gapX; }
-                    if (row >= 4 && i < dataToPrint.length-1) {
+                    if (row >= 6 && i < dataToPrint.length - 1) {
                         doc.addPage(); col=0; row=0; x=marginX; y=marginY;
                     }
                 }
