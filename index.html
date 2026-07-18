@@ -7890,7 +7890,7 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
                         new QRCode(tempDiv, {
                             text: cleanNisn,
                             width: 500, height: 500,
-                            correctLevel: QRCode.CorrectLevel.L,
+                            correctLevel: QRCode.CorrectLevel.H,
                             colorDark: "#000000", colorLight: "#ffffff"
                         });
                 
@@ -8640,15 +8640,11 @@ function handleArchiveAndReset() {
                         doc.restoreGraphicsState();
                     }
     
-                    doc.setFillColor(124, 45, 18);
+                    doc.setFillColor(0, 61, 121);
                     doc.rect(x, y, cardWidth, headerHeight, 'F');
-    
-                    const logoSize = 10, logoPadding = 8;
-                    const logoCenterX = x + logoPadding + (logoSize/2), logoCenterY = y + (headerHeight/2);
-                    if (logoBase64) {
-                        doc.addImage(logoBase64, 'PNG', logoCenterX-(logoSize/2), logoCenterY-(logoSize/2), logoSize, logoSize);
-                    }
-    
+                    
+                    const headerTextCenterX = x + (cardWidth/2);
+                        
                     const headerTextCenterX = x + (cardWidth/2) + (logoSize/2) - 1;
                     doc.setTextColor(255,255,255);
                     doc.setFont("helvetica","bold"); doc.setFontSize(10);
@@ -8670,9 +8666,19 @@ function handleArchiveAndReset() {
                     const qrSize = 24, qrX = x+9, qrY = y+21;
                     tempDiv.innerHTML = '';
                     if (cleanNip) {
-                        new QRCode(tempDiv, { text: cleanNip, width: 500, height: 500, correctLevel: QRCode.CorrectLevel.L, colorDark: "#000000", colorLight: "#ffffff" });
+                        new QRCode(tempDiv, { text: cleanNip, width: 500, height: 500, correctLevel: QRCode.CorrectLevel.H, colorDark: "#000000", colorLight: "#ffffff" });
                         const canvas = tempDiv.querySelector('canvas');
-                        if (canvas) doc.addImage(canvas.toDataURL("image/png"), 'PNG', qrX, qrY, qrSize, qrSize);
+                        if (canvas) {
+                            doc.addImage(canvas.toDataURL("image/png"), 'PNG', qrX, qrY, qrSize, qrSize);
+                            if (logoBase64) {
+                                const logoQrSize = qrSize * 0.24;
+                                const logoQrX = qrX + (qrSize/2) - (logoQrSize/2);
+                                const logoQrY = qrY + (qrSize/2) - (logoQrSize/2);
+                                doc.setFillColor(255,255,255);
+                                doc.roundedRect(logoQrX-0.8, logoQrY-0.8, logoQrSize+1.6, logoQrSize+1.6, 0.8, 0.8, 'F');
+                                doc.addImage(logoBase64, 'PNG', logoQrX, logoQrY, logoQrSize, logoQrSize);
+                            }
+                        }
                     }
                     doc.setFontSize(5); doc.setFont("helvetica","normal"); doc.setTextColor(100,116,139);
                     doc.text("Scan untuk Absensi", qrX+(qrSize/2), qrY+qrSize+2.5, { align:'center' });
