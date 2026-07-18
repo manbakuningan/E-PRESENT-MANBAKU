@@ -8726,7 +8726,7 @@ function handleArchiveAndReset() {
                         ? String(g.jabatan).split(',').map(j => j.trim()).filter(Boolean)
                         : ['Tenaga Pendidik'];
     
-                    // --- NAMA: posisi tetap di bagian atas area body ---
+                    // --- NAMA ---
                     const namaFontSizeMax = 10.5;
                     const namaFontSizeMin = 6.5;
                     const namaY = bodyTop2 + headerGap + 3;
@@ -8740,7 +8740,6 @@ function handleArchiveAndReset() {
                         namaFontSize -= 0.25;
                         doc.setFontSize(namaFontSize);
                     }
-                    // Jaring pengaman: jika di font minimum masih kepanjangan, potong dengan "..."
                     if (doc.getTextWidth(namaCetak) > textAreaWidth) {
                         let truncated = namaCetak;
                         while (doc.getTextWidth(truncated + "...") > textAreaWidth && truncated.length > 0) {
@@ -8750,41 +8749,47 @@ function handleArchiveAndReset() {
                     }
                     doc.text(namaCetak, textX, namaY);
     
-                    // Garis pemisah tipis di bawah nama
                     doc.setDrawColor(226, 232, 240);
                     const separatorY = namaY + 2.2;
                     doc.line(textX, separatorY, x + cardWidth - 5, separatorY);
     
-                    // --- JABATAN: SEMUA item ditampilkan, font & jarak baris auto-shrink agar muat ---
-                    const jabatanTop = separatorY + 3;
-                    const jabatanAvailableHeight = bodyBottom2 - jabatanTop;
-                    const jabatanCount = jabatanList.length;
+                    // --- JABATAN: SEMUA item WAJIB muat di dalam kartu ---
+                    const jabatanTop = separatorY + 2.6;
+                    const jabatanAvailableHeight = bodyBottom2 - jabatanTop; // ruang mutlak yang tersedia
+                    let jabatanListToShow = jabatanList.slice();
     
                     let jabatanFontSize = 7.5;
-                    let jabatanLineHeight = 3.4;
-                    const jabatanFontSizeMin = 4.2;
-                    const jabatanLineHeightMin = 2.1;
+                    let jabatanLineHeight = 3.2;
+                    const jabatanFontSizeFloor = 3.2;   // batas minimum absolut (jauh lebih kecil dari sebelumnya)
+                    const jabatanLineHeightFloor = 1.55; // batas minimum absolut
     
-                    // Shrink bertahap sampai semua baris muat dalam ruang yang tersedia
+                    // Tahap 1: shrink font & line-height bersamaan sampai muat atau mentok batas minimum
                     while (
-                        (jabatanCount * jabatanLineHeight) > jabatanAvailableHeight &&
-                        jabatanFontSize > jabatanFontSizeMin
+                        (jabatanListToShow.length * jabatanLineHeight) > jabatanAvailableHeight &&
+                        (jabatanFontSize > jabatanFontSizeFloor || jabatanLineHeight > jabatanLineHeightFloor)
                     ) {
-                        jabatanFontSize -= 0.25;
-                        jabatanLineHeight -= 0.13;
-                        if (jabatanLineHeight < jabatanLineHeightMin) jabatanLineHeight = jabatanLineHeightMin;
+                        if (jabatanFontSize > jabatanFontSizeFloor) jabatanFontSize -= 0.2;
+                        if (jabatanLineHeight > jabatanLineHeightFloor) jabatanLineHeight -= 0.1;
                     }
-                    // Jaga-jaga batas minimum absolut
-                    if (jabatanFontSize < jabatanFontSizeMin) jabatanFontSize = jabatanFontSizeMin;
-                    if (jabatanLineHeight < jabatanLineHeightMin) jabatanLineHeight = jabatanLineHeightMin;
+    
+                    // Tahap 2: JARING PENGAMAN — jika di batas minimum masih tidak muat,
+                    // potong daftar & tambahkan "+N lainnya" agar TIDAK PERNAH melebihi batas kartu
+                    let maxLinesFit = Math.floor(jabatanAvailableHeight / jabatanLineHeight);
+                    if (maxLinesFit < 1) maxLinesFit = 1;
+                    if (jabatanListToShow.length > maxLinesFit) {
+                        const shown = jabatanListToShow.slice(0, maxLinesFit - 1);
+                        const sisa = jabatanListToShow.length - shown.length;
+                        jabatanListToShow = shown;
+                        jabatanListToShow.push(`+${sisa} lainnya`);
+                    }
     
                     doc.setFont("helvetica", "bold");
                     doc.setFontSize(jabatanFontSize);
                     doc.setTextColor(71, 85, 105);
     
                     let jabatanY = jabatanTop + jabatanLineHeight * 0.75;
-                    jabatanList.forEach(j => {
-                        let line = '• ' + j;
+                    jabatanListToShow.forEach(j => {
+                        let line = j.startsWith('+') ? j : '• ' + j;
                         const maxW = textAreaWidth;
                         if (doc.getTextWidth(line) > maxW) {
                             while (doc.getTextWidth(line + "...") > maxW && line.length > 2) {
