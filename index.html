@@ -7840,29 +7840,8 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
                 }
 
                 // 2. HEADER UTAMA
-                doc.setFillColor(6, 78, 59);
+                doc.setFillColor(0, 61, 121); // Biru Kemendikbud
                 doc.rect(x, y, cardWidth, headerHeight, 'F');
-
-                // 2b. LOGO — digeser sedikit ke tengah
-                const logoSize = 10;
-                const logoPadding = 8;
-                const logoCenterX = x + logoPadding + (logoSize / 2);
-                const logoCenterY = y + (headerHeight / 2);
-
-                if (logoBase64) {
-                    try {
-                        doc.addImage(
-                            logoBase64,
-                            'PNG',
-                            logoCenterX - (logoSize / 2),
-                            logoCenterY - (logoSize / 2),
-                            logoSize,
-                            logoSize
-                        );
-                    } catch (e) {
-                        console.error("Gagal menambahkan logo ke kartu:", e);
-                    }
-                }
 
                 // 3. TEKS HEADER
                 const headerTextCenterX = x + (cardWidth / 2) + (logoSize / 2) - 1;
@@ -7919,6 +7898,17 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
                         if (canvas) {
                             const qrUrl = canvas.toDataURL("image/png");
                             doc.addImage(qrUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+                
+                            // Logo di tengah QR
+                            if (logoBase64) {
+                                const logoQrSize = qrSize * 0.24;
+                                const logoQrX = qrX + (qrSize / 2) - (logoQrSize / 2);
+                                const logoQrY = qrY + (qrSize / 2) - (logoQrSize / 2);
+                                // kotak putih di belakang logo agar QR tetap terbaca
+                                doc.setFillColor(255, 255, 255);
+                                doc.roundedRect(logoQrX - 0.8, logoQrY - 0.8, logoQrSize + 1.6, logoQrSize + 1.6, 0.8, 0.8, 'F');
+                                doc.addImage(logoBase64, 'PNG', logoQrX, logoQrY, logoQrSize, logoQrSize);
+                            }
                         }
                     } catch (e) {
                         console.error("Gagal buat QR untuk " + s.nama, e);
