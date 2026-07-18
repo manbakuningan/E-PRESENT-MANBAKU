@@ -8601,16 +8601,16 @@ function handleArchiveAndReset() {
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', [215, 330]); // F4/Legal Indonesia
-                
+    
                 const pageWidth = 215;
                 const pageHeight = 330;
-                
+    
                 const cardWidth = 89;
                 const cardHeight = 52;
-                
+    
                 const gapX = 6;
                 const gapY = 3;
-                
+    
                 const marginX = (pageWidth - ((cardWidth * 2) + gapX)) / 2;
                 const marginY = (pageHeight - ((cardHeight * 6) + (gapY * 5))) / 2;
                 let x = marginX, y = marginY, col = 0, row = 0;
@@ -8636,34 +8636,35 @@ function handleArchiveAndReset() {
                         const wmSize = bodyHeight * 0.65;
                         doc.saveGraphicsState();
                         doc.setGState(new doc.GState({ opacity: 0.10 }));
-                        doc.addImage(logoWatermarkBase64, 'PNG', x + (cardWidth/2) - (wmSize/2), bodyTop + (bodyHeight/2) - (wmSize/2), wmSize, wmSize);
+                        doc.addImage(logoWatermarkBase64, 'PNG', x + (cardWidth / 2) - (wmSize / 2), bodyTop + (bodyHeight / 2) - (wmSize / 2), wmSize, wmSize);
                         doc.restoreGraphicsState();
                     }
     
+                    // 2. HEADER UTAMA — Biru Kemendikbud, tanpa logo
                     doc.setFillColor(0, 61, 121);
                     doc.rect(x, y, cardWidth, headerHeight, 'F');
-                    
-                    const headerTextCenterX = x + (cardWidth/2);
-                        
-                    const headerTextCenterX = x + (cardWidth/2) + (logoSize/2) - 1;
-                    doc.setTextColor(255,255,255);
-                    doc.setFont("helvetica","bold"); doc.setFontSize(10);
-                    doc.text("KARTU TANDA PENGAJAR", headerTextCenterX, y+5, { align:'center' });
+    
+                    const headerTextCenterX = x + (cardWidth / 2);
+    
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+                    doc.text("KARTU TANDA PENGAJAR", headerTextCenterX, y + 5, { align: 'center' });
                     doc.setFontSize(7);
-                    doc.text("Madrasah Mu'allimin Mu'allimat Manba'ul Huda", headerTextCenterX, y+8, { align:'center' });
-                    doc.setFontSize(5.5); doc.setFont("helvetica","normal");
-                    doc.text("Pondok Pesantren Sidaraja, Ciawigebang, Kuningan", headerTextCenterX, y+10.6, { align:'center' });
+                    doc.text("Madrasah Mu'allimin Mu'allimat Manba'ul Huda", headerTextCenterX, y + 8, { align: 'center' });
+                    doc.setFontSize(5.5); doc.setFont("helvetica", "normal");
+                    doc.text("Pondok Pesantren Sidaraja, Ciawigebang, Kuningan", headerTextCenterX, y + 10.6, { align: 'center' });
     
-                    doc.setFillColor(245,158,11);
-                    doc.rect(x, y+headerHeight, cardWidth, accentHeight, 'F');
+                    doc.setFillColor(245, 158, 11);
+                    doc.rect(x, y + headerHeight, cardWidth, accentHeight, 'F');
     
-                    doc.setDrawColor(245,158,11); doc.setLineWidth(0.15);
-                    const ornamentY = y+cardHeight-3;
-                    for (let ox = x+4; ox < x+cardWidth-4; ox += 4) {
-                        doc.lines([[1,-1],[1,1],[-1,1],[-1,-1]], ox, ornamentY, [0.6,0.6], 'S', true);
+                    doc.setDrawColor(245, 158, 11); doc.setLineWidth(0.15);
+                    const ornamentY = y + cardHeight - 3;
+                    for (let ox = x + 4; ox < x + cardWidth - 4; ox += 4) {
+                        doc.lines([[1, -1], [1, 1], [-1, 1], [-1, -1]], ox, ornamentY, [0.6, 0.6], 'S', true);
                     }
     
-                    const qrSize = 24, qrX = x+9, qrY = y+21;
+                    // 5. QR CODE + Logo di tengah
+                    const qrSize = 24, qrX = x + 9, qrY = y + 21;
                     tempDiv.innerHTML = '';
                     if (cleanNip) {
                         new QRCode(tempDiv, { text: cleanNip, width: 500, height: 500, correctLevel: QRCode.CorrectLevel.H, colorDark: "#000000", colorLight: "#ffffff" });
@@ -8672,64 +8673,63 @@ function handleArchiveAndReset() {
                             doc.addImage(canvas.toDataURL("image/png"), 'PNG', qrX, qrY, qrSize, qrSize);
                             if (logoBase64) {
                                 const logoQrSize = qrSize * 0.24;
-                                const logoQrX = qrX + (qrSize/2) - (logoQrSize/2);
-                                const logoQrY = qrY + (qrSize/2) - (logoQrSize/2);
-                                doc.setFillColor(255,255,255);
-                                doc.roundedRect(logoQrX-0.8, logoQrY-0.8, logoQrSize+1.6, logoQrSize+1.6, 0.8, 0.8, 'F');
+                                const logoQrX = qrX + (qrSize / 2) - (logoQrSize / 2);
+                                const logoQrY = qrY + (qrSize / 2) - (logoQrSize / 2);
+                                doc.setFillColor(255, 255, 255);
+                                doc.roundedRect(logoQrX - 0.8, logoQrY - 0.8, logoQrSize + 1.6, logoQrSize + 1.6, 0.8, 0.8, 'F');
                                 doc.addImage(logoBase64, 'PNG', logoQrX, logoQrY, logoQrSize, logoQrSize);
                             }
                         }
                     }
-                    doc.setFontSize(5); doc.setFont("helvetica","normal"); doc.setTextColor(100,116,139);
-                    doc.text("Scan untuk Absensi", qrX+(qrSize/2), qrY+qrSize+2.5, { align:'center' });
+                    doc.setFontSize(5); doc.setFont("helvetica", "normal"); doc.setTextColor(100, 116, 139);
+                    doc.text("Scan untuk Absensi", qrX + (qrSize / 2), qrY + qrSize + 2.5, { align: 'center' });
                     doc.setFontSize(4.5);
-                    doc.text(`Dicetak: ${tanggalCetak}`, qrX+(qrSize/2), qrY+qrSize+6, { align:'center' });
+                    doc.text(`Dicetak: ${tanggalCetak}`, qrX + (qrSize / 2), qrY + qrSize + 6, { align: 'center' });
     
-                    const textX = x+39;
-                    doc.setFont("helvetica","bold"); doc.setTextColor(15,23,42);
-                    const namaMaxWidth = (x+cardWidth-5) - textX;
+                    const textX = x + 39;
+                    doc.setFont("helvetica", "bold"); doc.setTextColor(15, 23, 42);
+                    const namaMaxWidth = (x + cardWidth - 5) - textX;
                     let namaCetak = (g.nama || g.username || "").toUpperCase();
                     let namaFontSize = 11;
                     doc.setFontSize(namaFontSize);
                     while (namaFontSize > 7 && doc.getTextWidth(namaCetak) > namaMaxWidth) {
                         namaFontSize -= 0.25; doc.setFontSize(namaFontSize);
                     }
-                    doc.text(namaCetak, textX, y+25);
+                    doc.text(namaCetak, textX, y + 25);
     
-                    doc.setDrawColor(226,232,240);
-                    doc.line(textX, y+28, x+cardWidth-5, y+28);
+                    doc.setDrawColor(226, 232, 240);
+                    doc.line(textX, y + 28, x + cardWidth - 5, y + 28);
     
-                    doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(15,23,42);
-                    doc.text("ID Guru  :", textX, y+33.5);
-                    doc.text(cleanNip, textX+20, y+33.5);
+                    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(15, 23, 42);
+                    doc.text("ID Guru  :", textX, y + 33.5);
+                    doc.text(cleanNip, textX + 20, y + 33.5);
     
-                    doc.text("Jabatan :", textX, y+38.5);
+                    doc.text("Jabatan :", textX, y + 38.5);
                     const jabatanList = g.jabatan ? String(g.jabatan).split(',').map(j => j.trim()).filter(Boolean) : ['Tenaga Pendidik'];
                     doc.setFontSize(7.5);
-                    let jabatanY = y+42.5;
+                    let jabatanY = y + 42.5;
                     jabatanList.slice(0, 3).forEach(j => {
-                        doc.text('• ' + j, textX+7, jabatanY);
+                        doc.text('• ' + j, textX + 7, jabatanY);
                         jabatanY += 3.2;
                     });
     
                     col++;
-                    if (col >= 2) { col=0; row++; x=marginX; y+=cardHeight+gapY; }
-                    else { x += cardWidth+gapX; }
+                    if (col >= 2) { col = 0; row++; x = marginX; y += cardHeight + gapY; }
+                    else { x += cardWidth + gapX; }
                     if (row >= 6 && i < dataToPrint.length - 1) {
-                        doc.addPage(); col=0; row=0; x=marginX; y=marginY;
+                        doc.addPage(); col = 0; row = 0; x = marginX; y = marginY;
                     }
                 }
     
                 document.body.removeChild(tempDiv);
                 doc.save(`Kartu_Guru_Semua.pdf`);
-                Swal.fire({ icon:'success', title:'Selesai!', text:'PDF Kartu Guru berhasil diunduh.', timer:2000 });
+                Swal.fire({ icon: 'success', title: 'Selesai!', text: 'PDF Kartu Guru berhasil diunduh.', timer: 2000 });
             } catch (error) {
                 console.error(error);
                 Swal.fire('Error', 'Gagal membuat PDF: ' + error.message, 'error');
             }
         }, 500);
     }
-
     // ==========================================================================
     // CETAK BEBERAPA — SISWA
     // ==========================================================================
