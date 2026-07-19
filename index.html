@@ -2308,7 +2308,7 @@ function handleTableStatusFilter(type, status) {
     }
 
     function handleTableLimit(type, limit) {
-        tableState[type].limit = limit === 'all' ? Infinity : parseInt(limit);
+        tableState[type].limit = limit === 'all' ? 999999 : parseInt(limit);
         tableState[type].page = 1; // Reset ke halaman 1 saat ganti limit
         processTableData(type);
     }
