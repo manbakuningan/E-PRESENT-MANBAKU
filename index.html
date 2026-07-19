@@ -3905,99 +3905,48 @@ function dhSubmitManual() {
 function loadGuruDashboard() {
     stopAndBack(false);
     setActiveMenu('Dashboard');
-    showView('view-guru-dashboard');
-    
-    document.getElementById('guruDashboardDate').textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    
-    // Kirim currentUser.kelas sebagai filter (bisa multi: "Kelas A,Kelas B")
-    // Jika kosong (admin/guru umum), tampilkan semua
-    const myClass = currentUser.role === 'guru' ? currentUser.kelas : null;
+    showView('view-admin-dashboard'); // reuse tampilan admin yang sudah ada elemennya
+
+    document.getElementById('adminDateDisplay').textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Guru tidak butuh Quick Access & judul beda
+    const quickAccessPanel = document.getElementById('adminQuickAccess');
+    if (quickAccessPanel) quickAccessPanel.style.display = 'none';
+    const dashboardTitle = document.querySelector('#view-admin-dashboard h2');
+
+    const myClass = currentUser.kelas;
     const kelasLabel = myClass
         ? String(myClass).split(',').map(k => k.trim()).filter(Boolean).join(', ')
         : null;
+    if (dashboardTitle) dashboardTitle.textContent = kelasLabel ? `Dashboard Guru (${kelasLabel})` : 'Dashboard Guru';
 
     callGAS('getMonitoringRealtime', myClass).then(result => {
         if (result.success) {
-            const data = result.data; 
-            
-            // Ubah judul jika filter aktif
-            if (kelasLabel) {
-                 document.querySelector('#view-guru-dashboard h2').textContent = `Dashboard Guru (${kelasLabel})`;
-            }
-            
-            const totalSiswa = data.length;
+            const data = result.data;
+            const total = data.length;
+            const hadir = data.filter(d => d.status === 'Hadir').length;
             const sakit = data.filter(d => d.status === 'Sakit').length;
             const izin = data.filter(d => d.status === 'Izin').length;
             const alpa = data.filter(d => d.status === 'Alpa').length;
-            const hadir = data.filter(d => d.status === 'Hadir').length;
-            const belumAbsen = data.filter(d => d.status === 'Belum Absen').length;
+            const belum = data.filter(d => d.status === 'Belum Absen').length;
 
-            animateValue("statGuruTotal", 0, totalSiswa, 1000);
-            animateValue("statGuruSakit", 0, sakit, 1000);
-            animateValue("statGuruIzin", 0, izin, 1000);
-            animateValue("statGuruAlpa", 0, alpa, 1000);
-            renderGuruChart(hadir, sakit, izin, alpa, belumAbsen);
+            animateValue("admStatTotal", 0, total, 800);
+            animateValue("admStatHadir", 0, hadir, 800);
+            animateValue("admStatSakit", 0, sakit, 800);
+            animateValue("admStatIzin", 0, izin, 800);
+            animateValue("admStatAlpa", 0, alpa, 800);
+
+            renderAdminChart(hadir, sakit, izin, alpa, belum);
         }
-    }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err))); // Pass Parameter (multi-kelas didukung)
-}
+    }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
 
-    // Fungsi Render Chart Guru
-    function renderGuruChart(hadir, sakit, izin, alpa, belumAbsen) {
-        const ctx = document.getElementById('guruAttendanceChart');
-        if (!ctx) return;
-
-        // Hapus chart lama jika ada (mencegah glitch overlap)
-        if (guruChartInstance) {
-            guruChartInstance.destroy();
-        }
-
-        if (typeof ChartDataLabels !== 'undefined') { Chart.register(ChartDataLabels); }
-
-        guruChartInstance = new Chart(ctx, {
-            type: 'bar', // Diagram Batang
-            data: {
-                labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Belum Absen'],
-                datasets: [{
-                    label: 'Jumlah Siswa',
-                    data: [hadir, sakit, izin, alpa, belumAbsen],
-                    backgroundColor: [
-                        '#10B981', // Hadir (Green)
-                        '#F59E0B', // Sakit (Yellow)
-                        '#3B82F6', // Izin (Blue)
-                        '#EF4444', // Alpa (Red)
-                        '#9CA3AF'  // Belum Absen (Gray)
-                    ],
-                    borderRadius: 6,
-                    barPercentage: 0.6,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }, // Sembunyikan legenda default
-                    datalabels: {
-                        anchor: 'end',
-                        align: 'top',
-                        formatter: (value) => value > 0 ? value : '', // Hanya tampilkan label jika > 0
-                        font: { weight: 'bold', size: 11 },
-                        color: '#4B5563'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { borderDash: [2, 4], color: '#F3F4F6' },
-                        ticks: { stepSize: 1 }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
-                }
-            }
-        });
+    // Sembunyikan bagian rekap guru (tidak relevan untuk guru biasa)
+    const guruSection = document.querySelector('#view-admin-dashboard .bg-white.rounded-2xl.border.border-amber-100');
+    if (guruSection && guruSection.closest('#view-admin-dashboard')) {
+        // biarkan tampil atau sembunyikan sesuai selera; contoh: sembunyikan
+        guruSection.style.display = 'none';
     }
+}
 
     // Helper: Animasi Angka (Counter Up)
     function animateValue(id, start, end, duration) {
