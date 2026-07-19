@@ -1086,42 +1086,42 @@
   </div>
 </div>
 
-<div id="view-data-guru" class="view-section animate-fade-in">
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      
-      <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
-          <div>
-              <h3 class="font-bold text-sm text-gray-800">Manajemen Guru</h3>
-          </div>
-          <div class="flex items-center gap-2">
-            <button onclick="refreshData('guru')" class="bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-50 hover:text-purple-600 transition" title="Perbarui Data">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-            
-            <button onclick="downloadTemplate('guru')" class="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-600 transition transform active:scale-95" title="Download Template Excel">
-                <i class="fas fa-download mr-1"></i> Template
-            </button>
-            <button onclick="downloadKartuGuruBulk()" class="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-700 transition">
-                <i class="fas fa-id-card mr-1"></i> Cetak Semua
-            </button>
-
-            <button onclick="toggleSelectModeGuru()" id="btnToggleSelectGuru" class="bg-white text-amber-600 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-50 transition">
-                <i class="fas fa-check-square mr-1"></i> Cetak Beberapa
-            </button>
-
-            <button onclick="downloadKartuGuruSelected()" id="btnPrintSelectedGuru" class="hidden bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition">
-                <i class="fas fa-print mr-1"></i> Cetak Terpilih (<span id="countSelectedGuru">0</span>)
-            </button>
-            <button onclick="triggerImportGuru()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition">
-                <i class="fas fa-file-excel mr-1"></i> Import Excel
-            </button>
-            <input type="file" id="fileInputGuru" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileImportGuru(this)">
-          
-            <button onclick="showAddGuruModal()" class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-purple-700 transition">
-                <i class="fas fa-plus mr-1"></i> Tambah
-            </button>
-          </div>
+  <div id="view-data-guru" class="view-section animate-fade-in">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        
+       <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-gray-50/30">
+      <div>
+          <h3 class="font-bold text-sm text-gray-800">Manajemen Guru</h3>
       </div>
+      <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
+          <button onclick="refreshData('guru')" class="bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-50 hover:text-purple-600 transition" title="Perbarui Data">
+              <i class="fas fa-sync-alt"></i>
+          </button>
+  
+          <button onclick="downloadTemplate('guru')" class="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-600 transition transform active:scale-95" title="Download Template Excel">
+              <i class="fas fa-download mr-1"></i> Template
+          </button>
+          <button onclick="downloadKartuGuruBulk()" class="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-700 transition">
+              <i class="fas fa-id-card mr-1"></i> Cetak Semua
+          </button>
+  
+          <button onclick="toggleSelectModeGuru()" id="btnToggleSelectGuru" class="bg-white text-amber-600 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-50 transition">
+              <i class="fas fa-check-square mr-1"></i> Cetak Beberapa
+          </button>
+  
+          <button onclick="downloadKartuGuruSelected()" id="btnPrintSelectedGuru" class="hidden bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition">
+              <i class="fas fa-print mr-1"></i> Cetak Terpilih (<span id="countSelectedGuru">0</span>)
+          </button>
+          <button onclick="triggerImportGuru()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition">
+              <i class="fas fa-file-excel mr-1"></i> Import Excel
+          </button>
+          <input type="file" id="fileInputGuru" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileImportGuru(this)">
+  
+          <button onclick="showAddGuruModal()" class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-purple-700 transition">
+              <i class="fas fa-plus mr-1"></i> Tambah
+          </button>
+      </div>
+  </div>
 
       <div class="p-4 bg-white border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
           
@@ -1686,284 +1686,6 @@
 
         </div>
     </div>
-</div>
-
-<!-- ====================================================== -->
-<!-- VIEW: ABSENSI SHOLAT                                   -->
-<!-- ====================================================== -->
-<div id="view-absensi-sholat" class="view-section animate-fade-in">
-
-  <!-- Header Halaman -->
-  <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-3">
-    <div>
-      <h2 class="text-2xl font-bold text-gray-800 tracking-tight flex items-center gap-2">
-        <span class="text-2xl">🕌</span> Absensi Sholat
-      </h2>
-      <p class="text-sm text-gray-500 mt-1">Catat kehadiran sholat berjamaah siswa per kelas.</p>
-    </div>
-    <div class="flex items-center gap-2">
-      <button onclick="loadRekapSholatView()" class="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 transition">
-        <i class="fas fa-chart-bar"></i> Lihat Rekap
-      </button>
-    </div>
-  </div>
-
-  <!-- Tab: Input / Rekap -->
-  <div id="sholatInputSection">
-    <!-- Filter Bar -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-        <div>
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Tanggal</label>
-          <input type="date" id="sholatTanggal" class="w-full border border-gray-200 rounded-xl text-xs px-3 py-2.5 focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-50 focus:bg-white transition">
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Waktu Sholat</label>
-          <select id="sholatWaktu" onchange="onSholatFilterChange()" class="w-full border border-gray-200 rounded-xl text-xs px-3 py-2.5 focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-50 focus:bg-white transition">
-            <option value="">-- Pilih Waktu --</option>
-            <option value="Subuh">🌙 Subuh</option>
-            <option value="Dhuha">🌅 Duha</option>
-            <option value="Dzuhur">☀️ Dzuhur</option>
-            <option value="Ashar">🌤️ Ashar</option>
-            <option value="Maghrib">🌆 Maghrib</option>
-            <option value="Isya">🌃 Isya</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Kelas</label>
-          <select id="sholatKelas" onchange="onSholatFilterChange()" class="w-full border border-gray-200 rounded-xl text-xs px-3 py-2.5 focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-50 focus:bg-white transition">
-            <option value="">-- Pilih Kelas --</option>
-          </select>
-        </div>
-        <div>
-          <button onclick="onSholatFilterChange()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm">
-            <i class="fas fa-search"></i> Tampilkan Siswa
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-
-      <!-- Kiri: Tabel Siswa -->
-      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="bg-gradient-to-r from-emerald-700 to-teal-700 p-4 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <i class="fas fa-mosque text-white text-sm"></i>
-            </div>
-            <div>
-              <h3 class="font-bold text-sm text-white">Daftar Siswa</h3>
-              <p class="text-emerald-200 text-[10px]" id="sholatSubtitle">Pilih filter untuk menampilkan siswa</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span id="sholatCounter" class="text-[10px] bg-white/20 text-white px-2 py-1 rounded-lg font-bold">0 / 0 hadir</span>
-            <button onclick="sholatTandaiSemua('Hadir')" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-2 py-1.5 rounded-lg transition border border-white/20">
-              ✓ Semua Hadir
-            </button>
-            <button onclick="sholatTandaiSemua('Tidak Hadir')" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-2 py-1.5 rounded-lg transition border border-white/20">
-              ✗ Semua Absen
-            </button>
-          </div>
-        </div>
-
-        <div id="sholatSubmittedBanner" class="hidden bg-emerald-50 border-b border-emerald-200 px-4 py-2 flex items-center gap-2">
-          <i class="fas fa-check-circle text-emerald-500 text-xs"></i>
-          <p class="text-[10px] text-emerald-700 font-semibold">Data ini sudah pernah disimpan. Menyimpan ulang akan menimpa data lama.</p>
-        </div>
-
-        <div class="overflow-y-auto" style="max-height:60vh;">
-          <table class="w-full text-sm">
-            <thead class="sticky top-0 z-10">
-              <tr class="bg-gray-50 border-b border-gray-100">
-                <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase w-8">#</th>
-                <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Siswa</th>
-                <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">Status</th>
-                <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Keterangan</th>
-              </tr>
-            </thead>
-            <tbody id="sholatTbody">
-              <tr id="sholatEmptyRow">
-                <td colspan="4" class="py-16 text-center">
-                  <div class="flex flex-col items-center gap-3">
-                    <span class="text-5xl">🕌</span>
-                    <p class="text-sm text-gray-400 font-semibold">Pilih tanggal, waktu sholat, dan kelas</p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Submit Footer -->
-        <div class="border-t border-gray-100 p-4 bg-gray-50/50 flex items-center justify-between">
-          <span class="text-xs text-gray-500" id="sholatInfoText"></span>
-          <button onclick="submitAbsensiSholatFront()" id="sholatSubmitBtn"
-            class="hidden bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-sm">
-            <i class="fas fa-paper-plane"></i> Simpan Absensi Sholat
-          </button>
-        </div>
-      </div>
-
-      <!-- Kanan: Info Panel -->
-      <div class="space-y-4">
-        <!-- Keterangan Status -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Keterangan Status</p>
-          <div class="space-y-2">
-            <div class="flex items-center gap-3 text-xs bg-emerald-50 rounded-lg px-3 py-2 border border-emerald-100">
-              <span class="w-3 h-3 rounded-full bg-emerald-500 flex-shrink-0"></span>
-              <span class="font-semibold text-emerald-700">Hadir</span>
-              <span class="text-gray-400">— mengikuti sholat berjamaah</span>
-            </div>
-            <div class="flex items-center gap-3 text-xs bg-red-50 rounded-lg px-3 py-2 border border-red-100">
-              <span class="w-3 h-3 rounded-full bg-red-400 flex-shrink-0"></span>
-              <span class="font-semibold text-red-700">Tidak Hadir</span>
-              <span class="text-gray-400">— tidak mengikuti sholat</span>
-            </div>
-            <div class="flex items-center gap-3 text-xs bg-blue-50 rounded-lg px-3 py-2 border border-blue-100">
-              <span class="w-3 h-3 rounded-full bg-blue-400 flex-shrink-0"></span>
-              <span class="font-semibold text-blue-700">Izin / Uzur</span>
-              <span class="text-gray-400">— ada keterangan khusus</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Waktu Sholat Guide -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Waktu Sholat</p>
-          <div class="space-y-1.5 text-xs text-gray-600">
-            <div class="flex justify-between py-1 border-b border-gray-50"><span>🌙 Subuh</span><span class="text-gray-400">04:30 – 05:30</span></div>
-            <div class="flex justify-between py-1 border-b border-gray-50"><span>🌅 Duha</span><span class="text-gray-400">07:00 – 09:00</span></div>
-            <div class="flex justify-between py-1 border-b border-gray-50"><span>☀️ Dzuhur</span><span class="text-gray-400">12:00 – 13:00</span></div>
-            <div class="flex justify-between py-1 border-b border-gray-50"><span>🌤️ Ashar</span><span class="text-gray-400">15:30 – 16:30</span></div>
-            <div class="flex justify-between py-1 border-b border-gray-50"><span>🌆 Maghrib</span><span class="text-gray-400">17:45 – 18:30</span></div>
-            <div class="flex justify-between py-1"><span>🌃 Isya</span><span class="text-gray-400">19:00 – 20:00</span></div>
-          </div>
-        </div>
-
-        <!-- Quick Nav ke Rekap -->
-        <div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-          <div class="relative z-10 text-center">
-            <div class="text-3xl mb-2">📊</div>
-            <h4 class="font-bold text-sm mb-1">Rekap Sholat</h4>
-            <p class="text-emerald-100 text-xs mb-4">Lihat statistik kehadiran sholat per bulan</p>
-            <button onclick="loadRekapSholatView()" class="bg-white text-emerald-700 px-4 py-2 rounded-xl font-bold text-xs shadow hover:bg-gray-50 transition w-full">
-              Buka Rekap
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- REKAP SHOLAT SECTION -->
-  <div id="sholatRekapSection" class="hidden">
-    <div class="flex items-center gap-3 mb-4">
-      <button onclick="showSholatInput()" class="flex items-center gap-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition">
-        <i class="fas fa-arrow-left"></i> Kembali Input
-      </button>
-      <h3 class="font-bold text-gray-700 text-sm">Rekap Absensi Sholat</h3>
-    </div>
-
-    <!-- Filter Rekap -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
-        <div>
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Bulan</label>
-          <input type="month" id="sholatRekapBulan" class="w-full border border-gray-200 rounded-xl text-xs px-3 py-2.5 focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-50">
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Filter Kelas</label>
-          <select id="sholatRekapKelas" class="w-full border border-gray-200 rounded-xl text-xs px-3 py-2.5 focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-50">
-            <option value="">Semua Kelas</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Filter Waktu</label>
-          <select id="sholatRekapWaktu" class="w-full border border-gray-200 rounded-xl text-xs px-3 py-2.5 focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-50">
-            <option value="">Semua Waktu</option>
-            <option value="Subuh">Subuh</option>
-            <option value="Dhuha">Dhuha</option>
-            <option value="Dzuhur">Dzuhur</option>
-            <option value="Ashar">Ashar</option>
-            <option value="Maghrib">Maghrib</option>
-            <option value="Isya">Isya</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Filter Status</label>
-          <select id="sholatRekapStatus" class="w-full border border-gray-200 rounded-xl text-xs px-3 py-2.5 focus:ring-2 focus:ring-emerald-400 outline-none bg-gray-50">
-            <option value="">Semua Status</option>
-            <option value="Hadir">✓ Hadir</option>
-            <option value="Tidak Hadir">✗ Tidak Hadir</option>
-            <option value="Izin / Uzur">⚬ Izin / Uzur</option>
-            <option value="Belum Absen">⏳ Belum Absen</option>
-          </select>
-        </div>
-        <div>
-          <button onclick="loadRekapSholatData()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
-            <i class="fas fa-search"></i> Tampilkan
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stat Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4" id="sholatStatCards">
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-center">
-        <p class="text-xs text-gray-400 font-bold uppercase mb-1">Total Siswa</p>
-        <h3 id="sholatStatTotal" class="text-2xl font-bold text-gray-700">-</h3>
-      </div>
-      <div class="bg-emerald-50 rounded-2xl shadow-sm border border-emerald-100 p-4 text-center">
-        <p class="text-xs text-emerald-600 font-bold uppercase mb-1">Hadir</p>
-        <h3 id="sholatStatHadir" class="text-2xl font-bold text-emerald-700">-</h3>
-      </div>
-      <div class="bg-red-50 rounded-2xl shadow-sm border border-red-100 p-4 text-center">
-        <p class="text-xs text-red-500 font-bold uppercase mb-1">Tidak Hadir | Belum</p>
-        <h3 id="sholatStatTidak" class="text-xl font-bold text-red-700">-</h3>
-      </div>
-      <div class="bg-blue-50 rounded-2xl shadow-sm border border-blue-100 p-4 text-center">
-        <p class="text-xs text-blue-600 font-bold uppercase mb-1">% Kehadiran</p>
-        <h3 id="sholatStatPersen" class="text-2xl font-bold text-blue-700">-</h3>
-        <p class="text-[10px] text-gray-400 mt-0.5">dari total siswa</p>
-      </div>
-    </div>
-
-    <!-- Tabel Rekap -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="bg-gradient-to-r from-emerald-700 to-teal-700 p-4 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <i class="fas fa-table text-white text-sm"></i>
-          <h3 class="font-bold text-sm text-white">Detail Rekap</h3>
-        </div>
-        <button onclick="exportRekapSholatExcel()" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition border border-white/20 flex items-center gap-1">
-          <i class="fas fa-file-excel text-xs"></i> Export Excel
-        </button>
-      </div>
-      <div class="overflow-x-auto" style="max-height:55vh; overflow-y:auto;">
-        <table class="w-full text-xs">
-          <thead class="sticky top-0 z-10 bg-gray-50">
-            <tr class="border-b border-gray-100">
-              <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">#</th>
-              <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Tanggal</th>
-              <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">NISN</th>
-              <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Nama</th>
-              <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Kelas</th>
-              <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Waktu Sholat</th>
-              <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">Status</th>
-              <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Keterangan</th>
-            </tr>
-          </thead>
-          <tbody id="sholatRekapTbody">
-            <tr><td colspan="8" class="py-16 text-center text-gray-400 text-sm">Pilih filter lalu klik Tampilkan</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div id="view-rekap-absensi" class="view-section animate-fade-in">
@@ -3115,25 +2837,25 @@ function initDashboard() {
     // --- MENU UNTUK ADMIN ---
     if (currentUser.role === 'admin') {
         menuHTML += createItem('Dashboard', 'fa-home', 'loadAdminDashboard()', true);
+        menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
+        menuHTML += createItem('Absensi Guru', 'fa-user-tie', 'loadAbsensiGuruMenu()');
         menuHTML += createItem('Data Siswa', 'fa-user-graduate', 'loadDataSiswa()');
         menuHTML += createItem('Data Guru', 'fa-chalkboard-teacher', 'loadDataGuru()');
         menuHTML += createItem('Laporan', 'fa-clipboard-list', 'loadRekapAbsensi()');
         menuHTML += createItem('Rekap Bulanan', 'fa-calendar-alt', 'loadMenuRekapBulanan()');
-        menuHTML += createItem('Kenaikan Kelas', 'fa-level-up-alt', 'loadKenaikanKelas()');
+        menuHTML += createItem('Rekap Guru', 'fa-calendar-check', 'loadMenuRekapGuru()');
         menuHTML += createItem('Kelola Absen', 'fa-calendar-times', 'loadKelolaAbsen()');
         menuHTML += createItem('Manajemen Kelas', 'fa-th-large', 'loadManajemenKelas()'); 
-        menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
-        menuHTML += createItem('Absensi Sholat', 'fa-mosque', 'loadAbsensiSholat()');
-        menuHTML += createItem('Absensi Guru', 'fa-user-tie', 'loadAbsensiGuruMenu()');
-        menuHTML += createItem('Rekap Guru', 'fa-calendar-check', 'loadMenuRekapGuru()');
+        menuHTML += createItem('Kenaikan Kelas', 'fa-level-up-alt', 'loadKenaikanKelas()');
         loadAdminDashboard();
     } 
     // --- MENU UNTUK GURU ---
     else if (currentUser.role === 'guru') {
         menuHTML += createItem('Dashboard', 'fa-home', 'loadGuruDashboard()', true);
+        menuHTML += createItem('Absensi Guru', 'fa-user-tie', 'loadAbsensiGuruMenu()');
         menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
-        menuHTML += createItem('Absensi Sholat', 'fa-mosque', 'loadAbsensiSholat()');
-        menuHTML += createItem('Monitoring', 'fa-eye', 'loadMonitoringAbsensi()');
+        menuHTML += createItem('Data Siswa', 'fa-user-graduate', 'loadDataSiswa()');
+        menuHTML += createItem('Laporan', 'fa-clipboard-list', 'loadRekapAbsensi()');
         menuHTML += createItem('Rekap Bulanan', 'fa-calendar-alt', 'loadMenuRekapBulanan()');
         loadGuruDashboard();
     } 
@@ -8111,302 +7833,7 @@ function handleArchiveAndReset() {
     function generateQRForSiswa(nisn, nama, kelas) {
         loadQRCodeSiswa(nisn, nama, kelas);
     }
-
-    // ==========================================================================
-    // 10. START APP
-    // ==========================================================================
-    // Ambil URL deployment dari server (untuk buka scanner dengan origin yang sama)
-    // getDeploymentUrl tidak lagi diperlukan — popup scanner dibangun via document.write manual
-
-    // ==========================================================================
-    // ABSENSI SHOLAT
-    // ==========================================================================
-    let sholatStudents  = [];  // [{nisn, nama, kelas}]
-    let sholatStatusMap = {};  // nisn -> 'Hadir'|'Tidak Hadir'|'Izin / Uzur'
-    let sholatKetMap    = {};  // nisn -> string keterangan
-    let sholatRekapData = [];  // data rekap saat ini
-
-    function loadAbsensiSholat() {
-      setActiveMenu('Absensi Sholat');
-      showView('view-absensi-sholat');
-      showSholatInput();
-
-      // Set tanggal hari ini
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('sholatTanggal').value = today;
-
-      // Isi dropdown kelas
-      const selInput = document.getElementById('sholatKelas');
-      const selRekap = document.getElementById('sholatRekapKelas');
-      selInput.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-      selRekap.innerHTML = '<option value="">Semua Kelas</option>';
-
-      if (currentUser.role === 'admin') {
-        callGAS('getKelasList').then(res => {
-            const list = (res && res.success && res.data) ? res.data : [];
-            selInput.innerHTML += `<option value="SEMUA">📋 Semua Kelas</option>`;
-            list.forEach(k => {
-              selInput.innerHTML += `<option value="${k}">${k}</option>`;
-              selRekap.innerHTML += `<option value="${k}">${k}</option>`;
-            });
-          }).catch(() => {});
-      } else if (currentUser.kelas) {
-        String(currentUser.kelas).split(',').map(k => k.trim()).filter(Boolean).forEach(k => {
-          selInput.innerHTML += `<option value="${k}">${k}</option>`;
-          selRekap.innerHTML += `<option value="${k}">${k}</option>`;
-        });
-      }
-
-      // Set bulan rekap
-      const ym = today.substring(0, 7);
-      document.getElementById('sholatRekapBulan').value = ym;
-    }
-
-    function showSholatInput() {
-      document.getElementById('sholatInputSection').classList.remove('hidden');
-      document.getElementById('sholatRekapSection').classList.add('hidden');
-    }
-
-    function loadRekapSholatView() {
-      document.getElementById('sholatInputSection').classList.add('hidden');
-      document.getElementById('sholatRekapSection').classList.remove('hidden');
-      loadRekapSholatData();
-    }
-
-    function onSholatFilterChange() {
-      const tanggal = document.getElementById('sholatTanggal').value;
-      const waktu   = document.getElementById('sholatWaktu').value;
-      const kelas   = document.getElementById('sholatKelas').value;
-      if (!tanggal || !waktu || !kelas) return;
-
-      // Reset state
-      sholatStudents  = [];
-      sholatStatusMap = {};
-      sholatKetMap    = {};
-      updateSholatCounter();
-      document.getElementById('sholatSubmitBtn').classList.add('hidden');
-      document.getElementById('sholatInfoText').textContent = '';
-      document.getElementById('sholatSubmittedBanner').classList.add('hidden');
-
-      const isSemua = (kelas === 'SEMUA');
-      const colSpan = isSemua ? 5 : 4;
-      const tbody = document.getElementById('sholatTbody');
-      tbody.innerHTML = `<tr><td colspan="${colSpan}" class="py-8 text-center"><div class="inline-block w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div><p class="text-xs text-gray-400 mt-2">Memuat data siswa...</p></td></tr>`;
-      document.getElementById('sholatSubtitle').textContent = `${isSemua ? 'Semua Kelas' : kelas} — ${waktu} — ${tanggal}`;
-
-      // Ambil siswa: null = semua kelas, atau filter per kelas
-      callGAS('getSiswaList', isSemua ? null : kelas).then(res => {
-          if (!res.success || !res.data.length) {
-            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="py-12 text-center text-gray-400 text-sm">Tidak ada siswa ditemukan untuk kelas ini.</td></tr>`;
-            return;
-          }
-          sholatStudents = res.data;
-          // Ambil data yang sudah tersimpan
-          callGAS('getAbsensiSholatByKelas', kelas, tanggal, waktu).then(existing => {
-              const map = (existing.success && existing.data) ? existing.data : {};
-              const hadData = Object.keys(map).length > 0;
-              if (hadData) document.getElementById('sholatSubmittedBanner').classList.remove('hidden');
-
-              sholatStudents.forEach(s => {
-                sholatStatusMap[s.nisn] = map[s.nisn] ? map[s.nisn].status : '';
-                sholatKetMap[s.nisn]    = map[s.nisn] ? map[s.nisn].keterangan : '';
-              });
-              renderSholatTable(isSemua);
-              document.getElementById('sholatSubmitBtn').classList.remove('hidden');
-              document.getElementById('sholatInfoText').textContent = `${sholatStudents.length} siswa dimuat`;
-            }).catch(() => {
-              sholatStudents.forEach(s => { sholatStatusMap[s.nisn] = ''; sholatKetMap[s.nisn] = ''; });
-              renderSholatTable(isSemua);
-              document.getElementById('sholatSubmitBtn').classList.remove('hidden');
-            });
-        }).catch(err => {
-          tbody.innerHTML = `<tr><td colspan="${colSpan}" class="py-8 text-center text-red-400 text-sm">Gagal memuat: ${err}</td></tr>`;
-        });
-    }
-
-    function renderSholatTable(showKelas = false) {
-      const tbody = document.getElementById('sholatTbody');
-      if (!sholatStudents.length) {
-        tbody.innerHTML = `<tr><td colspan="${showKelas ? 5 : 4}" class="py-12 text-center text-gray-400">Tidak ada siswa</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = sholatStudents.map((s, i) => {
-        const st  = sholatStatusMap[s.nisn] || '';
-        const ket = sholatKetMap[s.nisn] || '';
-        const hadir    = st === 'Hadir'        ? 'ring-2 ring-emerald-400 bg-emerald-50 text-emerald-700 font-bold' : 'text-gray-600 hover:bg-gray-50';
-        const tidakH   = st === 'Tidak Hadir'  ? 'ring-2 ring-red-400 bg-red-50 text-red-700 font-bold'            : 'text-gray-600 hover:bg-gray-50';
-        const izin     = st === 'Izin / Uzur'  ? 'ring-2 ring-blue-400 bg-blue-50 text-blue-700 font-bold'         : 'text-gray-600 hover:bg-gray-50';
-        const rowBg    = st === 'Hadir' ? 'bg-emerald-50/30' : st === 'Tidak Hadir' ? 'bg-red-50/20' : '';
-        const kelasCol = showKelas ? `<td class="px-3 py-3 text-center text-[10px] text-gray-500 font-semibold">${s.kelas || '-'}</td>` : '';
-        return `
-        <tr class="border-b border-gray-50 ${rowBg}" id="sholat-row-${s.nisn}">
-          <td class="px-3 py-3 text-center text-gray-400 text-[10px]">${i+1}</td>
-          <td class="px-4 py-3">
-            <p class="font-semibold text-xs text-gray-800">${s.nama}</p>
-            <p class="text-[10px] text-gray-400">${s.nisn}</p>
-          </td>
-          ${kelasCol}
-          <td class="px-3 py-3">
-            <div class="flex gap-1 justify-center">
-              <button onclick="setSholatStatus('${s.nisn}','Hadir')"
-                class="text-[10px] px-2 py-1 rounded-lg border transition ${hadir}">✓ Hadir</button>
-              <button onclick="setSholatStatus('${s.nisn}','Tidak Hadir')"
-                class="text-[10px] px-2 py-1 rounded-lg border transition ${tidakH}">✗ Absen</button>
-              <button onclick="setSholatStatus('${s.nisn}','Izin / Uzur')"
-                class="text-[10px] px-2 py-1 rounded-lg border transition ${izin}">⚬ Izin</button>
-            </div>
-          </td>
-          <td class="px-3 py-3">
-            <input type="text" value="${ket}" placeholder="opsional..."
-              onchange="sholatKetMap['${s.nisn}']=this.value"
-              class="w-full border border-gray-200 rounded-lg px-2 py-1 text-[10px] focus:ring-1 focus:ring-emerald-300 outline-none bg-gray-50 focus:bg-white">
-          </td>
-        </tr>`;
-      }).join('');
-      updateSholatCounter();
-    }
-
-    function setSholatStatus(nisn, status) {
-      sholatStatusMap[nisn] = status;
-      const kelas = document.getElementById('sholatKelas').value;
-      renderSholatTable(kelas === 'SEMUA');
-      updateSholatCounter();
-    }
-
-    function sholatTandaiSemua(status) {
-      sholatStudents.forEach(s => { sholatStatusMap[s.nisn] = status; });
-      const kelas = document.getElementById('sholatKelas').value;
-      renderSholatTable(kelas === 'SEMUA');
-    }
-
-    function updateSholatCounter() {
-      const hadir = Object.values(sholatStatusMap).filter(v => v === 'Hadir').length;
-      const total = sholatStudents.length;
-      document.getElementById('sholatCounter').textContent = `${hadir} / ${total} hadir`;
-    }
-
-    function buildInputOleh() {
-      const role  = (currentUser.role || "").toLowerCase();
-      const name  = (currentUser.identifier || "").trim();
-      if (role === "admin")  return "Input Admin";
-      if (role === "pimpinan")  return "Input pimpinan";
-      if (role === "guru")   return "Input Guru " + name;
-      return "Input " + name;
-    }
-
-    function submitAbsensiSholatFront() {
-      const tanggal = document.getElementById('sholatTanggal').value;
-      const waktu   = document.getElementById('sholatWaktu').value;
-      const kelas   = document.getElementById('sholatKelas').value;
-
-      if (!tanggal || !waktu || !kelas || !sholatStudents.length) {
-        Swal.fire('Perhatian', 'Lengkapi filter terlebih dahulu.', 'warning'); return;
-      }
-      const terisi = sholatStudents.filter(s => sholatStatusMap[s.nisn]);
-      if (terisi.length === 0) {
-        Swal.fire('Perhatian', 'Belum ada siswa yang ditandai statusnya.', 'warning'); return;
-      }
-
-      const dataList = sholatStudents
-        .filter(s => sholatStatusMap[s.nisn])
-        .map(s => ({
-          nisn       : s.nisn,
-          nama       : s.nama,
-          kelas      : s.kelas || kelas,
-          status     : sholatStatusMap[s.nisn],
-          keterangan : sholatKetMap[s.nisn] || ''
-        }));
-
-      showLoading();
-      callGAS('submitAbsensiSholat', dataList, tanggal, waktu, buildInputOleh()).then(res => {
-          hideLoading();
-          if (res.success) {
-            Swal.fire({ icon:'success', title:'Tersimpan!', text: res.message, timer: 2000, showConfirmButton: false });
-            document.getElementById('sholatSubmittedBanner').classList.remove('hidden');
-          } else {
-            Swal.fire('Gagal', res.message, 'error');
-          }
-        }).catch(err => {
-          hideLoading();
-          Swal.fire('Error', String(err), 'error');
-        });
-    }
-
-    // ── REKAP ──
-    function loadRekapSholatData() {
-      const bulan   = document.getElementById('sholatRekapBulan').value;
-      const kelas   = document.getElementById('sholatRekapKelas').value;
-      const waktu   = document.getElementById('sholatRekapWaktu').value;
-      const status  = document.getElementById('sholatRekapStatus').value;
-      const tbody = document.getElementById('sholatRekapTbody');
-      tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center"><div class="inline-block w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div></td></tr>`;
-
-      // Kirim filterWaktu ke backend sekalian — filter kelas wajib untuk tampilkan "Belum Absen"
-      callGAS('getRekapSholat', kelas || null, bulan || null, waktu || null).then(res => {
-          if (!res.success) { tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-red-400">${res.message}</td></tr>`; return; }
-          const allData = res.data || [];
-          sholatRekapData = allData;
-
-          // Stat cards dihitung dari SEMUA data (sebelum filter status)
-          const hadir  = allData.filter(d => d.status === 'Hadir').length;
-          const tidak  = allData.filter(d => d.status === 'Tidak Hadir').length;
-          const belum  = allData.filter(d => d.status === 'Belum Absen').length;
-          const total  = allData.length;
-          const persen = total > 0 ? Math.round(hadir / total * 100) : 0;
-          document.getElementById('sholatStatTotal').textContent  = total;
-          document.getElementById('sholatStatHadir').textContent  = hadir;
-          document.getElementById('sholatStatTidak').textContent  = tidak + (belum > 0 ? ` | ⏳ ${belum} belum` : '');
-          document.getElementById('sholatStatPersen').textContent = persen + '%';
-
-          // Filter status diterapkan hanya untuk tampilan tabel
-          const data = status ? allData.filter(d => d.status === status) : allData;
-
-          if (!data.length) {
-            tbody.innerHTML = `<tr><td colspan="8" class="py-12 text-center text-gray-400">${status ? 'Tidak ada siswa dengan status "' + status + '" pada filter ini.' : 'Tidak ada data pada periode ini.'}</td></tr>`;
-            return;
-          }
-
-          const waktuIcon = { Subuh:'🌙', Dhuha:'🌅', Dzuhur:'☀️', Ashar:'🌤️', Maghrib:'🌆', Isya:'🌃' };
-          tbody.innerHTML = data.map((d, i) => {
-            let badge, rowClass = '';
-            if (d.status === 'Hadir') {
-              badge    = `<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">✓ Hadir</span>`;
-              rowClass = 'bg-emerald-50/30';
-            } else if (d.status === 'Izin / Uzur') {
-              badge    = `<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">⚬ Izin</span>`;
-            } else if (d.status === 'Belum Absen') {
-              badge    = `<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">⏳ Belum Absen</span>`;
-              rowClass = 'bg-amber-50/40';
-            } else {
-              badge    = `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full">✗ Tidak Hadir</span>`;
-              rowClass = 'bg-red-50/20';
-            }
-            return `
-            <tr class="border-b border-gray-100 hover:brightness-95 transition ${rowClass}">
-              <td class="px-3 py-2.5 text-gray-400 text-[10px]">${i+1}</td>
-              <td class="px-3 py-2.5 text-xs text-gray-600">${d.tanggal}</td>
-              <td class="px-3 py-2.5 text-xs text-gray-500">${d.nisn}</td>
-              <td class="px-3 py-2.5 text-xs font-medium text-gray-800">${d.nama}</td>
-              <td class="px-3 py-2.5 text-xs text-gray-600">${d.kelas}</td>
-              <td class="px-3 py-2.5 text-xs">${(waktuIcon[d.waktuSholat]||'')} ${d.waktuSholat}</td>
-              <td class="px-3 py-2.5 text-center">${badge}</td>
-              <td class="px-3 py-2.5 text-xs text-gray-400">${d.keterangan||'-'}</td>
-            </tr>`;
-          }).join('');
-        }).catch(err => {
-          tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-red-400">Gagal: ${err}</td></tr>`;
-        });
-    }
-
-    function exportRekapSholatExcel() {
-      if (!sholatRekapData.length) { Swal.fire('Info','Tidak ada data untuk diekspor.','info'); return; }
-      const wb  = XLSX.utils.book_new();
-      const rows = [['Tanggal','NISN','Nama','Kelas','Waktu Sholat','Status','Keterangan','Input Oleh']];
-      sholatRekapData.forEach(d => rows.push([d.tanggal, d.nisn, d.nama, d.kelas, d.waktuSholat, d.status, d.keterangan, d.inputOleh]));
-      const ws  = XLSX.utils.aoa_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, 'Rekap Sholat');
-      XLSX.writeFile(wb, `Rekap_Sholat_${document.getElementById('sholatRekapBulan').value || 'semua'}.xlsx`);
-    }
+  
     // ==========================================================================
     // POPUP BESAR + SUARA HASIL SCAN
     // ==========================================================================
