@@ -2837,11 +2837,11 @@ function initDashboard() {
     // --- MENU UNTUK ADMIN ---
     if (currentUser.role === 'admin') {
         menuHTML += createItem('Dashboard', 'fa-home', 'loadAdminDashboard()', true);
+        menuHTML += createItem('Monitoring', 'fa-eye', 'loadMonitoringAbsensi()');
         menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
         menuHTML += createItem('Absensi Guru', 'fa-user-tie', 'loadAbsensiGuruMenu()');
         menuHTML += createItem('Data Siswa', 'fa-user-graduate', 'loadDataSiswa()');
         menuHTML += createItem('Data Guru', 'fa-chalkboard-teacher', 'loadDataGuru()');
-        menuHTML += createItem('Laporan', 'fa-clipboard-list', 'loadRekapAbsensi()');
         menuHTML += createItem('Rekap Bulanan', 'fa-calendar-alt', 'loadMenuRekapBulanan()');
         menuHTML += createItem('Rekap Guru', 'fa-calendar-check', 'loadMenuRekapGuru()');
         menuHTML += createItem('Kelola Absen', 'fa-calendar-times', 'loadKelolaAbsen()');
@@ -2852,8 +2852,8 @@ function initDashboard() {
     // --- MENU UNTUK GURU ---
      else if (currentUser.role === 'guru') {
         menuHTML += createItem('Dashboard', 'fa-home', 'loadGuruDashboard()', true);
+        menuHTML += createItem('Absensi Guru', 'fa-user-tie', 'loadAbsensiGuruMenu()');
         menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
-        menuHTML += createItem('Monitoring', 'fa-eye', 'loadMonitoringAbsensi()');
         menuHTML += createItem('Rekap Bulanan', 'fa-calendar-alt', 'loadMenuRekapBulanan()');
         loadGuruDashboard();
     }
