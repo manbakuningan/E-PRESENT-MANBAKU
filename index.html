@@ -2111,70 +2111,83 @@
     }
 
     async function openInlineScanner({ title = 'Scan QR', onDetect }) {
-        closeInlineScanner();
+    closeInlineScanner();
 
-        const overlay = document.createElement('div');
-        overlay.id = 'inlineScannerOverlay';
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;flex-direction:column;align-items:center;padding:16px;gap:12px;overflow-y:auto;';
-        overlay.innerHTML = `
-          <div style="width:100%;max-width:440px;display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="color:#e2e8f0;font-size:13px;font-weight:700;margin:0;letter-spacing:.5px;">${title}</h3>
-            <button id="btnCloseInlineScan" style="background:#1e293b;color:#fff;border:1px solid #334155;padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;">&#10005; Tutup</button>
-          </div>
-          <div style="position:relative;width:100%;max-width:440px;">
-            <video id="inlineScanVideo" autoplay playsinline muted style="width:100%;border-radius:14px;background:#000;min-height:220px;object-fit:cover;display:block;"></video>
-            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-              <div style="width:220px;height:220px;border:3px solid #6366f1;border-radius:14px;"></div>
-            </div>
-          </div>
-          <p id="inlineScanStatus" style="color:#94a3b8;font-size:12px;text-align:center;max-width:400px;min-height:20px;">Meminta izin kamera...</p>
-          <button id="btnSwitchCamInline" style="width:100%;max-width:440px;background:#4f46e5;color:#fff;border:none;padding:11px;border-radius:12px;font-size:12px;font-weight:700;">&#128260; Ganti Kamera</button>
-        `;
-        document.body.appendChild(overlay);
+    const overlay = document.createElement('div');
+    overlay.id = 'inlineScannerOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;overflow:hidden;';
+    overlay.innerHTML = `
+      <video id="inlineScanVideo" autoplay playsinline muted
+        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;"></video>
 
-        const video = overlay.querySelector('#inlineScanVideo');
-        const statusEl = overlay.querySelector('#inlineScanStatus');
-        overlay.querySelector('#btnCloseInlineScan').onclick = closeInlineScanner;
+      <!-- Overlay gradient atas untuk kontras tombol -->
+      <div style="position:absolute;top:0;left:0;right:0;height:110px;background:linear-gradient(to bottom, rgba(0,0,0,0.65), transparent);pointer-events:none;"></div>
 
-        let facing = 'environment';
-        overlay.querySelector('#btnSwitchCamInline').onclick = () => {
-            facing = facing === 'environment' ? 'user' : 'environment';
-            startInlineCam(facing);
-        };
+      <!-- Header: judul + tombol tutup -->
+      <div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:16px 16px 0;">
+        <h3 style="color:#fff;font-size:13px;font-weight:700;margin:0;letter-spacing:.5px;text-shadow:0 1px 4px rgba(0,0,0,0.5);">${title}</h3>
+        <button id="btnCloseInlineScan" style="background:rgba(30,41,59,0.8);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;backdrop-filter:blur(4px);">&#10005; Tutup</button>
+      </div>
 
-        async function startInlineCam(f) {
-            try {
-                if (inlineScanState.stream) inlineScanState.stream.getTracks().forEach(t => t.stop());
-                if (inlineScanState.scanLoop) { clearInterval(inlineScanState.scanLoop); inlineScanState.scanLoop = null; }
-                statusEl.textContent = 'Membuka kamera...';
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw { name: 'NotSupportedError', message: 'Browser tidak mendukung kamera.' };
-                }
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: f === 'environment' ? { ideal: 'environment' } : 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
-                });
-                inlineScanState.stream = stream;
-                video.srcObject = stream;
-                await video.play();
-                statusEl.textContent = 'Arahkan QR ke kamera';
-                beginInlineScan(video, onDetect, statusEl);
-            } catch (e) {
-                let msg = 'Kamera gagal: ' + (e.message || e.name || 'Error');
-                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                    msg = 'Izin kamera ditolak. Buka Setelan browser → Izin Situs → Kamera → Izinkan.';
-                } else if (e.name === 'NotReadableError') {
-                    msg = 'Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain lalu coba lagi.';
-                } else if (e.name === 'OverconstrainedError') {
-                    msg = 'Kamera tidak mendukung mode ini, coba ganti kamera.';
-                }
-                statusEl.textContent = msg;
-                statusEl.style.color = '#f87171';
-            }
-        }
+      <!-- Kotak panduan (hanya visual, bukan pembatas area deteksi) -->
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+        <div style="width:min(70vw,280px);height:min(70vw,280px);border:3px solid rgba(99,102,241,0.9);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,0.25);"></div>
+      </div>
 
+      <!-- Status & tombol ganti kamera, mengambang di bawah -->
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top, rgba(0,0,0,0.7), transparent);display:flex;flex-direction:column;gap:10px;align-items:center;">
+        <p id="inlineScanStatus" style="color:#fff;font-size:12px;text-align:center;max-width:400px;min-height:20px;text-shadow:0 1px 4px rgba(0,0,0,0.6);margin:0;">Meminta izin kamera...</p>
+        <button id="btnSwitchCamInline" style="width:100%;max-width:320px;background:rgba(79,70,229,0.9);color:#fff;border:none;padding:12px;border-radius:12px;font-size:12px;font-weight:700;backdrop-filter:blur(4px);">&#128260; Ganti Kamera</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const video = overlay.querySelector('#inlineScanVideo');
+    const statusEl = overlay.querySelector('#inlineScanStatus');
+    overlay.querySelector('#btnCloseInlineScan').onclick = closeInlineScanner;
+
+    let facing = 'environment';
+    overlay.querySelector('#btnSwitchCamInline').onclick = () => {
+        facing = facing === 'environment' ? 'user' : 'environment';
         startInlineCam(facing);
+    };
+
+    async function startInlineCam(f) {
+        try {
+            if (inlineScanState.stream) inlineScanState.stream.getTracks().forEach(t => t.stop());
+            if (inlineScanState.scanLoop) { clearInterval(inlineScanState.scanLoop); inlineScanState.scanLoop = null; }
+            statusEl.textContent = 'Membuka kamera...';
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw { name: 'NotSupportedError', message: 'Browser tidak mendukung kamera.' };
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: f === 'environment' ? { ideal: 'environment' } : 'user', width: { ideal: 1280 }, height: { ideal: 1920 } }
+            });
+            inlineScanState.stream = stream;
+            video.srcObject = stream;
+
+            // Mirror kamera depan agar terasa seperti cermin
+            video.style.transform = (f === 'user') ? 'scaleX(-1)' : 'none';
+
+            await video.play();
+            statusEl.textContent = 'Arahkan kamera ke QR — deteksi otomatis';
+            beginInlineScan(video, onDetect, statusEl);
+        } catch (e) {
+            let msg = 'Kamera gagal: ' + (e.message || e.name || 'Error');
+            if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                msg = 'Izin kamera ditolak. Buka Setelan browser → Izin Situs → Kamera → Izinkan.';
+            } else if (e.name === 'NotReadableError') {
+                msg = 'Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain lalu coba lagi.';
+            } else if (e.name === 'OverconstrainedError') {
+                msg = 'Kamera tidak mendukung mode ini, coba ganti kamera.';
+            }
+            statusEl.textContent = msg;
+            statusEl.style.color = '#f87171';
+        }
     }
 
+    startInlineCam(facing);
+}
     function beginInlineScan(video, onDetect, statusEl) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
