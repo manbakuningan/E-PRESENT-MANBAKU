@@ -2214,10 +2214,9 @@
                 const now = Date.now();
                 if (now - lastScan < 1500) return;
                 const W = video.videoWidth, H = video.videoHeight;
-if (!W || !H) return;
-const scale = Math.min(1, 480 / W);
-canvas.width = W * scale; canvas.height = H * scale;
-ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                if (!W || !H) return;
+                canvas.width = W; canvas.height = H;
+                ctx.drawImage(video, 0, 0, W, H);
                 try {
                     const lum = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
                     const bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
