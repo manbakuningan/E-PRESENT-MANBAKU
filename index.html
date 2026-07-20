@@ -173,7 +173,7 @@
 
     /* Make QR scanner overlay responsive */
     #inlineScannerOverlay { max-width: 100vw; }
-    #inlineScannerOverlay video { max-height: 100vh; }
+    #inlineScannerOverlay video { max-height: 60vh; }
 
     /* SweetAlert2 mobile adjustments */
     @media (max-width: 640px) {
@@ -2214,10 +2214,9 @@
                 const now = Date.now();
                 if (now - lastScan < 1500) return;
                 const W = video.videoWidth, H = video.videoHeight;
-if (!W || !H) return;
-const scale = Math.min(1, 480 / W);
-canvas.width = W * scale; canvas.height = H * scale;
-ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                if (!W || !H) return;
+                canvas.width = W; canvas.height = H;
+                ctx.drawImage(video, 0, 0, W, H);
                 try {
                     const lum = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
                     const bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
@@ -3799,6 +3798,7 @@ function dhOnScanResult(rawNisn) {
     // Cari siswa di daftar
     const siswa = dhStudents.find(s => s.nisn === nisn);
     if (!siswa) {
+        dhPlayBeep('error');
         showBigScanPopup({ type: 'error', customMsg: 'NISN [' + nisn + '] tidak ada di kelas ini' });
         notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
         notif.textContent = '❌ NISN [' + nisn + '] tidak ada di kelas ini';
@@ -3816,6 +3816,7 @@ function dhOnScanResult(rawNisn) {
     // ── Mode Masuk ──
     if (dhLockedMap[nisn]) {
         // Siswa sudah absen sebelumnya, tidak bisa diubah
+        dhPlayBeep('error');
         const lockedObj = dhLockedMap[nisn];
         const st = (lockedObj && typeof lockedObj === 'object') ? lockedObj.status : String(lockedObj);
         showBigScanPopup({ type: 'error', nama: siswa.nama, customMsg: siswa.nama + ' sudah absen (' + st + ')' });
@@ -3875,6 +3876,7 @@ function dhOnPulangResult(nisn, nama) {
 
     callGAS('submitPulangSatu', nisn, kelas, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru').then(res => {
             if (res.success) {
+                dhPlayBeep('success');
                 showBigScanPopup({ type: 'success', nama: res.nama, mode: 'pulang' });
                 notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
                 notif.textContent = '✅ ' + res.nama + ' pulang — ' + res.jamPulang;
@@ -3891,6 +3893,7 @@ function dhOnPulangResult(nisn, nama) {
                     try { dhCameraPopup.postMessage({ type: 'DH_SCAN_SUCCESS', nama: res.nama + ' pulang' }, '*'); } catch(e) {}
                 }
             } else {
+                dhPlayBeep('error');
                 showBigScanPopup({ type: 'error', nama: nama, customMsg: res.message });
                 notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
                 notif.textContent = '❌ ' + res.message;
@@ -7795,7 +7798,17 @@ function handleArchiveAndReset() {
     // ==========================================================================
     // POPUP BESAR + SUARA HASIL SCAN
     // ==========================================================================
-        
+        function speakScan(text) {
+        try {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'id-ID';
+            utter.rate = 0.95;
+            utter.pitch = 1;
+            window.speechSynthesis.speak(utter);
+        } catch (e) { console.warn('TTS gagal:', e); }
+    }
     
     // Kumpulan sapaan lucu untuk absen masuk
     const SAPAAN_MASUK = [
