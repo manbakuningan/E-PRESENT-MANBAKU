@@ -3799,7 +3799,6 @@ function dhOnScanResult(rawNisn) {
     // Cari siswa di daftar
     const siswa = dhStudents.find(s => s.nisn === nisn);
     if (!siswa) {
-        dhPlayBeep('error');
         showBigScanPopup({ type: 'error', customMsg: 'NISN [' + nisn + '] tidak ada di kelas ini' });
         notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
         notif.textContent = '❌ NISN [' + nisn + '] tidak ada di kelas ini';
@@ -3817,7 +3816,6 @@ function dhOnScanResult(rawNisn) {
     // ── Mode Masuk ──
     if (dhLockedMap[nisn]) {
         // Siswa sudah absen sebelumnya, tidak bisa diubah
-        dhPlayBeep('error');
         const lockedObj = dhLockedMap[nisn];
         const st = (lockedObj && typeof lockedObj === 'object') ? lockedObj.status : String(lockedObj);
         showBigScanPopup({ type: 'error', nama: siswa.nama, customMsg: siswa.nama + ' sudah absen (' + st + ')' });
@@ -3877,7 +3875,6 @@ function dhOnPulangResult(nisn, nama) {
 
     callGAS('submitPulangSatu', nisn, kelas, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru').then(res => {
             if (res.success) {
-                dhPlayBeep('success');
                 showBigScanPopup({ type: 'success', nama: res.nama, mode: 'pulang' });
                 notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
                 notif.textContent = '✅ ' + res.nama + ' pulang — ' + res.jamPulang;
@@ -3894,7 +3891,6 @@ function dhOnPulangResult(nisn, nama) {
                     try { dhCameraPopup.postMessage({ type: 'DH_SCAN_SUCCESS', nama: res.nama + ' pulang' }, '*'); } catch(e) {}
                 }
             } else {
-                dhPlayBeep('error');
                 showBigScanPopup({ type: 'error', nama: nama, customMsg: res.message });
                 notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
                 notif.textContent = '❌ ' + res.message;
