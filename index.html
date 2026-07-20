@@ -2110,31 +2110,27 @@
         if (overlay) overlay.remove();
     }
 
-    async function openInlineScanner({ title = 'Scan QR', onDetect }) {
+  async function openInlineScanner({ title = 'Scan QR', onDetect }) {
     closeInlineScanner();
 
     const overlay = document.createElement('div');
     overlay.id = 'inlineScannerOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;overflow:hidden;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;height:100vh;height:100dvh;z-index:9999;background:#000;display:flex;flex-direction:column;overflow:hidden;';
     overlay.innerHTML = `
       <video id="inlineScanVideo" autoplay playsinline muted
-        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;"></video>
+        style="position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;object-fit:cover;background:#000;"></video>
 
-      <!-- Overlay gradient atas untuk kontras tombol -->
       <div style="position:absolute;top:0;left:0;right:0;height:110px;background:linear-gradient(to bottom, rgba(0,0,0,0.65), transparent);pointer-events:none;"></div>
 
-      <!-- Header: judul + tombol tutup -->
       <div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:16px 16px 0;">
         <h3 style="color:#fff;font-size:13px;font-weight:700;margin:0;letter-spacing:.5px;text-shadow:0 1px 4px rgba(0,0,0,0.5);">${title}</h3>
         <button id="btnCloseInlineScan" style="background:rgba(30,41,59,0.8);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;backdrop-filter:blur(4px);">&#10005; Tutup</button>
       </div>
 
-      <!-- Kotak panduan (hanya visual, bukan pembatas area deteksi) -->
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+      <div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
         <div style="width:min(70vw,280px);height:min(70vw,280px);border:3px solid rgba(99,102,241,0.9);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,0.25);"></div>
       </div>
 
-      <!-- Status & tombol ganti kamera, mengambang di bawah -->
       <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top, rgba(0,0,0,0.7), transparent);display:flex;flex-direction:column;gap:10px;align-items:center;">
         <p id="inlineScanStatus" style="color:#fff;font-size:12px;text-align:center;max-width:400px;min-height:20px;text-shadow:0 1px 4px rgba(0,0,0,0.6);margin:0;">Meminta izin kamera...</p>
         <button id="btnSwitchCamInline" style="width:100%;max-width:320px;background:rgba(79,70,229,0.9);color:#fff;border:none;padding:12px;border-radius:12px;font-size:12px;font-weight:700;backdrop-filter:blur(4px);">&#128260; Ganti Kamera</button>
@@ -2145,6 +2141,16 @@
     const video = overlay.querySelector('#inlineScanVideo');
     const statusEl = overlay.querySelector('#inlineScanStatus');
     overlay.querySelector('#btnCloseInlineScan').onclick = closeInlineScanner;
+
+    // Fallback: paksa tinggi overlay & video pakai px asli, jaga-jaga kalau vh/dvh meleset saat toolbar browser muncul/hilang
+    function fixViewportHeight() {
+        const h = window.innerHeight + 'px';
+        overlay.style.height = h;
+        video.style.height = h;
+    }
+    fixViewportHeight();
+    window.addEventListener('resize', fixViewportHeight);
+    window.addEventListener('orientationchange', () => setTimeout(fixViewportHeight, 200));
 
     let facing = 'environment';
     overlay.querySelector('#btnSwitchCamInline').onclick = () => {
@@ -2165,11 +2171,10 @@
             });
             inlineScanState.stream = stream;
             video.srcObject = stream;
-
-            // Mirror kamera depan agar terasa seperti cermin
             video.style.transform = (f === 'user') ? 'scaleX(-1)' : 'none';
 
             await video.play();
+            fixViewportHeight(); // pastikan ukuran benar setelah video mulai render
             statusEl.textContent = 'Arahkan kamera ke QR — deteksi otomatis';
             beginInlineScan(video, onDetect, statusEl);
         } catch (e) {
@@ -2188,6 +2193,8 @@
 
     startInlineCam(facing);
 }
+
+
     function beginInlineScan(video, onDetect, statusEl) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
