@@ -2104,28 +2104,38 @@
 let inlineScanState = { stream: null, scanLoop: null };
 
 // --- RIWAYAT SCAN TERAKHIR (tampil di bawah kamera, 5-10 entri terakhir) ---
-let scanHistoryList = []; // {name, status, note, jam}
-const SCAN_HISTORY_MAX = 3; // ganti ke 5 kalau mau lebih ringkas
+let scanHistoryList = []; // {id, name, status, note, jam}
+const SCAN_HISTORY_MAX = 3; // jumlah baris riwayat yang ditampilkan
 
-function addScanHistoryEntry(name, status, note) {
+function addScanHistoryEntry(id, name, status, note) {
     const now = new Date();
     const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const cleanName = (name || '-').trim();
+    const cleanName = (name || '').trim();
+    const key = id ? String(id).trim() : '';
 
-    // Cek apakah nama yang sama sudah ada di riwayat (case-insensitive)
+    // 1) Cocokkan dulu berdasarkan ID (NISN/NIP) — ini selalu ada walau scan gagal
     let existingIndex = -1;
-    if (cleanName !== '-') {
+    if (key) {
+        existingIndex = scanHistoryList.findIndex(item => item.id && item.id === key);
+    }
+    // 2) Fallback: cocokkan berdasarkan nama (untuk kompatibilitas kalau id tidak dikirim)
+    if (existingIndex === -1 && cleanName) {
         existingIndex = scanHistoryList.findIndex(item =>
-            item.name.trim().toLowerCase() === cleanName.toLowerCase()
+            item.name && item.name.trim().toLowerCase() === cleanName.toLowerCase()
         );
     }
 
+    // Pertahankan nama lama jika scan kali ini tidak membawa nama (mis. gagal karena NISN belum dikenal)
+    let finalName = cleanName;
+    if (!finalName && existingIndex !== -1) finalName = scanHistoryList[existingIndex].name;
+    if (!finalName) finalName = key || '-';
+
     if (existingIndex !== -1) {
-        // Sudah ada: hapus entri lama, lalu taruh versi terbaru di paling atas
+        // Sudah ada orang yang sama: hapus entri lama, ganti dengan status terbaru (tidak menumpuk)
         scanHistoryList.splice(existingIndex, 1);
     }
 
-    scanHistoryList.unshift({ name: cleanName, status, note: note || '', jam });
+    scanHistoryList.unshift({ id: key, name: finalName, status, note: note || '', jam });
     if (scanHistoryList.length > SCAN_HISTORY_MAX) scanHistoryList.length = SCAN_HISTORY_MAX;
     renderScanHistoryPanel();
 }
@@ -7815,7 +7825,7 @@ function pilihAcak(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg = '' }) {
+function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg = '', id = null }) {
     const isSuccess = type === 'success';
 
     let sub;
@@ -7825,9 +7835,8 @@ function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg 
         sub = customMsg || (nama ? `${nama}` : 'Periksa kembali QR / NISN');
     }
 
-    // Catat ke riwayat scan (dipakai untuk panel "Riwayat Scan Terakhir" di kamera)
-    // Nama tetap tampil di sini saja, tidak lagi di popup besar / suara.
-    addScanHistoryEntry(nama, type, sub);
+    // Catat ke riwayat scan, dikunci berdasarkan ID (NISN/NIP) supaya 1 orang = 1 baris
+    addScanHistoryEntry(id, nama, type, sub);
 
     if (isSuccess) {
         if (mode === 'masuk') {
