@@ -2546,11 +2546,14 @@ function onScanSuccessGuru(decodedText) {
             if (res.success && res.results && res.results[0]) {
                 const r = res.results[0];
                 if (r.success) {
-                    showBigScanPopup({ type: 'success', nama: r.nama, mode: r.type === 'datang' ? 'masuk' : 'pulang' });
-                    addToGuruScanQueue(r.nama, r.type, r.jamDatang || r.jamPulang);
-                } else {
-                    showBigScanPopup({ type: 'error', nama: r.nama || '', customMsg: r.message });
-                }
+    showBigScanPopup({ type: 'success', nama: r.nama, mode: r.type === 'datang' ? 'masuk' : 'pulang' });
+    addToGuruScanQueue(r.nama, r.type, r.jamDatang || r.jamPulang);
+} else if (isSudahAbsenMsg(r.message)) {
+    // Sudah absen sebelumnya -> tetap tampilkan sebagai berhasil
+    showBigScanPopup({ type: 'success', nama: r.nama || '', mode: 'masuk', customMsg: r.message });
+} else {
+    showBigScanPopup({ type: 'error', nama: r.nama || '', customMsg: r.message });
+}
             } else {
                 showBigScanPopup({ type: 'error', customMsg: res.message || 'Gagal memproses absensi' });
             }
@@ -5830,41 +5833,48 @@ function onScanSuccess(decodedText) {
                 });
         });
     }
+  
+function showBatchResultModal(results) {
+    const isAlready = r => !r.success && isSudahAbsenMsg(r.message);
+    const berhasil = results.filter(r => r.success || isAlready(r));
+    const gagal    = results.filter(r => !r.success && !isAlready(r));
 
-    function showBatchResultModal(results) {
-        const berhasil = results.filter(r => r.success);
-        const gagal    = results.filter(r => !r.success);
+    const berhasilHtml = berhasil.map(r => {
+        const sudah = !r.success; // masuk kategori "sudah absen"
+        return `<div class="flex items-center gap-2 py-1 border-b border-gray-50">
+            <span class="text-emerald-500 text-xs">\u2713</span>
+            <div class="flex-1 text-left">
+                <span class="font-semibold text-xs text-gray-800">${r.nama}</span>
+                <span class="text-[10px] text-gray-400">(${r.kelas || ''})</span>
+                ${sudah ? '<span class="text-[10px] text-amber-500 ml-1">— sudah absen</span>' : ''}
+            </div>
+            <span class="text-[10px] text-gray-400 font-mono">${r.jamDatang || r.jamPulang || ''}</span>
+            ${r.type ? `<span class="text-[10px] px-1.5 py-0.5 rounded ${r.type==='datang' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">${r.type==='datang' ? 'Masuk' : 'Pulang'}</span>` : ''}
+        </div>`;
+    }).join('');
 
-        const berhasilHtml = berhasil.map(r =>
-            `<div class="flex items-center gap-2 py-1 border-b border-gray-50">
-                <span class="text-emerald-500 text-xs">\u2713</span>
-                <div class="flex-1 text-left"><span class="font-semibold text-xs text-gray-800">${r.nama}</span> <span class="text-[10px] text-gray-400">(${r.kelas})</span></div>
-                <span class="text-[10px] text-gray-400 font-mono">${r.jamDatang || r.jamPulang || ''}</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded ${r.type==='datang' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">${r.type==='datang' ? 'Masuk' : 'Pulang'}</span>
-            </div>`
-        ).join('');
+    const gagalHtml = gagal.length > 0 ? `
+        <div class="mt-3 bg-red-50 rounded-xl p-3 border border-red-100">
+            <p class="text-xs font-bold text-red-600 mb-2"><i class="fas fa-exclamation-triangle mr-1"></i> ${gagal.length} Gagal</p>
+            ${gagal.map(r => `<div class="text-xs text-red-500 py-0.5">\u2022 ${r.nama || r.nisn}: ${r.message}</div>`).join('')}
+        </div>` : '';
 
-        const gagalHtml = gagal.length > 0 ? `
-            <div class="mt-3 bg-red-50 rounded-xl p-3 border border-red-100">
-                <p class="text-xs font-bold text-red-600 mb-2"><i class="fas fa-exclamation-triangle mr-1"></i> ${gagal.length} Gagal</p>
-                ${gagal.map(r => `<div class="text-xs text-red-500 py-0.5">\u2022 ${r.nama || r.nisn}: ${r.message}</div>`).join('')}
-            </div>` : '';
+    Swal.fire({
+        title: `<span style="font-size:18px">\u2705 Absensi Tersimpan</span>`,
+        html: `
+            <div style="text-align:center;margin-bottom:12px">
+                <span style="font-size:13px;color:#6b7280">${berhasil.length} dari ${results.length} data berhasil disimpan</span>
+            </div>
+            <div style="max-height:300px;overflow-y:auto;text-align:left;padding:0 4px">
+                ${berhasilHtml}
+            </div>
+            ${gagalHtml}`,
+        icon: berhasil.length === results.length ? 'success' : 'warning',
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#111827',
+    });
+}
 
-        Swal.fire({
-            title: `<span style="font-size:18px">\u2705 Absensi Tersimpan</span>`,
-            html: `
-                <div style="text-align:center;margin-bottom:12px">
-                    <span style="font-size:13px;color:#6b7280">${berhasil.length} dari ${results.length} data berhasil disimpan</span>
-                </div>
-                <div style="max-height:300px;overflow-y:auto;text-align:left;padding:0 4px">
-                    ${berhasilHtml}
-                </div>
-                ${gagalHtml}`,
-            icon: berhasil.length === results.length ? 'success' : 'warning',
-            confirmButtonText: 'Tutup',
-            confirmButtonColor: '#111827',
-        });
-    }
 
     function highlightScanRow(tr, wrapper) {
         document.querySelectorAll('.scan-row-highlight').forEach(el => el.classList.remove('scan-row-highlight'));
@@ -7850,6 +7860,13 @@ function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg 
     } else {
         speakScan(customMsg ? 'Yah, scan gagal, coba lagi ya' : 'Yah, scan gagal, coba lagi ya');
     }
+}
+
+  function isSudahAbsenMsg(msg) {
+    if (!msg) return false;
+    const m = String(msg).toLowerCase();
+    return m.includes('sudah absen') || m.includes('sudah tercatat') ||
+           m.includes('sudah scan') || m.includes('sudah pulang') || m.includes('sudah datang');
 }
     // ==========================================================================
     // REKAP BULANAN GURU
