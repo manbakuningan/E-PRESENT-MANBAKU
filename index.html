@@ -2098,49 +2098,85 @@
         return json.result;
     }
 
-    // ==========================================================================
-    // INLINE QR SCANNER — pengganti popup window terpisah (lebih stabil di mobile)
-    // ==========================================================================
-    let inlineScanState = { stream: null, scanLoop: null };
+// ==========================================================================
+// INLINE QR SCANNER — pengganti popup window terpisah (lebih stabil di mobile)
+// ==========================================================================
+let inlineScanState = { stream: null, scanLoop: null };
 
-    function closeInlineScanner() {
-        if (inlineScanState.scanLoop) { clearInterval(inlineScanState.scanLoop); inlineScanState.scanLoop = null; }
-        if (inlineScanState.stream) { inlineScanState.stream.getTracks().forEach(t => t.stop()); inlineScanState.stream = null; }
-        const overlay = document.getElementById('inlineScannerOverlay');
-        if (overlay) overlay.remove();
+// --- RIWAYAT SCAN TERAKHIR (tampil di bawah kamera, 5-10 entri terakhir) ---
+let scanHistoryList = []; // {name, status, note, jam}
+const SCAN_HISTORY_MAX = 10; // ganti ke 5 kalau mau lebih ringkas
+
+function addScanHistoryEntry(name, status, note) {
+    const now = new Date();
+    const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    scanHistoryList.unshift({ name: name || '-', status, note: note || '', jam });
+    if (scanHistoryList.length > SCAN_HISTORY_MAX) scanHistoryList.length = SCAN_HISTORY_MAX;
+    renderScanHistoryPanel();
+}
+
+function renderScanHistoryPanel() {
+    const panel = document.getElementById('inlineScanHistoryList');
+    const countEl = document.getElementById('inlineScanHistoryCount');
+    if (!panel) return;
+    if (countEl) countEl.textContent = scanHistoryList.length + ' terakhir';
+    if (scanHistoryList.length === 0) {
+        panel.innerHTML = '<div style="text-align:center;color:#64748b;font-size:11px;padding:20px 0;">Belum ada riwayat scan</div>';
+        return;
     }
+    panel.innerHTML = scanHistoryList.map(item => {
+        const ok = item.status === 'success';
+        const bg = ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+        const border = ok ? '#10b981' : '#ef4444';
+        const icon = ok ? '✅' : '❌';
+        return `<div style="display:flex;align-items:center;gap:10px;background:${bg};border-left:3px solid ${border};padding:8px 10px;border-radius:8px;margin-bottom:6px;">
+            <span style="font-size:16px;flex-shrink:0;">${icon}</span>
+            <div style="flex:1;min-width:0;">
+                <div style="color:#f1f5f9;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+                ${item.note ? `<div style="color:#94a3b8;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.note}</div>` : ''}
+            </div>
+            <div style="color:#94a3b8;font-size:10px;font-family:monospace;flex-shrink:0;">${item.jam}</div>
+        </div>`;
+    }).join('');
+}
 
-    async function openInlineScanner({ title = 'Scan QR', onDetect }) {
+function closeInlineScanner() {
+    if (inlineScanState.scanLoop) { clearInterval(inlineScanState.scanLoop); inlineScanState.scanLoop = null; }
+    if (inlineScanState.stream) { inlineScanState.stream.getTracks().forEach(t => t.stop()); inlineScanState.stream = null; }
+    const overlay = document.getElementById('inlineScannerOverlay');
+    if (overlay) overlay.remove();
+}
+
+async function openInlineScanner({ title = 'Scan QR', onDetect }) {
     closeInlineScanner();
 
     const overlay = document.createElement('div');
     overlay.id = 'inlineScannerOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;overflow:hidden;';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;flex-direction:column;align-items:center;padding:16px;gap:12px;overflow-y:auto;';
     overlay.innerHTML = `
-      <video id="inlineScanVideo" autoplay playsinline muted
-        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;"></video>
-
-      <!-- Overlay gradient atas untuk kontras tombol -->
-      <div style="position:absolute;top:0;left:0;right:0;height:110px;background:linear-gradient(to bottom, rgba(0,0,0,0.65), transparent);pointer-events:none;"></div>
-
-      <!-- Header: judul + tombol tutup -->
-      <div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:16px 16px 0;">
-        <h3 style="color:#fff;font-size:13px;font-weight:700;margin:0;letter-spacing:.5px;text-shadow:0 1px 4px rgba(0,0,0,0.5);">${title}</h3>
-        <button id="btnCloseInlineScan" style="background:rgba(30,41,59,0.8);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;backdrop-filter:blur(4px);">&#10005; Tutup</button>
+      <div style="width:100%;max-width:440px;display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="color:#e2e8f0;font-size:13px;font-weight:700;margin:0;letter-spacing:.5px;">${title}</h3>
+        <button id="btnCloseInlineScan" style="background:#1e293b;color:#fff;border:1px solid #334155;padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;">&#10005; Tutup</button>
       </div>
-
-      <!-- Kotak panduan (hanya visual, bukan pembatas area deteksi) -->
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-        <div style="width:min(70vw,280px);height:min(70vw,280px);border:3px solid rgba(99,102,241,0.9);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,0.25);"></div>
+      <div style="position:relative;width:100%;max-width:440px;flex-shrink:0;">
+        <video id="inlineScanVideo" autoplay playsinline muted style="width:100%;max-height:32vh;border-radius:14px;background:#000;min-height:180px;object-fit:cover;display:block;"></video>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+          <div style="width:180px;height:180px;border:3px solid #6366f1;border-radius:14px;"></div>
+        </div>
       </div>
+      <p id="inlineScanStatus" style="color:#94a3b8;font-size:12px;text-align:center;max-width:400px;min-height:20px;flex-shrink:0;">Meminta izin kamera...</p>
+      <button id="btnSwitchCamInline" style="width:100%;max-width:440px;background:#4f46e5;color:#fff;border:none;padding:11px;border-radius:12px;font-size:12px;font-weight:700;flex-shrink:0;">&#128260; Ganti Kamera</button>
 
-      <!-- Status & tombol ganti kamera, mengambang di bawah -->
-      <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top, rgba(0,0,0,0.7), transparent);display:flex;flex-direction:column;gap:10px;align-items:center;">
-        <p id="inlineScanStatus" style="color:#fff;font-size:12px;text-align:center;max-width:400px;min-height:20px;text-shadow:0 1px 4px rgba(0,0,0,0.6);margin:0;">Meminta izin kamera...</p>
-        <button id="btnSwitchCamInline" style="width:100%;max-width:320px;background:rgba(79,70,229,0.9);color:#fff;border:none;padding:12px;border-radius:12px;font-size:12px;font-weight:700;backdrop-filter:blur(4px);">&#128260; Ganti Kamera</button>
+      <div style="width:100%;max-width:440px;flex:1;min-height:150px;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 6px;">
+          <span style="color:#cbd5e1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;"><i class="fas fa-history" style="margin-right:6px;"></i>Riwayat Scan Terakhir</span>
+          <span id="inlineScanHistoryCount" style="color:#64748b;font-size:10px;"></span>
+        </div>
+        <div id="inlineScanHistoryList" style="flex:1;min-height:0;overflow-y:auto;background:rgba(15,23,42,0.5);border-radius:12px;padding:8px;border:1px solid #1e293b;"></div>
       </div>
     `;
     document.body.appendChild(overlay);
+    renderScanHistoryPanel();
 
     const video = overlay.querySelector('#inlineScanVideo');
     const statusEl = overlay.querySelector('#inlineScanStatus');
@@ -2161,16 +2197,12 @@
                 throw { name: 'NotSupportedError', message: 'Browser tidak mendukung kamera.' };
             }
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: f === 'environment' ? { ideal: 'environment' } : 'user', width: { ideal: 1280 }, height: { ideal: 1920 } }
+                video: { facingMode: f === 'environment' ? { ideal: 'environment' } : 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
             });
             inlineScanState.stream = stream;
             video.srcObject = stream;
-
-            // Mirror kamera depan agar terasa seperti cermin
-            video.style.transform = (f === 'user') ? 'scaleX(-1)' : 'none';
-
             await video.play();
-            statusEl.textContent = 'Arahkan kamera ke QR — deteksi otomatis';
+            statusEl.textContent = 'Arahkan QR ke kamera';
             beginInlineScan(video, onDetect, statusEl);
         } catch (e) {
             let msg = 'Kamera gagal: ' + (e.message || e.name || 'Error');
@@ -2188,6 +2220,40 @@
 
     startInlineCam(facing);
 }
+
+        async function startInlineCam(f) {
+            try {
+                if (inlineScanState.stream) inlineScanState.stream.getTracks().forEach(t => t.stop());
+                if (inlineScanState.scanLoop) { clearInterval(inlineScanState.scanLoop); inlineScanState.scanLoop = null; }
+                statusEl.textContent = 'Membuka kamera...';
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw { name: 'NotSupportedError', message: 'Browser tidak mendukung kamera.' };
+                }
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: f === 'environment' ? { ideal: 'environment' } : 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+                inlineScanState.stream = stream;
+                video.srcObject = stream;
+                await video.play();
+                statusEl.textContent = 'Arahkan QR ke kamera';
+                beginInlineScan(video, onDetect, statusEl);
+            } catch (e) {
+                let msg = 'Kamera gagal: ' + (e.message || e.name || 'Error');
+                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                    msg = 'Izin kamera ditolak. Buka Setelan browser → Izin Situs → Kamera → Izinkan.';
+                } else if (e.name === 'NotReadableError') {
+                    msg = 'Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain lalu coba lagi.';
+                } else if (e.name === 'OverconstrainedError') {
+                    msg = 'Kamera tidak mendukung mode ini, coba ganti kamera.';
+                }
+                statusEl.textContent = msg;
+                statusEl.style.color = '#f87171';
+            }
+        }
+
+        startInlineCam(facing);
+    }
+
     function beginInlineScan(video, onDetect, statusEl) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -7788,110 +7854,106 @@ function handleArchiveAndReset() {
         loadQRCodeSiswa(nisn, nama, kelas);
     }
   
-    // ==========================================================================
-    // POPUP BESAR + SUARA HASIL SCAN
-    // ==========================================================================
-        function speakScan(text) {
-        try {
-            if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.lang = 'id-ID';
-            utter.rate = 0.95;
-            utter.pitch = 1;
-            window.speechSynthesis.speak(utter);
-        } catch (e) { console.warn('TTS gagal:', e); }
+// ==========================================================================
+// POPUP BESAR + SUARA HASIL SCAN
+// ==========================================================================
+function speakScan(text) {
+    try {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'id-ID';
+        utter.rate = 0.95;
+        utter.pitch = 1;
+        window.speechSynthesis.speak(utter);
+    } catch (e) { console.warn('TTS gagal:', e); }
+}
+
+const SAPAAN_MASUK = [
+    'Yeay, sudah datang!',
+    'Hai, semangat pagi!',
+    'Asyik, sudah hadir!',
+    'Wah, rajin sekali!',
+    'Halo, selamat belajar!',
+    'Cieee sudah datang!'
+];
+
+const SAPAAN_PULANG = [
+    'Dadah, hati-hati di jalan!',
+    'Sampai jumpa besok lagi!',
+    'Yeay, waktunya pulang!',
+    'Selamat pulang, jangan jajan sembarangan!',
+    'Bye bye, sampai ketemu lagi!',
+    'Pulang dulu ya, semangat!'
+];
+
+function pilihAcak(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg = '' }) {
+    const old = document.getElementById('bigScanPopup');
+    if (old) old.remove();
+
+    const isSuccess = type === 'success';
+    const bg = isSuccess
+        ? 'linear-gradient(135deg,#059669,#10b981)'
+        : 'linear-gradient(135deg,#dc2626,#ef4444)';
+    const icon = isSuccess ? '✅' : '❌';
+
+    let title, sub;
+    if (isSuccess) {
+        title = mode === 'pulang' ? 'ABSEN PULANG BERHASIL' : 'ABSEN MASUK BERHASIL';
+        sub = nama ? `Selamat ${mode === 'pulang' ? 'jalan' : 'datang'}, ${nama}!` : '';
+    } else {
+        title = 'SCAN GAGAL';
+        sub = customMsg || (nama ? `${nama}` : 'Periksa kembali QR / NISN');
     }
-    
-    // Kumpulan sapaan lucu untuk absen masuk
-    const SAPAAN_MASUK = [
-        'Yeay, sudah datang!',
-        'Hai, semangat pagi!',
-        'Asyik, sudah hadir!',
-        'Wah, rajin sekali!',
-        'Halo, selamat belajar!',
-        'Cieee sudah datang!'
-    ];
-    
-    // Kumpulan sapaan lucu untuk absen pulang
-    const SAPAAN_PULANG = [
-        'Dadah, hati-hati di jalan!',
-        'Sampai jumpa besok lagi!',
-        'Yeay, waktunya pulang!',
-        'Selamat pulang, jangan jajan sembarangan!',
-        'Bye bye, sampai ketemu lagi!',
-        'Pulang dulu ya, semangat!'
-    ];
-    
-    function pilihAcak(arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
-    }
-    
-    function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg = '' }) {
-        const old = document.getElementById('bigScanPopup');
-        if (old) old.remove();
-    
-        const isSuccess = type === 'success';
-        const bg = isSuccess
-            ? 'linear-gradient(135deg,#059669,#10b981)'
-            : 'linear-gradient(135deg,#dc2626,#ef4444)';
-        const icon = isSuccess ? '✅' : '❌';
-    
-        let title, sub;
-        if (isSuccess) {
-            title = mode === 'pulang' ? 'ABSEN PULANG BERHASIL' : 'ABSEN MASUK BERHASIL';
-            sub = nama ? `Selamat ${mode === 'pulang' ? 'jalan' : 'datang'}, ${nama}!` : '';
-        } else {
-            title = 'SCAN GAGAL';
-            sub = customMsg || (nama ? `${nama}` : 'Periksa kembali QR / NISN');
-        }
-    
-        const el = document.createElement('div');
-        el.id = 'bigScanPopup';
-        el.style.cssText = `
-            position:fixed; top:0; left:0; right:0; z-index:99999;
-            display:flex; justify-content:center; padding-top:24px;
-            pointer-events:none; animation:bigScanIn .35s cubic-bezier(.34,1.56,.64,1);
-        `;
-        el.innerHTML = `
-            <div style="background:${bg};color:#fff;padding:22px 40px;border-radius:22px;
-                box-shadow:0 20px 50px rgba(0,0,0,.35);display:flex;align-items:center;gap:16px;
-                min-width:320px;max-width:90vw;">
-                <div style="font-size:42px;line-height:1;">${icon}</div>
-                <div>
-                    <div style="font-size:20px;font-weight:800;letter-spacing:.5px;">${title}</div>
-                    <div style="font-size:15px;opacity:.95;font-weight:700;margin-top:2px;">${sub}</div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(el);
-    
-        if (isSuccess) {
-            if (mode === 'masuk') {
-                const sapaan = pilihAcak(SAPAAN_MASUK);
-                speakScan(nama ? `${sapaan} ${nama}` : sapaan);
-            } else if (mode === 'pulang') {
-                const sapaan = pilihAcak(SAPAAN_PULANG);
-                speakScan(nama ? `${sapaan} ${nama}` : sapaan);
-            } else {
-                speakScan(nama ? `Absensi berhasil, ${nama}` : 'Absensi berhasil');
-            }
-        } else {
-            speakScan(customMsg ? `Yah, scan gagal. ${customMsg}` : 'Yah, scan gagal, coba lagi ya');
-        }
-    
-        setTimeout(() => {
-            el.style.animation = 'bigScanOut .3s ease forwards';
-            setTimeout(() => el.remove(), 300);
-        }, 2400);
-    }
-    
-    const bigScanStyle = document.createElement('style');
-    bigScanStyle.textContent = `
-    @keyframes bigScanIn { from{opacity:0; transform:translateY(-30px) scale(.9);} to{opacity:1; transform:translateY(0) scale(1);} }
-    @keyframes bigScanOut { from{opacity:1; transform:translateY(0) scale(1);} to{opacity:0; transform:translateY(-20px) scale(.9);} }
+
+    // Catat ke riwayat scan (dipakai untuk panel "Riwayat Scan Terakhir" di kamera)
+    addScanHistoryEntry(nama, type, sub);
+
+    const el = document.createElement('div');
+    el.id = 'bigScanPopup';
+    el.style.cssText = `
+        position:fixed; top:0; left:0; right:0; z-index:99999;
+        display:flex; justify-content:center; padding-top:24px;
+        pointer-events:none; animation:bigScanIn .35s cubic-bezier(.34,1.56,.64,1);
     `;
-    document.head.appendChild(bigScanStyle);
+    el.innerHTML = `
+        <div style="background:${bg};color:#fff;padding:22px 40px;border-radius:22px;
+            box-shadow:0 20px 50px rgba(0,0,0,.35);display:flex;align-items:center;gap:16px;
+            min-width:320px;max-width:90vw;">
+            <div style="font-size:42px;line-height:1;">${icon}</div>
+            <div>
+                <div style="font-size:20px;font-weight:800;letter-spacing:.5px;">${title}</div>
+                <div style="font-size:15px;opacity:.95;font-weight:700;margin-top:2px;">${sub}</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(el);
+
+    if (isSuccess) {
+        if (mode === 'masuk') {
+            const sapaan = pilihAcak(SAPAAN_MASUK);
+            speakScan(nama ? `${sapaan} ${nama}` : sapaan);
+        } else if (mode === 'pulang') {
+            const sapaan = pilihAcak(SAPAAN_PULANG);
+            speakScan(nama ? `${sapaan} ${nama}` : sapaan);
+        } else {
+            speakScan(nama ? `Absensi berhasil, ${nama}` : 'Absensi berhasil');
+        }
+    } else {
+        speakScan(customMsg ? `Yah, scan gagal. ${customMsg}` : 'Yah, scan gagal, coba lagi ya');
+    }
+}
+
+const bigScanStyle = document.createElement('style');
+bigScanStyle.textContent = `
+@keyframes bigScanIn { from{opacity:0; transform:translateY(-30px) scale(.9);} to{opacity:1; transform:translateY(0) scale(1);} }
+@keyframes bigScanOut { from{opacity:1; transform:translateY(0) scale(1);} to{opacity:0; transform:translateY(-20px) scale(.9);} }
+`;
+document.head.appendChild(bigScanStyle);
     // ==========================================================================
     // REKAP BULANAN GURU
     // ==========================================================================
