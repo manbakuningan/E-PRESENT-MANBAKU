@@ -2105,7 +2105,7 @@ let inlineScanState = { stream: null, scanLoop: null };
 
 // --- RIWAYAT SCAN TERAKHIR (tampil di bawah kamera, 5-10 entri terakhir) ---
 let scanHistoryList = []; // {id, name, status, note, jam}
-const SCAN_HISTORY_MAX = 3; // jumlah baris riwayat yang ditampilkan
+const SCAN_HISTORY_MAX = 5; // jumlah baris riwayat yang ditampilkan
 
 function addScanHistoryEntry(id, name, status, note) {
     const now = new Date();
@@ -3868,17 +3868,16 @@ function dhOnScanResult(rawNisn) {
 
     // ── Mode Masuk ──
     if (dhLockedMap[nisn]) {
-        // Siswa sudah absen sebelumnya, tidak bisa diubah
-        dhPlayBeep('error');
-        const lockedObj = dhLockedMap[nisn];
-        const st = (lockedObj && typeof lockedObj === 'object') ? lockedObj.status : String(lockedObj);
-        showBigScanPopup({ type: 'error', nama: siswa.nama, customMsg: siswa.nama + ' sudah absen (' + st + ')' });
-        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-yellow-50 text-yellow-700 border border-yellow-100';
-        notif.textContent = '🔒 ' + siswa.nama + ' sudah absen (' + st.charAt(0).toUpperCase() + st.slice(1) + ')';
-        notif.classList.remove('hidden');
-        setTimeout(() => notif.classList.add('hidden'), 2500);
-        return;
-    }
+    dhPlayBeep('success');
+    const lockedObj = dhLockedMap[nisn];
+    const st = (lockedObj && typeof lockedObj === 'object') ? lockedObj.status : String(lockedObj);
+    showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk', id: nisn, customMsg: 'Sudah absen (' + st + ')' });
+    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
+    notif.textContent = '✅ ' + siswa.nama + ' — sudah tercatat (' + st.charAt(0).toUpperCase() + st.slice(1) + ')';
+    notif.classList.remove('hidden');
+    setTimeout(() => notif.classList.add('hidden'), 2500);
+    return;
+}
     dhLastScannedNisn = nisn;
     dhStatusMap[nisn] = 'hadir';
     dhPlayBeep('success');
@@ -3914,14 +3913,14 @@ function dhOnPulangResult(nisn, nama) {
     // Cek sudah pulang di data lokal
     const d = dhPulangMap[nisn];
     if (d && d.jamPulang && d.jamPulang.trim()) {
-        dhPlayBeep('error');
-        showBigScanPopup({ type: 'error', nama: nama, customMsg: (nama||nisn) + ' sudah pulang (' + d.jamPulang + ')' });
-        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-yellow-50 text-yellow-700 border border-yellow-100';
-        notif.textContent = '⚠️ ' + (nama||nisn) + ' sudah pulang (' + d.jamPulang + ')';
-        notif.classList.remove('hidden');
-        setTimeout(() => notif.classList.add('hidden'), 2500);
-        return;
-    }
+    dhPlayBeep('success');
+    showBigScanPopup({ type: 'success', nama: nama, mode: 'pulang', id: nisn, customMsg: 'Sudah pulang (' + d.jamPulang + ')' });
+    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
+    notif.textContent = '✅ ' + (nama||nisn) + ' — sudah tercatat pulang (' + d.jamPulang + ')';
+    notif.classList.remove('hidden');
+    setTimeout(() => notif.classList.add('hidden'), 2500);
+    return;
+}
 
     notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-orange-50 text-orange-600 border border-orange-100';
     notif.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Mencatat pulang ' + (nama||nisn) + '...';
@@ -5650,16 +5649,18 @@ function onScanSuccess(decodedText) {
 
     // Cegah scan duplikat
     if (scanLiveMap[key]) {
-        highlightScanRow(scanLiveMap[key], document.getElementById('scanTableWrapper'));
-        if (cameraPopup && !cameraPopup.closed) {
-            const tr = scanLiveMap[key];
-            const namaEl  = tr ? tr.querySelector('td:nth-child(2) .font-bold') : null;
-            const kelasEl = tr ? tr.querySelector('td:nth-child(3) span') : null;
-            try { cameraPopup.postMessage({ type: 'SCAN_DUPLICATE', nama: namaEl ? namaEl.textContent : key, kelas: kelasEl ? kelasEl.textContent : '' }, '*'); } catch(e) {}
-        }
-        return;
+    const tr = scanLiveMap[key];
+    const namaEl  = tr ? tr.querySelector('td:nth-child(2) .font-bold') : null;
+    const kelasEl = tr ? tr.querySelector('td:nth-child(3) span') : null;
+    const namaDup = namaEl ? namaEl.textContent : key;
+    highlightScanRow(tr, document.getElementById('scanTableWrapper'));
+    dhPlayBeep && dhPlayBeep('success');
+    showBigScanPopup({ type: 'success', nama: namaDup, id: key, customMsg: 'Sudah ada di antrian' });
+    if (cameraPopup && !cameraPopup.closed) {
+        try { cameraPopup.postMessage({ type: 'SCAN_DUPLICATE', nama: namaDup, kelas: kelasEl ? kelasEl.textContent : '' }, '*'); } catch(e) {}
     }
-
+    return;
+}
     isScanning = true;
 
     if (siswaLocalCacheLoaded && Object.keys(siswaLocalCache).length > 0) {
