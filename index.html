@@ -2221,39 +2221,6 @@ async function openInlineScanner({ title = 'Scan QR', onDetect }) {
     startInlineCam(facing);
 }
 
-        async function startInlineCam(f) {
-            try {
-                if (inlineScanState.stream) inlineScanState.stream.getTracks().forEach(t => t.stop());
-                if (inlineScanState.scanLoop) { clearInterval(inlineScanState.scanLoop); inlineScanState.scanLoop = null; }
-                statusEl.textContent = 'Membuka kamera...';
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw { name: 'NotSupportedError', message: 'Browser tidak mendukung kamera.' };
-                }
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: f === 'environment' ? { ideal: 'environment' } : 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
-                });
-                inlineScanState.stream = stream;
-                video.srcObject = stream;
-                await video.play();
-                statusEl.textContent = 'Arahkan QR ke kamera';
-                beginInlineScan(video, onDetect, statusEl);
-            } catch (e) {
-                let msg = 'Kamera gagal: ' + (e.message || e.name || 'Error');
-                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                    msg = 'Izin kamera ditolak. Buka Setelan browser → Izin Situs → Kamera → Izinkan.';
-                } else if (e.name === 'NotReadableError') {
-                    msg = 'Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain lalu coba lagi.';
-                } else if (e.name === 'OverconstrainedError') {
-                    msg = 'Kamera tidak mendukung mode ini, coba ganti kamera.';
-                }
-                statusEl.textContent = msg;
-                statusEl.style.color = '#f87171';
-            }
-        }
-
-        startInlineCam(facing);
-    }
-
     function beginInlineScan(video, onDetect, statusEl) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
