@@ -2105,12 +2105,27 @@ let inlineScanState = { stream: null, scanLoop: null };
 
 // --- RIWAYAT SCAN TERAKHIR (tampil di bawah kamera, 5-10 entri terakhir) ---
 let scanHistoryList = []; // {name, status, note, jam}
-const SCAN_HISTORY_MAX = 5; // ganti ke 5 kalau mau lebih ringkas
+const SCAN_HISTORY_MAX = 3; // ganti ke 5 kalau mau lebih ringkas
 
 function addScanHistoryEntry(name, status, note) {
     const now = new Date();
     const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    scanHistoryList.unshift({ name: name || '-', status, note: note || '', jam });
+    const cleanName = (name || '-').trim();
+
+    // Cek apakah nama yang sama sudah ada di riwayat (case-insensitive)
+    let existingIndex = -1;
+    if (cleanName !== '-') {
+        existingIndex = scanHistoryList.findIndex(item =>
+            item.name.trim().toLowerCase() === cleanName.toLowerCase()
+        );
+    }
+
+    if (existingIndex !== -1) {
+        // Sudah ada: hapus entri lama, lalu taruh versi terbaru di paling atas
+        scanHistoryList.splice(existingIndex, 1);
+    }
+
+    scanHistoryList.unshift({ name: cleanName, status, note: note || '', jam });
     if (scanHistoryList.length > SCAN_HISTORY_MAX) scanHistoryList.length = SCAN_HISTORY_MAX;
     renderScanHistoryPanel();
 }
