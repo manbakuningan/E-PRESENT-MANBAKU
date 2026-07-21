@@ -2105,7 +2105,7 @@ let inlineScanState = { stream: null, scanLoop: null };
 
 // --- RIWAYAT SCAN TERAKHIR (tampil di bawah kamera, 5-10 entri terakhir) ---
 let scanHistoryList = []; // {name, status, note, jam}
-const SCAN_HISTORY_MAX = 10; // ganti ke 5 kalau mau lebih ringkas
+const SCAN_HISTORY_MAX = 5; // ganti ke 5 kalau mau lebih ringkas
 
 function addScanHistoryEntry(name, status, note) {
     const now = new Date();
@@ -2201,6 +2201,8 @@ async function openInlineScanner({ title = 'Scan QR', onDetect }) {
             });
             inlineScanState.stream = stream;
             video.srcObject = stream;
+            // Mirror kamera depan agar tidak terbalik saat dilihat user (kamera belakang tetap normal)
+            video.style.transform = (f === 'user') ? 'scaleX(-1)' : 'none';
             await video.play();
             statusEl.textContent = 'Arahkan QR ke kamera';
             beginInlineScan(video, onDetect, statusEl);
@@ -5077,66 +5079,6 @@ function applyFilter() {
         }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
     }
 
-// --- REKAP ABSENSI ---
-    function loadRekapAbsensi() {
-        stopAndBack(false);
-        setActiveMenu('Laporan');
-        showView('view-rekap-absensi');
-        
-        // Reset View State
-        document.getElementById('rekapEmptyState').classList.remove('hidden');
-        document.getElementById('rekapContainer').classList.add('hidden');
-        document.getElementById('rekapLoading').classList.add('hidden');
-        tableState.rekap.fullData = [];
-
-        // UPDATE: Populate Dropdown Kelas dari data global existingClasses
-        const selectKelas = document.getElementById('fKelasRekap');
-        if (selectKelas) {
-            // Reset opsi, sisakan "Semua Kelas"
-            selectKelas.innerHTML = '<option value="">Semua Kelas</option>';
-            
-            // Masukkan data kelas yang sudah diambil saat initDashboard
-            if (existingClasses && existingClasses.length > 0) {
-                existingClasses.forEach(kelas => {
-                    const option = document.createElement('option');
-                    option.value = kelas;
-                    option.textContent = kelas;
-                    selectKelas.appendChild(option);
-                });
-            }
-        }
-    }
-
-    function applyFilter() {
-        const emptyState = document.getElementById('rekapEmptyState');
-        const container = document.getElementById('rekapContainer');
-        const loading = document.getElementById('rekapLoading');
-
-        emptyState.classList.add('hidden');
-        container.classList.add('hidden');
-        loading.classList.remove('hidden');
-
-        // UPDATE: Ambil nilai kelas juga
-        const filter = {
-            tanggalMulai: document.getElementById('fStart').value,
-            tanggalAkhir: document.getElementById('fEnd').value,
-            kelas: document.getElementById('fKelasRekap').value // BARU
-        };
-
-        callGAS('getAbsensiList', filter).then(result => {
-            loading.classList.add('hidden');
-            container.classList.remove('hidden');
-            
-            if (result.success) {
-                tableState.rekap.fullData = result.data;
-                processTableData('rekap');
-            } else {
-                 tableState.rekap.fullData = [];
-                 processTableData('rekap');
-            }
-        }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
-    }
-
     function exportToExcel() {
         const start = document.getElementById('fStart').value;
         const end = document.getElementById('fEnd').value;
@@ -7859,68 +7801,31 @@ function pilihAcak(arr) {
 }
 
 function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg = '' }) {
-    const old = document.getElementById('bigScanPopup');
-    if (old) old.remove();
-
     const isSuccess = type === 'success';
-    const bg = isSuccess
-        ? 'linear-gradient(135deg,#059669,#10b981)'
-        : 'linear-gradient(135deg,#dc2626,#ef4444)';
-    const icon = isSuccess ? '✅' : '❌';
 
-    let title, sub;
+    let sub;
     if (isSuccess) {
-        title = mode === 'pulang' ? 'ABSEN PULANG BERHASIL' : 'ABSEN MASUK BERHASIL';
         sub = nama ? `Selamat ${mode === 'pulang' ? 'jalan' : 'datang'}, ${nama}!` : '';
     } else {
-        title = 'SCAN GAGAL';
         sub = customMsg || (nama ? `${nama}` : 'Periksa kembali QR / NISN');
     }
 
     // Catat ke riwayat scan (dipakai untuk panel "Riwayat Scan Terakhir" di kamera)
+    // Nama tetap tampil di sini saja, tidak lagi di popup besar / suara.
     addScanHistoryEntry(nama, type, sub);
-
-    const el = document.createElement('div');
-    el.id = 'bigScanPopup';
-    el.style.cssText = `
-        position:fixed; top:0; left:0; right:0; z-index:99999;
-        display:flex; justify-content:center; padding-top:24px;
-        pointer-events:none; animation:bigScanIn .35s cubic-bezier(.34,1.56,.64,1);
-    `;
-    el.innerHTML = `
-        <div style="background:${bg};color:#fff;padding:22px 40px;border-radius:22px;
-            box-shadow:0 20px 50px rgba(0,0,0,.35);display:flex;align-items:center;gap:16px;
-            min-width:320px;max-width:90vw;">
-            <div style="font-size:42px;line-height:1;">${icon}</div>
-            <div>
-                <div style="font-size:20px;font-weight:800;letter-spacing:.5px;">${title}</div>
-                <div style="font-size:15px;opacity:.95;font-weight:700;margin-top:2px;">${sub}</div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(el);
 
     if (isSuccess) {
         if (mode === 'masuk') {
-            const sapaan = pilihAcak(SAPAAN_MASUK);
-            speakScan(nama ? `${sapaan} ${nama}` : sapaan);
+            speakScan(pilihAcak(SAPAAN_MASUK));
         } else if (mode === 'pulang') {
-            const sapaan = pilihAcak(SAPAAN_PULANG);
-            speakScan(nama ? `${sapaan} ${nama}` : sapaan);
+            speakScan(pilihAcak(SAPAAN_PULANG));
         } else {
-            speakScan(nama ? `Absensi berhasil, ${nama}` : 'Absensi berhasil');
+            speakScan('Absensi berhasil');
         }
     } else {
-        speakScan(customMsg ? `Yah, scan gagal. ${customMsg}` : 'Yah, scan gagal, coba lagi ya');
+        speakScan(customMsg ? 'Yah, scan gagal, coba lagi ya' : 'Yah, scan gagal, coba lagi ya');
     }
 }
-
-const bigScanStyle = document.createElement('style');
-bigScanStyle.textContent = `
-@keyframes bigScanIn { from{opacity:0; transform:translateY(-30px) scale(.9);} to{opacity:1; transform:translateY(0) scale(1);} }
-@keyframes bigScanOut { from{opacity:1; transform:translateY(0) scale(1);} to{opacity:0; transform:translateY(-20px) scale(.9);} }
-`;
-document.head.appendChild(bigScanStyle);
     // ==========================================================================
     // REKAP BULANAN GURU
     // ==========================================================================
