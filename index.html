@@ -780,8 +780,8 @@
             <i class="fas fa-list-check text-white text-sm"></i>
           </div>
           <div>
-            <h3 class="font-bold text-sm text-white">Daftar Hadir Siswa</h3>
-            <p class="text-indigo-200 text-[10px]">Scan QR atau atur status manual</p>
+            <h3 class="font-bold text-sm text-white">Input Absensi Manual</h3>
+            <p class="text-indigo-200 text-[10px]">Hanya menampilkan siswa yang belum absen hari ini</p>
           </div>
         </div>
         <button onclick="dhTandaiSemua()" id="dhTandaiSemuaBtn" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition border border-white/20">
@@ -790,7 +790,7 @@
       </div>
       <div id="dhSubmittedBanner" class="hidden bg-green-50 border-b border-green-200 px-4 py-2 flex items-center gap-2">
         <i class="fas fa-check-circle text-green-500 text-xs"></i>
-        <p class="text-[10px] text-green-700 font-semibold">Absensi tanggal ini sudah pernah dikirim. Data baru akan menimpa.</p>
+        <p class="text-[10px] text-green-700 font-semibold">Sebagian siswa sudah tercatat absensinya hari ini dan tidak ditampilkan di daftar ini.</p>
       </div>
       <div class="overflow-y-auto" style="max-height:62vh;">
         <table class="w-full text-sm">
@@ -3417,11 +3417,26 @@ function onDhKelasChange() {
         });
 }
 
-// -- Render tabel siswa --
+// -- Render tabel siswa (hanya menampilkan siswa yang BELUM absen) --
 function dhRenderStudentTable() {
     const tbody = document.getElementById('dhSiswaTbody');
     if (!dhStudents || dhStudents.length === 0) {
         tbody.innerHTML = '<tr><td colspan="3" class="py-12 text-center text-gray-400"><i class="fas fa-user-slash mr-2"></i>Tidak ada siswa di kelas ini.</td></tr>';
+        return;
+    }
+
+    // Siswa yang sudah punya status absen (terkunci) disembunyikan dari daftar manual
+    const belumAbsenList = dhStudents.filter(s => !dhLockedMap[s.nisn]);
+
+    if (belumAbsenList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="py-14 text-center">
+            <div class="flex flex-col items-center gap-2">
+                <i class="fas fa-circle-check text-4xl text-emerald-300"></i>
+                <p class="text-sm font-bold text-emerald-600">Semua siswa sudah absen hari ini</p>
+                <p class="text-[10px] text-gray-400">Tidak ada lagi yang perlu diisi manual</p>
+            </div>
+        </td></tr>`;
+        dhUpdateCounter();
         return;
     }
 
@@ -3432,14 +3447,10 @@ function dhRenderStudentTable() {
         alpa:  { label: 'Alpa',  bg: 'bg-red-400',     ring: 'ring-red-200',     text: 'text-red-700',     rowBg: 'bg-red-50'     },
     };
 
-    tbody.innerHTML = dhStudents.map((s, i) => {
-        const lockedRaw = dhLockedMap[s.nisn] || null;
-        const locked = lockedRaw !== null; // boolean
-        const st   = locked
-            ? (lockedRaw && typeof lockedRaw === 'object' ? lockedRaw.status : String(lockedRaw))
-            : (dhStatusMap[s.nisn] || '');
+    tbody.innerHTML = belumAbsenList.map((s, i) => {
+        const st   = dhStatusMap[s.nisn] || '';
         const cfg  = statusConfig[st] || null;
-        const rowBg = locked ? 'bg-gray-50 opacity-60' : (cfg ? cfg.rowBg : '');
+        const rowBg = cfg ? cfg.rowBg : '';
         const isLastScan = s.nisn === dhLastScannedNisn;
         const isSemua = document.getElementById('dhKelasSelect').value === 'SEMUA';
         return `
@@ -3457,37 +3468,23 @@ function dhRenderStudentTable() {
             </div>
           </td>
           <td class="px-3 py-3">
-            ${locked
-              ? (() => {
-                   const lockedData = dhLockedMap[s.nisn];
-                   const jamTxt = (lockedData && typeof lockedData === 'object' && lockedData.jamDatang) ? lockedData.jamDatang : '';
-                   const statusLabel = cfg ? cfg.label : (typeof lockedData === 'string' ? lockedData : (lockedData && lockedData.status ? lockedData.status : '?'));
-                   const bgClass = cfg ? cfg.bg + ' text-white' : 'bg-gray-200 text-gray-500';
-                   return `<div class="flex flex-col items-center gap-1">
-                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${bgClass}">
-                       <i class="fas fa-lock text-[8px]"></i> ${statusLabel}
-                     </span>
-                     <span class="text-[9px] text-gray-400">${jamTxt ? '🕐 ' + jamTxt : 'Sudah tercatat'}</span>
-                   </div>`;
-                 })()
-              : `<div class="flex justify-center gap-1 flex-wrap">
-                   ${['hadir','sakit','izin','alpa'].map(status => {
-                     const c = statusConfig[status];
-                     const active = st === status;
-                     const btnClass = 'px-2 py-1 rounded-lg text-[10px] font-bold transition border ' + (active ? c.bg + ' text-white ring-2 ' + c.ring + ' border-transparent shadow-sm' : 'bg-gray-100 text-gray-500 border-gray-200 hover:border-gray-300');
-                     const btnTitle = active ? 'Klik untuk batalkan' : c.label;
-                     const btnLabel = active ? '✕ ' + c.label : c.label;
-                     return `<button onclick="dhSetStatus('${s.nisn}','${status}')" title="${btnTitle}" class="${btnClass}">${btnLabel}</button>`;
-                   }).join('')}
-                 </div>`
-            }
+            <div class="flex justify-center gap-1 flex-wrap">
+               ${['hadir','sakit','izin','alpa'].map(status => {
+                 const c = statusConfig[status];
+                 const active = st === status;
+                 const btnClass = 'px-2 py-1 rounded-lg text-[10px] font-bold transition border ' + (active ? c.bg + ' text-white ring-2 ' + c.ring + ' border-transparent shadow-sm' : 'bg-gray-100 text-gray-500 border-gray-200 hover:border-gray-300');
+                 const btnTitle = active ? 'Klik untuk batalkan' : c.label;
+                 const btnLabel = active ? '✕ ' + c.label : c.label;
+                 return `<button onclick="dhSetStatus('${s.nisn}','${status}')" title="${btnTitle}" class="${btnClass}">${btnLabel}</button>`;
+               }).join('')}
+            </div>
           </td>
         </tr>`;
     }).join('');
 
     dhUpdateCounter();
 }
-
+  
 // -- Set status satu siswa (klik ulang = batalkan) --
 function dhSetStatus(nisn, status) {
     if (dhStatusMap[nisn] === status) {
