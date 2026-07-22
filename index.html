@@ -245,6 +245,92 @@
       animation: pwaSpin 0.9s linear infinite;
     }
     @keyframes pwaSpin { to { transform: rotate(360deg); } }
+    /* ============================================================
+       RESPONSIVE FIX — INPUT ABSENSI MANUAL (Daftar Hadir)
+       ============================================================ */
+    @media (max-width: 767px) {
+      /* Grid kiri-kanan jadi 1 kolom, scanner pindah ke atas */
+      #view-daftar-hadir-guru .grid.lg\:grid-cols-5 {
+        grid-template-columns: 1fr !important;
+      }
+      #view-daftar-hadir-guru .lg\:col-span-3,
+      #view-daftar-hadir-guru .lg\:col-span-2 {
+        grid-column: span 1 / span 1 !important;
+      }
+      /* Urutan: scanner dulu baru tabel, biar mobile ga perlu scroll jauh buat scan */
+      #view-daftar-hadir-guru .lg\:col-span-2 { order: 1; }
+      #view-daftar-hadir-guru .lg\:col-span-3 { order: 2; }
+    
+      /* Filter kelas/tanggal/counter jadi stack rapi */
+      #view-daftar-hadir-guru .flex.flex-col.md\:flex-row.gap-3.items-end {
+        gap: 10px;
+      }
+      #view-daftar-hadir-guru .flex.items-center.gap-2.flex-shrink-0 {
+        width: 100%;
+        justify-content: space-between;
+        background: #f8fafc;
+        padding: 6px 10px;
+        border-radius: 10px;
+      }
+    
+      /* Mode toggle (Masuk/Pulang) tetap 2 kolom tapi teks & badge diperkecil */
+      .dh-mode-btn { padding: 9px 6px; font-size: 11px; }
+      .dh-mode-btn .dh-btn-icon { width: 22px; height: 22px; font-size: 11px; }
+      .dh-mode-btn .dh-btn-badge { font-size: 8px; padding: 1px 4px; }
+      .dh-mode-btn .dh-btn-text { display: none; } /* sembunyikan teks panjang, sisakan icon+badge */
+    
+      /* Tabel siswa: font kecil, padding rapat, scroll horizontal aman */
+      #view-daftar-hadir-guru .overflow-y-auto { max-height: 55vh !important; }
+      #view-daftar-hadir-guru table { font-size: 11px; }
+      #view-daftar-hadir-guru th, #view-daftar-hadir-guru td { padding: 6px 8px !important; }
+    
+      /* Kolom status (Masuk mode): tombol hadir/sakit/izin/alpa wrap rapi, full width per baris */
+      #view-daftar-hadir-guru .flex.justify-center.gap-1.flex-wrap {
+        justify-content: flex-start;
+      }
+      #view-daftar-hadir-guru .flex.justify-center.gap-1.flex-wrap button {
+        font-size: 9px;
+        padding: 4px 6px;
+      }
+    
+      /* Header tabel Pulang: kolom jam datang/pulang cukup sempit tanpa wrap aneh */
+      #dhTheadPulang th { font-size: 9px; white-space: normal; }
+    
+      /* Kartu scanner: tombol kamera & input manual full width, touch-friendly */
+      #dhScanCard button { min-height: 44px; }
+      #dhScanCard input[type="number"] { font-size: 16px; } /* cegah zoom iOS */
+    
+      /* Footer submit: tombol full width, sticky di bawah biar gampang dijangkau jempol */
+      #view-daftar-hadir-guru .mt-4.bg-white.rounded-2xl.shadow-sm.border.border-gray-100.p-4 {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        position: sticky;
+        bottom: calc(0.5rem + var(--safe-area-bottom));
+        z-index: 20;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+      }
+      #view-daftar-hadir-guru .mt-4 button#dhSubmitBtn {
+        width: 100%;
+        justify-content: center;
+        min-height: 48px;
+      }
+    
+      /* Popup kamera inline: pastikan video tidak overflow & tombol besar */
+      #inlineScannerOverlay { padding: 10px; gap: 8px; }
+      #inlineScannerOverlay video { max-height: 42vh !important; }
+      #inlineScannerOverlay button { min-height: 44px; font-size: 12px; }
+    
+      /* Riwayat scan: batasi tinggi biar tidak mendorong video keluar layar */
+      #inlineScanHistoryList { max-height: 22vh; }
+    }
+    
+    @media (max-width: 380px) {
+      /* HP sangat kecil: perkecil lagi badge & font mode toggle */
+      .dh-mode-btn { padding: 7px 4px; }
+      .dh-mode-btn .dh-btn-badge { display: none; }
+      #view-daftar-hadir-guru table { font-size: 10px; }
+    }
   </style>
 </head>
 <body class="bg-slate-900 font-sans antialiased text-slate-800 selection:bg-indigo-500 selection:text-white overflow-x-hidden">
