@@ -580,7 +580,7 @@
                       <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Ringkasan Kehadiran Siswa</h3>
                   </div>
 
-                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
                       
                       <div class="bg-white p-5 rounded-xl shadow-sm border border-indigo-100 flex flex-col justify-between relative overflow-hidden group">
                           <div class="absolute right-0 top-0 w-16 h-16 bg-indigo-50 rounded-bl-full -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
@@ -618,12 +618,22 @@
                           </div>
                       </div>
 
-                      <div class="bg-white p-5 rounded-xl shadow-sm border border-red-100 flex flex-col justify-between relative overflow-hidden group">
+                          <div class="bg-white p-5 rounded-xl shadow-sm border border-red-100 flex flex-col justify-between relative overflow-hidden group">
                           <div class="absolute right-0 top-0 w-16 h-16 bg-red-50 rounded-bl-full -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
                           <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest relative z-10">Alpa</p>
                           <div class="flex items-center justify-between mt-2 relative z-10">
                               <h3 id="admStatAlpa" class="text-2xl font-bold text-gray-800">-</h3>
                               <div class="text-red-500 bg-red-50 p-2 rounded-lg"><i class="fas fa-times"></i></div>
+                          </div>
+                      </div>
+                  
+                      <!-- CARD BARU: BOLOS -->
+                      <div class="bg-white p-5 rounded-xl shadow-sm border border-orange-100 flex flex-col justify-between relative overflow-hidden group">
+                          <div class="absolute right-0 top-0 w-16 h-16 bg-orange-50 rounded-bl-full -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
+                          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest relative z-10">Bolos</p>
+                          <div class="flex items-center justify-between mt-2 relative z-10">
+                              <h3 id="admStatBolos" class="text-2xl font-bold text-gray-800">-</h3>
+                              <div class="text-orange-500 bg-orange-50 p-2 rounded-lg"><i class="fas fa-running"></i></div>
                           </div>
                       </div>
                   </div>
@@ -3210,24 +3220,26 @@ function loadAdminDashboard() {
 
     // --- Statistik & Chart Siswa ---
     callGAS('getMonitoringRealtime').then(result => {
-        if (result.success) {
-            const data = result.data;
-            const total = data.length;
-            const hadir = data.filter(d => d.status === 'Hadir').length;
-            const sakit = data.filter(d => d.status === 'Sakit').length;
-            const izin = data.filter(d => d.status === 'Izin').length;
-            const alpa = data.filter(d => d.status === 'Alpa').length;
-            const belum = data.filter(d => d.status === 'Belum Absen').length;
+    if (result.success) {
+        const data = result.data;
+        const total = data.length;
+        const hadir = data.filter(d => d.status === 'Hadir').length;
+        const sakit = data.filter(d => d.status === 'Sakit').length;
+        const izin = data.filter(d => d.status === 'Izin').length;
+        const alpa = data.filter(d => d.status === 'Alpa').length;
+        const bolos = data.filter(d => d.status === 'Bolos').length; // BARU
+        const belum = data.filter(d => d.status === 'Belum Absen').length;
 
-            animateValue("admStatTotal", 0, total, 800);
-            animateValue("admStatHadir", 0, hadir, 800);
-            animateValue("admStatSakit", 0, sakit, 800);
-            animateValue("admStatIzin", 0, izin, 800);
-            animateValue("admStatAlpa", 0, alpa, 800);
+        animateValue("admStatTotal", 0, total, 800);
+        animateValue("admStatHadir", 0, hadir, 800);
+        animateValue("admStatSakit", 0, sakit, 800);
+        animateValue("admStatIzin", 0, izin, 800);
+        animateValue("admStatAlpa", 0, alpa, 800);
+        animateValue("admStatBolos", 0, bolos, 800); // BARU
 
-            renderAdminChart(hadir, sakit, izin, alpa, belum);
-        }
-    }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
+        renderAdminChart(hadir, sakit, izin, alpa, belum, bolos); // tambahkan bolos
+    }
+}).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
 
     // --- Statistik & Chart Guru ---
     callGAS('getMonitoringGuruRealtime').then(res => {
@@ -3268,34 +3280,24 @@ function renderAdminGuruChart(hadir, belum) {
     });
 }
 
-    function renderAdminChart(hadir, sakit, izin, alpa, belum) {
+        function renderAdminChart(hadir, sakit, izin, alpa, belum, bolos) {
         const ctx = document.getElementById('adminAttendanceChart');
         if (!ctx) return;
-
-        if (adminChartInstance) {
-            adminChartInstance.destroy();
-        }
-
+        if (adminChartInstance) adminChartInstance.destroy();
         if (typeof ChartDataLabels !== 'undefined') { Chart.register(ChartDataLabels); }
-
+    
         adminChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Belum Absen'],
+                labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Bolos', 'Belum Absen'],
                 datasets: [{
                     label: 'Jumlah Siswa',
-                    data: [hadir, sakit, izin, alpa, belum],
-                    backgroundColor: [
-                        '#10B981', // Emerald (Hadir)
-                        '#EAB308', // Yellow (Sakit)
-                        '#3B82F6', // Blue (Izin)
-                        '#EF4444', // Red (Alpa)
-                        '#9CA3AF'  // Gray (Belum)
-                    ],
+                    data: [hadir, sakit, izin, alpa, bolos || 0, belum],
+                    backgroundColor: ['#10B981', '#EAB308', '#3B82F6', '#EF4444', '#F97316', '#9CA3AF'],
                     borderRadius: 8,
                     barPercentage: 0.5,
                 }]
-            },
+            }
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -6713,10 +6715,12 @@ function loadDataRekapBulanan() {
             headerHTML += `<th class="p-1 text-center w-8 text-[10px] border-l border-gray-200">${d}</th>`;
         }
         // Header Statistik
+        // di loadDataRekapBulanan()
         headerHTML += '<th class="p-2 w-8 text-center bg-green-50 text-green-700 border-l">H</th>';
         headerHTML += '<th class="p-2 w-8 text-center bg-yellow-50 text-yellow-700">S</th>';
         headerHTML += '<th class="p-2 w-8 text-center bg-blue-50 text-blue-700">I</th>';
         headerHTML += '<th class="p-2 w-8 text-center bg-red-50 text-red-700">A</th>';
+        headerHTML += '<th class="p-2 w-8 text-center bg-orange-50 text-orange-700">B</th>'; // BARU
         headerHTML += '<th class="p-2 w-12 text-center bg-gray-100">%</th>';
         
         thead.innerHTML = headerHTML;
@@ -6750,10 +6754,12 @@ function loadDataRekapBulanan() {
             });
 
             // Statistik
+            // di dalam rowsHTML data.students.forEach(...)
             row += `<td class="p-2 text-center text-xs font-bold text-green-700 bg-green-50/30 border-l">${siswa.stats.h}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-yellow-700 bg-yellow-50/30">${siswa.stats.s}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-blue-700 bg-blue-50/30">${siswa.stats.i}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-red-700 bg-red-50/30">${siswa.stats.a}</td>`;
+            row += `<td class="p-2 text-center text-xs font-bold text-orange-700 bg-orange-50/30">${siswa.stats.b}</td>`; // BARU
             row += `<td class="p-2 text-center text-xs font-bold text-gray-700 bg-gray-50">${siswa.stats.percent}%</td>`;
             
             row += `</tr>`;
