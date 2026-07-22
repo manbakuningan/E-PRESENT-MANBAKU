@@ -3287,36 +3287,36 @@ function renderAdminGuruChart(hadir, belum) {
         if (typeof ChartDataLabels !== 'undefined') { Chart.register(ChartDataLabels); }
     
         adminChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Bolos', 'Belum Absen'],
-                datasets: [{
-                    label: 'Jumlah Siswa',
-                    data: [hadir, sakit, izin, alpa, bolos || 0, belum],
-                    backgroundColor: ['#10B981', '#EAB308', '#3B82F6', '#EF4444', '#F97316', '#9CA3AF'],
-                    borderRadius: 8,
-                    barPercentage: 0.5,
-                }]
-            }
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                        anchor: 'end',
-                        align: 'top',
-                        formatter: (val) => val > 0 ? val : '',
-                        font: { weight: 'bold' },
-                        color: '#666'
-                    }
-                },
-                scales: {
-                    y: { beginAtZero: true, grid: { borderDash: [2, 2] } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
+          type: 'bar',
+          data: {
+              labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Bolos', 'Belum Absen'],
+              datasets: [{
+                  label: 'Jumlah Siswa',
+                  data: [hadir, sakit, izin, alpa, bolos || 0, belum],
+                  backgroundColor: ['#10B981', '#EAB308', '#3B82F6', '#EF4444', '#F97316', '#9CA3AF'],
+                  borderRadius: 8,
+                  barPercentage: 0.5,
+              }]
+          },                 // ✅ koma ditambahkan
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: { display: false },
+                  datalabels: {
+                      anchor: 'end',
+                      align: 'top',
+                      formatter: (val) => val > 0 ? val : '',
+                      font: { weight: 'bold' },
+                      color: '#666'
+                  }
+              },
+              scales: {
+                  y: { beginAtZero: true, grid: { borderDash: [2, 2] } },
+                  x: { grid: { display: false } }
+              }
+          }
+      });
     }
 
     // --- GURU DASHBOARD ---
