@@ -1466,6 +1466,7 @@
                     <option value="Sakit">Sakit (Kuning)</option>
                     <option value="Izin">Izin (Biru)</option>
                     <option value="Alpa">Alpa (Merah)</option>
+                    <option value="Bolos">Bolos (Oranye)</option>
                     <option value="Belum Absen">Belum Absen (Abu)</option>
                 </select>
 
@@ -1570,6 +1571,7 @@
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-400"></span> S: Sakit</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span> I: Izin</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> A: Alpha</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span> B: Bolos</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-red-100 border border-red-200"></span> Libur</span>
         </div>
 
@@ -5192,6 +5194,7 @@ function renderRekapRows(data) {
          if(status === 'Izin') return 'bg-blue-100 text-blue-700';
          if(status === 'Sakit') return 'bg-yellow-100 text-yellow-700';
          if(status === 'Alpa') return 'bg-red-100 text-red-700';
+         if(status === 'Bolos') return 'bg-orange-100 text-orange-700';
          return 'bg-gray-100 text-gray-600';
     };
 
@@ -5376,6 +5379,7 @@ function renderMonitoringRows(data, startIdx) {
         else if(d.status === 'Izin') statusColor = 'bg-blue-100 text-blue-700';
         else if(d.status === 'Sakit') statusColor = 'bg-yellow-100 text-yellow-700';
         else if(d.status === 'Alpa') statusColor = 'bg-red-100 text-red-700';
+        else if(d.status === 'Bolos') statusColor = 'bg-orange-100 text-orange-700';
 
         // --- B. LOGIKA TAMPILAN KETERANGAN WAKTU (Kolom G) ---
         let ketText = d.keterangan || "-"; // Ambil teks dari server (misal: "Terlambat (15 m)")
@@ -5428,6 +5432,7 @@ function renderMonitoringRows(data, startIdx) {
                     <option value="Izin" ${d.status === 'Izin' ? 'selected' : ''}>Izin</option>
                     <option value="Sakit" ${d.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
                     <option value="Alpa" ${d.status === 'Alpa' ? 'selected' : ''}>Alpa</option>
+                    <option value="Bolos" ${d.status === 'Bolos' ? 'selected' : ''}>Bolos</option>
                 </select>
                 ${canEdit ? '<i class="fas fa-chevron-down absolute right-6 top-1/2 transform -translate-y-1/2 text-[10px] pointer-events-none opacity-40"></i>' : ''}
             </td>
@@ -6652,6 +6657,7 @@ function loadDataRekapBulanan() {
                 else if(day.code === 'S') colorClass = 'text-yellow-600 font-bold bg-yellow-50';
                 else if(day.code === 'I') colorClass = 'text-blue-600 font-bold bg-blue-50';
                 else if(day.code === 'A') colorClass = 'text-red-600 font-bold bg-red-50';
+                else if(day.code === 'B') colorClass = 'text-orange-600 font-bold bg-orange-50';
                 else if(day.code === 'L') { colorClass = 'text-red-300'; bgClass = 'bg-red-50'; }
                 
                 row += `<td class="p-1 text-center text-[10px] border-l border-gray-100 ${colorClass} ${bgClass}">${day.code}</td>`;
