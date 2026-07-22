@@ -764,15 +764,11 @@
         <input type="date" id="dhTanggal" onchange="onDhKelasChange()" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-400 outline-none transition">
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
-        <span class="text-xs text-gray-500" id="dhCounterLabel">Terisi:</span>
-        <span id="dhCounter" class="font-bold text-blue-600 text-sm">0 / 0</span>
+          <span class="text-xs text-gray-500" id="dhCounterLabel">Terisi:</span>
+          <span id="dhCounter" class="font-bold text-blue-600 text-sm">0 / 0</span>
+        </div>
       </div>
-      <button onclick="dhHandleSubmit()" id="dhSubmitBtn" disabled
-        class="bg-gray-200 text-gray-400 cursor-not-allowed px-5 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2 flex-shrink-0">
-        <i class="fas fa-paper-plane"></i> <span id="dhSubmitLabel">Kirim Absensi</span>
-      </button>
     </div>
-  </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
 
@@ -886,7 +882,20 @@
       </div>
     </div>
   </div>
+
+  <div class="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="text-xs text-gray-500 flex items-center gap-2">
+      <i class="fas fa-info-circle text-indigo-400"></i>
+      <span>Tombol ini hanya berlaku untuk absensi yang diisi <b>manual</b> (klik status per siswa / centang Tandai Pulang). Absensi hasil <b>scan QR / input NISN cepat</b> langsung tersimpan otomatis ke server.</span>
+    </div>
+    <button onclick="dhHandleSubmit()" id="dhSubmitBtn" disabled
+      class="bg-gray-200 text-gray-400 cursor-not-allowed px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0">
+      <i class="fas fa-paper-plane"></i> <span id="dhSubmitLabel">Kirim Absensi</span>
+    </button>
+  </div>
 </div>
+<style>
+  .dh-row-flash { animation: dhFlash .7s ease; }
 <style>
   .dh-row-flash { animation: dhFlash .7s ease; }
   @keyframes dhFlash { 0%,30%{background:#d1fae5} 100%{background:transparent} }
@@ -3882,15 +3891,39 @@ function dhOnScanResult(rawNisn) {
     return;
 }
     dhLastScannedNisn = nisn;
-    dhStatusMap[nisn] = 'hadir';
     dhPlayBeep('success');
     showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk' });
-    dhRenderStudentTable();
 
-    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-    notif.textContent = '✅ ' + siswa.nama + ' — Hadir';
+    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-purple-50 text-purple-600 border border-purple-100';
+    notif.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Menyimpan ' + siswa.nama + '...';
     notif.classList.remove('hidden');
-    setTimeout(() => notif.classList.add('hidden'), 1800);
+
+    const tanggalScan = document.getElementById('dhTanggal').value;
+    const kelasSiswaScan = siswa.kelas || document.getElementById('dhKelasSelect').value;
+
+    callGAS('submitDaftarHadirGuru', [{ nisn: siswa.nisn, nama: siswa.nama, kelas: kelasSiswaScan, status: 'hadir' }], tanggalScan, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru')
+        .then(res => {
+            if (res && res.success) {
+                const now = new Date();
+                const jamNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                dhLockedMap[nisn] = { status: 'hadir', jamDatang: jamNow, hasJamDatang: true };
+                delete dhStatusMap[nisn];
+                dhRenderStudentTable();
+                notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
+                notif.textContent = '✅ ' + siswa.nama + ' — Hadir tersimpan';
+            } else {
+                notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
+                notif.textContent = '❌ ' + (res && res.message ? res.message : 'Gagal menyimpan absensi');
+            }
+            notif.classList.remove('hidden');
+            setTimeout(() => notif.classList.add('hidden'), 2000);
+        })
+        .catch(err => {
+            notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
+            notif.textContent = '❌ Error: ' + String(err);
+            notif.classList.remove('hidden');
+            setTimeout(() => notif.classList.add('hidden'), 3000);
+        });
 
     const row = document.getElementById('dh-row-' + nisn);
     if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
