@@ -4176,12 +4176,12 @@ function dhOnScanResult(rawNisn) {
     if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// -- Handler scan pulang --
-// -- Handler scan pulang --
+// -- Handler scan pulang (OPTIMISTIC: feedback instan, kirim ke server di background) --
 function dhOnPulangResult(nisn, nama) {
     const notif  = document.getElementById('dhScanNotif');
     const kelasDropdown = document.getElementById('dhKelasSelect').value;
-    const tanggal= document.getElementById('dhTanggal').value;
+    const tanggal = document.getElementById('dhTanggal').value;
+
     if (!kelasDropdown || !tanggal) {
         notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-yellow-50 text-yellow-700 border border-yellow-100';
         notif.textContent = '⚠️ Pilih kelas dan tanggal terlebih dahulu';
@@ -4189,60 +4189,91 @@ function dhOnPulangResult(nisn, nama) {
         setTimeout(() => notif.classList.add('hidden'), 2500);
         return;
     }
+
     // Gunakan kelas aktual siswa jika mode Semua Kelas
     const siswaData = dhStudents.find(s => s.nisn === nisn);
     const kelas = (kelasDropdown === 'SEMUA' && siswaData) ? siswaData.kelas : kelasDropdown;
 
-    // Cek sudah pulang di data lokal
     const d = dhPulangMap[nisn];
+
+    // 1. Cek dulu di data lokal — kalau sudah pulang, langsung kasih tahu tanpa hit server
     if (d && d.jamPulang && d.jamPulang.trim()) {
+        dhPlayBeep('success');
+        showBigScanPopup({ type: 'success', nama: nama, mode: 'pulang', id: nisn, customMsg: 'Sudah pulang (' + d.jamPulang + ')' });
+        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
+        notif.textContent = '✅ ' + (nama || nisn) + ' — sudah tercatat pulang (' + d.jamPulang + ')';
+        notif.classList.remove('hidden');
+        setTimeout(() => notif.classList.add('hidden'), 2500);
+        return;
+    }
+
+    // 2. Belum pulang di data lokal → cek juga apakah sudah datang (wajib sebelum bisa pulang)
+    const sudahDatang = d && d.status === 'hadir' && d.jamDatang;
+    if (!sudahDatang) {
+        dhPlayBeep('error');
+        showBigScanPopup({ type: 'error', nama: nama, customMsg: 'Belum absen masuk hari ini' });
+        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
+        notif.textContent = '❌ ' + (nama || nisn) + ' — belum absen masuk hari ini';
+        notif.classList.remove('hidden');
+        setTimeout(() => notif.classList.add('hidden'), 3000);
+        return;
+    }
+
+    // 3. OPTIMISTIC UPDATE — langsung tampilkan sukses pakai jam lokal, tanpa menunggu server
+    const now = new Date();
+    const jamLokal = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+    dhPulangMap[nisn] = {
+        ...(dhPulangMap[nisn] || {}),
+        jamPulang: jamLokal,
+        checked: false,
+        _pending: true // tandai belum terkonfirmasi server
+    };
+    dhRenderPulangTable();
+
     dhPlayBeep('success');
-    showBigScanPopup({ type: 'success', nama: nama, mode: 'pulang', id: nisn, customMsg: 'Sudah pulang (' + d.jamPulang + ')' });
+    showBigScanPopup({ type: 'success', nama: nama, mode: 'pulang' });
     notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-    notif.textContent = '✅ ' + (nama||nisn) + ' — sudah tercatat pulang (' + d.jamPulang + ')';
+    notif.textContent = '✅ ' + nama + ' pulang — ' + jamLokal;
     notif.classList.remove('hidden');
-    setTimeout(() => notif.classList.add('hidden'), 2500);
-    return;
-}
+    setTimeout(() => notif.classList.add('hidden'), 2000);
 
-    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-orange-50 text-orange-600 border border-orange-100';
-    notif.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Mencatat pulang ' + (nama||nisn) + '...';
-    notif.classList.remove('hidden');
+    if (dhCameraPopup && !dhCameraPopup.closed) {
+        try { dhCameraPopup.postMessage({ type: 'DH_SCAN_SUCCESS', nama: nama + ' pulang' }, '*'); } catch (e) {}
+    }
 
-    callGAS('submitPulangSatu', nisn, kelas, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru').then(res => {
+    // 4. Kirim ke server DI BELAKANG LAYAR — tidak memblokir scan berikutnya
+    callGASOffline('submitPulangSatu', nisn, kelas, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru')
+        .then(res => {
+            if (res.offline) {
+                // Tetap tersimpan optimis, akan disinkronkan otomatis nanti
+                if (dhPulangMap[nisn]) dhPulangMap[nisn]._pending = true;
+                return;
+            }
             if (res.success) {
-                dhPlayBeep('success');
-                showBigScanPopup({ type: 'success', nama: res.nama, mode: 'pulang' });
-                notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-                notif.textContent = '✅ ' + res.nama + ' pulang — ' + res.jamPulang;
-                // Update lokal agar baris langsung berubah tanpa reload penuh
+                // Konfirmasi dari server — samakan jam persis dengan catatan server
                 if (dhPulangMap[nisn]) {
                     dhPulangMap[nisn].jamPulang = res.jamPulang;
-                    dhPulangMap[nisn].checked   = false;
-                } else {
-                    dhPulangMap[nisn] = { jamPulang: res.jamPulang, checked: false };
+                    dhPulangMap[nisn]._pending = false;
                 }
                 dhRenderPulangTable();
-                // Feedback ke popup scanner
-                if (dhCameraPopup && !dhCameraPopup.closed) {
-                    try { dhCameraPopup.postMessage({ type: 'DH_SCAN_SUCCESS', nama: res.nama + ' pulang' }, '*'); } catch(e) {}
-                }
             } else {
-                dhPlayBeep('error');
-                showBigScanPopup({ type: 'error', nama: nama, customMsg: res.message });
-                notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
-                notif.textContent = '❌ ' + res.message;
+                // Gagal karena alasan lain (bukan offline) — beri tahu & batalkan optimistic update
+                if (dhPulangMap[nisn]) {
+                    delete dhPulangMap[nisn].jamPulang;
+                    dhPulangMap[nisn]._pending = false;
+                }
+                dhRenderPulangTable();
+                showAlert('error', (nama || nisn) + ': ' + res.message);
                 if (dhCameraPopup && !dhCameraPopup.closed) {
-                    try { dhCameraPopup.postMessage({ type: 'DH_SCAN_ERROR', message: res.message }, '*'); } catch(e) {}
+                    try { dhCameraPopup.postMessage({ type: 'DH_SCAN_ERROR', message: res.message }, '*'); } catch (e) {}
                 }
             }
-            setTimeout(() => notif.classList.add('hidden'), 3000);
-        }).catch(err => {
-            dhPlayBeep('error');
-            showBigScanPopup({ type: 'error', customMsg: String(err) });
-            notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
-            notif.textContent = '❌ Error: ' + String(err);
-            setTimeout(() => notif.classList.add('hidden'), 3000);
+        })
+        .catch(err => {
+            // Error jaringan tak terduga — callGASOffline seharusnya sudah menangani ini,
+            // tapi tetap jaga-jaga: biarkan data optimistic tersimpan agar tidak hilang
+            console.warn('[dhOnPulangResult] unexpected error:', err);
         });
 }
 
