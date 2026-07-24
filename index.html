@@ -216,7 +216,9 @@
       .grid.grid-cols-2 { gap: 0.5rem; }
       .grid.grid-cols-2 > div { padding: 0.75rem; }
     }
-
+    <div id="offlineQueueBadge" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-[9997] bg-amber-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+      <i class="fas fa-cloud-upload-alt"></i> <span></span>
+    </div>
     /* Hide horizontal scrollbars on mobile but keep functionality */
     @media (max-width: 640px) {
       .overflow-x-auto { scrollbar-width: thin; }
@@ -2204,7 +2206,140 @@
         }
         return json.result;
     }
+// ==========================================================================
+// OFFLINE QUEUE SYSTEM — antrian absensi saat tidak ada koneksi internet
+// ==========================================================================
+const OFFLINE_QUEUE_DB = 'epresent-offline-db';
+const OFFLINE_QUEUE_STORE = 'pending-absensi';
 
+function openOfflineDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(OFFLINE_QUEUE_DB, 1);
+        req.onupgradeneeded = () => {
+            if (!req.result.objectStoreNames.contains(OFFLINE_QUEUE_STORE)) {
+                req.result.createObjectStore(OFFLINE_QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function queueOfflineCall(functionName, args) {
+    const db = await openOfflineDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(OFFLINE_QUEUE_STORE, 'readwrite');
+        tx.objectStore(OFFLINE_QUEUE_STORE).add({ fn: functionName, args, ts: Date.now() });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function getQueueCount() {
+    try {
+        const db = await openOfflineDB();
+        return new Promise((resolve) => {
+            const tx = db.transaction(OFFLINE_QUEUE_STORE, 'readonly');
+            const req = tx.objectStore(OFFLINE_QUEUE_STORE).getAll();
+            req.onsuccess = () => resolve(req.result.length);
+            req.onerror = () => resolve(0);
+        });
+    } catch (e) {
+        return 0;
+    }
+}
+
+function updateOfflineQueueBadge() {
+    getQueueCount().then(count => {
+        const el = document.getElementById('offlineQueueBadge');
+        if (!el) return;
+        if (count > 0) {
+            el.textContent = count + ' data belum terkirim';
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
+}
+
+// callGAS versi offline-aware — dipakai KHUSUS untuk aksi absensi (submit/tulis data),
+// BUKAN untuk lookup/read data (biarkan pakai callGAS biasa)
+async function callGASOffline(functionName, ...args) {
+    if (!navigator.onLine) {
+        await queueOfflineCall(functionName, args);
+        updateOfflineQueueBadge();
+        showAlert('success', '📥 Tersimpan offline — akan terkirim otomatis saat online');
+        return { success: true, offline: true, message: 'Tersimpan offline, menunggu koneksi.' };
+    }
+    try {
+        const result = await callGAS(functionName, ...args);
+        return result;
+    } catch (e) {
+        // Gagal walau status online=true (misal sinyal lemah / timeout)
+        await queueOfflineCall(functionName, args);
+        updateOfflineQueueBadge();
+        showAlert('success', '📥 Koneksi bermasalah, data disimpan offline');
+        return { success: true, offline: true, message: 'Tersimpan offline, menunggu koneksi.' };
+    }
+}
+
+let _isSyncingOfflineQueue = false;
+async function syncOfflineQueue() {
+    if (!navigator.onLine || _isSyncingOfflineQueue) return;
+    _isSyncingOfflineQueue = true;
+    try {
+        const db = await openOfflineDB();
+        const items = await new Promise(res => {
+            const tx = db.transaction(OFFLINE_QUEUE_STORE, 'readonly');
+            const r = tx.objectStore(OFFLINE_QUEUE_STORE).getAll();
+            r.onsuccess = () => res(r.result);
+            r.onerror = () => res([]);
+        });
+
+        if (items.length === 0) { _isSyncingOfflineQueue = false; return; }
+
+        showAlert('success', `🔄 Menyinkronkan ${items.length} data absensi offline...`);
+        let successCount = 0;
+
+        for (const item of items) {
+            try {
+                await callGAS(item.fn, ...item.args);
+                const db2 = await openOfflineDB();
+                await new Promise(res => {
+                    const delTx = db2.transaction(OFFLINE_QUEUE_STORE, 'readwrite');
+                    delTx.objectStore(OFFLINE_QUEUE_STORE).delete(item.id);
+                    delTx.oncomplete = () => res();
+                });
+                successCount++;
+            } catch (e) {
+                // Masih gagal (offline lagi / server error) — hentikan, sisa data tetap di antrian
+                break;
+            }
+        }
+
+        updateOfflineQueueBadge();
+        if (successCount > 0) {
+            showAlert('success', `✅ ${successCount} data absensi berhasil disinkronkan`);
+        }
+
+        // Refresh tampilan yang sedang aktif supaya data terbaru langsung terlihat
+        if (currentUser) {
+            const dhView = document.getElementById('view-daftar-hadir-guru');
+            if (dhView && dhView.classList.contains('active') && typeof onDhKelasChange === 'function') {
+                onDhKelasChange();
+            }
+        }
+    } finally {
+        _isSyncingOfflineQueue = false;
+    }
+}
+
+// Coba sync begitu koneksi kembali
+window.addEventListener('online', syncOfflineQueue);
+// Coba sync juga saat app baru dibuka (barangkali ada antrian dari sesi sebelumnya)
+window.addEventListener('load', () => {
+    setTimeout(() => { updateOfflineQueueBadge(); syncOfflineQueue(); }, 1500);
+});
 // ==========================================================================
 // INLINE QR SCANNER — pengganti popup window terpisah (lebih stabil di mobile)
 // ==========================================================================
@@ -2588,12 +2723,25 @@ function loadAbsensiGuruMenu() {
     showGuruScanSection();
     resetGuruScanTable();
 
+    // 1. Coba muat dari localStorage dulu
     if (!guruLocalCacheLoaded) {
+        try {
+            const cached = localStorage.getItem('guruLocalCache_v1');
+            if (cached) {
+                guruLocalCache = JSON.parse(cached);
+                guruLocalCacheLoaded = true;
+            }
+        } catch (e) {}
+    }
+
+    // 2. Refresh dari server kalau online
+    if (navigator.onLine) {
         callGAS('getGuruForScanCache').then(res => {
             if (res.success) {
                 guruLocalCache = {};
                 res.data.forEach(g => { guruLocalCache[g.nip] = { nama: g.nama }; });
                 guruLocalCacheLoaded = true;
+                try { localStorage.setItem('guruLocalCache_v1', JSON.stringify(guruLocalCache)); } catch (e) {}
             }
         }).catch(() => {});
     }
@@ -2649,18 +2797,22 @@ function onScanSuccessGuru(decodedText) {
     if (!key) return;
 
     const doSubmit = (nama) => {
-        callGAS('batchScanAbsensiGuru', [key]).then(res => {
+        callGASOffline('batchScanAbsensiGuru', [key]).then(res => {
+            if (res.offline) {
+                showBigScanPopup({ type: 'success', nama: nama, mode: 'masuk', id: key, customMsg: 'Tersimpan offline' });
+                addToGuruScanQueue(nama, 'datang', 'Offline');
+                return;
+            }
             if (res.success && res.results && res.results[0]) {
                 const r = res.results[0];
                 if (r.success) {
-    showBigScanPopup({ type: 'success', nama: r.nama, mode: r.type === 'datang' ? 'masuk' : 'pulang' });
-    addToGuruScanQueue(r.nama, r.type, r.jamDatang || r.jamPulang);
-} else if (isSudahAbsenMsg(r.message)) {
-    // Sudah absen sebelumnya -> tetap tampilkan sebagai berhasil
-    showBigScanPopup({ type: 'success', nama: r.nama || '', mode: 'masuk', customMsg: r.message });
-} else {
-    showBigScanPopup({ type: 'error', nama: r.nama || '', customMsg: r.message });
-}
+                    showBigScanPopup({ type: 'success', nama: r.nama, mode: r.type === 'datang' ? 'masuk' : 'pulang' });
+                    addToGuruScanQueue(r.nama, r.type, r.jamDatang || r.jamPulang);
+                } else if (isSudahAbsenMsg(r.message)) {
+                    showBigScanPopup({ type: 'success', nama: r.nama || '', mode: 'masuk', customMsg: r.message });
+                } else {
+                    showBigScanPopup({ type: 'error', nama: r.nama || '', customMsg: r.message });
+                }
             } else {
                 showBigScanPopup({ type: 'error', customMsg: res.message || 'Gagal memproses absensi' });
             }
@@ -2671,11 +2823,14 @@ function onScanSuccessGuru(decodedText) {
 
     if (guruLocalCacheLoaded && guruLocalCache[key]) {
         doSubmit(guruLocalCache[key].nama);
-    } else {
+    } else if (navigator.onLine) {
         callGAS('lookupGuruForScan', key).then(res => {
             if (res.success) doSubmit(res.nama);
             else showBigScanPopup({ type: 'error', customMsg: res.message || 'ID Guru tidak terdaftar' });
         }).catch(err => showBigScanPopup({ type: 'error', customMsg: String(err) }));
+    } else {
+        // Offline & tidak ada di cache — tetap simpan ke antrian, nama tidak diketahui dulu
+        doSubmit(key);
     }
 }
 
@@ -3967,16 +4122,16 @@ function dhOnScanResult(rawNisn) {
 
     // ── Mode Masuk ──
     if (dhLockedMap[nisn]) {
-    dhPlayBeep('success');
-    const lockedObj = dhLockedMap[nisn];
-    const st = (lockedObj && typeof lockedObj === 'object') ? lockedObj.status : String(lockedObj);
-    showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk', id: nisn, customMsg: 'Sudah absen (' + st + ')' });
-    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-    notif.textContent = '✅ ' + siswa.nama + ' — sudah tercatat (' + st.charAt(0).toUpperCase() + st.slice(1) + ')';
-    notif.classList.remove('hidden');
-    setTimeout(() => notif.classList.add('hidden'), 2500);
-    return;
-}
+        dhPlayBeep('success');
+        const lockedObj = dhLockedMap[nisn];
+        const st = (lockedObj && typeof lockedObj === 'object') ? lockedObj.status : String(lockedObj);
+        showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk', id: nisn, customMsg: 'Sudah absen (' + st + ')' });
+        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
+        notif.textContent = '✅ ' + siswa.nama + ' — sudah tercatat (' + st.charAt(0).toUpperCase() + st.slice(1) + ')';
+        notif.classList.remove('hidden');
+        setTimeout(() => notif.classList.add('hidden'), 2500);
+        return;
+    }
     dhLastScannedNisn = nisn;
     dhPlayBeep('success');
     showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk' });
@@ -3988,16 +4143,21 @@ function dhOnScanResult(rawNisn) {
     const tanggalScan = document.getElementById('dhTanggal').value;
     const kelasSiswaScan = siswa.kelas || document.getElementById('dhKelasSelect').value;
 
-    callGAS('submitDaftarHadirGuru', [{ nisn: siswa.nisn, nama: siswa.nama, kelas: kelasSiswaScan, status: 'hadir' }], tanggalScan, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru')
+    callGASOffline('submitDaftarHadirGuru', [{ nisn: siswa.nisn, nama: siswa.nama, kelas: kelasSiswaScan, status: 'hadir' }], tanggalScan, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru')
         .then(res => {
             if (res && res.success) {
                 const now = new Date();
-                const jamNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                const jamNow = res.offline ? 'Offline' : now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                 dhLockedMap[nisn] = { status: 'hadir', jamDatang: jamNow, hasJamDatang: true };
                 delete dhStatusMap[nisn];
                 dhRenderStudentTable();
-                notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-                notif.textContent = '✅ ' + siswa.nama + ' — Hadir tersimpan';
+                if (res.offline) {
+                    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-amber-50 text-amber-700 border border-amber-100';
+                    notif.textContent = '📥 ' + siswa.nama + ' — tersimpan offline';
+                } else {
+                    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
+                    notif.textContent = '✅ ' + siswa.nama + ' — Hadir tersimpan';
+                }
             } else {
                 notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
                 notif.textContent = '❌ ' + (res && res.message ? res.message : 'Gagal menyimpan absensi');
@@ -5666,10 +5826,28 @@ function loadScanAbsensi() {
         if (ps) ps.classList.add('hidden');
     }, 100);
 
-    // Muat cache siswa ke browser (hanya sekali, atau kalau kosong)
+    // 1. Coba muat dari localStorage dulu — instan & jalan walau offline
     if (!siswaLocalCacheLoaded) {
+        try {
+            const cached = localStorage.getItem('siswaLocalCache_v1');
+            if (cached) {
+                siswaLocalCache = JSON.parse(cached);
+                siswaLocalCacheLoaded = true;
+                const cacheStatus = document.getElementById('scanCacheStatus');
+                if (cacheStatus) {
+                    cacheStatus.textContent = '✅ ' + Object.keys(siswaLocalCache).length + ' siswa siap discan (cache lokal)';
+                    cacheStatus.className = 'text-xs text-green-500';
+                    cacheStatus.classList.remove('hidden');
+                    setTimeout(() => cacheStatus.classList.add('hidden'), 3000);
+                }
+            }
+        } catch (e) {}
+    }
+
+    // 2. Kalau online, refresh cache dari server (data selalu terbaru)
+    if (navigator.onLine) {
         const cacheStatus = document.getElementById('scanCacheStatus');
-        if (cacheStatus) {
+        if (cacheStatus && !siswaLocalCacheLoaded) {
             cacheStatus.textContent = '⏳ Memuat data siswa...';
             cacheStatus.className = 'text-xs text-yellow-500';
             cacheStatus.classList.remove('hidden');
@@ -5679,16 +5857,19 @@ function loadScanAbsensi() {
                     siswaLocalCache = {};
                     res.data.forEach(s => { siswaLocalCache[s.nisn] = { nama: s.nama, kelas: s.kelas }; });
                     siswaLocalCacheLoaded = true;
+                    try { localStorage.setItem('siswaLocalCache_v1', JSON.stringify(siswaLocalCache)); } catch (e) {}
                     if (cacheStatus) {
                         cacheStatus.textContent = '✅ ' + res.data.length + ' siswa siap discan';
                         cacheStatus.className = 'text-xs text-green-500';
+                        cacheStatus.classList.remove('hidden');
                         setTimeout(() => cacheStatus.classList.add('hidden'), 3000);
                     }
                 }
             }).catch(() => {
-                if (cacheStatus) {
-                    cacheStatus.textContent = '⚠️ Gagal muat data, scan akan lebih lambat';
+                if (cacheStatus && !siswaLocalCacheLoaded) {
+                    cacheStatus.textContent = '⚠️ Gagal muat data, gunakan cache lama jika ada';
                     cacheStatus.className = 'text-xs text-red-400';
+                    cacheStatus.classList.remove('hidden');
                 }
             });
     }
@@ -5922,40 +6103,48 @@ function onScanSuccess(decodedText) {
     }
 
     function submitBatchAbsensi() {
-        if (scanLiveCount === 0) return;
+    if (scanLiveCount === 0) return;
 
-        const rows = document.querySelectorAll('#tbody-scan-live tr[data-nisn]');
-        const nisnList = Array.from(rows).map(r => r.getAttribute('data-nisn'));
+    const rows = document.querySelectorAll('#tbody-scan-live tr[data-nisn]');
+    const nisnList = Array.from(rows).map(r => r.getAttribute('data-nisn'));
 
-        const myRole  = currentUser ? currentUser.role  : '';
-        const myKelas = currentUser ? currentUser.kelas : '';
+    const myRole  = currentUser ? currentUser.role  : '';
+    const myKelas = currentUser ? currentUser.kelas : '';
 
-        Swal.fire({
-            title: `Kirim ${nisnList.length} Absensi?`,
-            html: `<p style="color:#6b7280;font-size:13px">Data akan dikirim sekaligus ke server dan dicatat secara permanen.</p>`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#059669',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: '\u2713 Ya, Kirim Sekarang',
-            cancelButtonText: 'Batal'
-        }).then(res => {
-            if (!res.isConfirmed) return;
-            showLoading();
-            callGAS('batchScanAbsensi', nisnList, myRole, myKelas).then(result => {
-                    hideLoading();
-                    if (result.success) {
-                        showBatchResultModal(result.results);
-                        resetScanTable();
-                    } else {
-                        Swal.fire('Gagal', result.message, 'error');
-                    }
-                }).catch(err => {
-                    hideLoading();
-                    Swal.fire('Error Server', err.message || String(err), 'error');
-                });
-        });
-    }
+    Swal.fire({
+        title: `Kirim ${nisnList.length} Absensi?`,
+        html: `<p style="color:#6b7280;font-size:13px">Data akan dikirim sekaligus ke server dan dicatat secara permanen. Jika sedang offline, data akan disimpan lokal dan dikirim otomatis saat online kembali.</p>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#059669',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '\u2713 Ya, Kirim Sekarang',
+        cancelButtonText: 'Batal'
+    }).then(res => {
+        if (!res.isConfirmed) return;
+        showLoading();
+        callGASOffline('batchScanAbsensi', nisnList, myRole, myKelas).then(result => {
+                hideLoading();
+                if (result.offline) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Tersimpan Offline',
+                        html: `<p style="font-size:13px;color:#6b7280">${nisnList.length} data absensi disimpan lokal di perangkat ini dan akan otomatis terkirim ke server saat koneksi internet kembali tersedia.</p>`,
+                        confirmButtonText: 'Mengerti'
+                    });
+                    resetScanTable();
+                } else if (result.success) {
+                    showBatchResultModal(result.results);
+                    resetScanTable();
+                } else {
+                    Swal.fire('Gagal', result.message, 'error');
+                }
+            }).catch(err => {
+                hideLoading();
+                Swal.fire('Error Server', err.message || String(err), 'error');
+            });
+    });
+}
   
 function showBatchResultModal(results) {
     const isAlready = r => !r.success && isSudahAbsenMsg(r.message);
