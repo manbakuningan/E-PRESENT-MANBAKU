@@ -3792,13 +3792,13 @@ function dhUpdateSubmitBtn() {
     if (dhMode === 'pulang') {
         enabled = Object.values(dhPulangMap).some(d => d.checked);
         btn.className = enabled
-            ? 'bg-orange-500 hover:bg-orange-600 active:scale-95 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2 flex-shrink-0 shadow-md'
-            : 'bg-gray-200 text-gray-400 cursor-not-allowed px-5 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2 flex-shrink-0';
+            ? 'bg-green-600 hover:bg-green-700 active:scale-95 text-white px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0 shadow-md'
+            : 'bg-gray-200 text-gray-400 cursor-not-allowed px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0';
     } else {
         enabled = Object.keys(dhStatusMap).filter(k => dhStudents.find(s => s.nisn === k) && !dhLockedMap[k]).length > 0;
         btn.className = enabled
-            ? 'bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2 flex-shrink-0 shadow-md'
-            : 'bg-gray-200 text-gray-400 cursor-not-allowed px-5 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2 flex-shrink-0';
+            ? 'bg-green-600 hover:bg-green-700 active:scale-95 text-white px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0 shadow-md'
+            : 'bg-gray-200 text-gray-400 cursor-not-allowed px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0';
     }
     btn.disabled = !enabled;
 }
