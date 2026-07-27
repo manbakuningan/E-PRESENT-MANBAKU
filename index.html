@@ -989,9 +989,10 @@
       <span>Tombol ini hanya berlaku untuk absensi yang diisi <b>manual</b> (klik status per siswa / centang Tandai Pulang). Absensi hasil <b>scan QR / input NISN cepat</b> langsung tersimpan otomatis ke server.</span>
     </div>
     <button onclick="dhHandleSubmit()" id="dhSubmitBtn" disabled
-      class="bg-gray-200 text-gray-400 cursor-not-allowed px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0">
-      <i class="fas fa-paper-plane"></i> <span id="dhSubmitLabel">Kirim Absensi</span>
-    </button>
+      style="background-color:#e5e7eb; color:#9ca3af; cursor:not-allowed;"
+      class="px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0">
+        <i class="fas fa-paper-plane"></i> <span id="dhSubmitLabel">Kirim Absensi</span>
+  </button>
   </div>
 </div>
 <style>
@@ -3791,16 +3792,24 @@ function dhUpdateSubmitBtn() {
     let enabled = false;
     if (dhMode === 'pulang') {
         enabled = Object.values(dhPulangMap).some(d => d.checked);
-        btn.className = enabled
-            ? 'bg-green-600 hover:bg-green-700 active:scale-95 text-white px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0 shadow-md'
-            : 'bg-gray-200 text-gray-400 cursor-not-allowed px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0';
     } else {
         enabled = Object.keys(dhStatusMap).filter(k => dhStudents.find(s => s.nisn === k) && !dhLockedMap[k]).length > 0;
-        btn.className = enabled
-            ? 'bg-green-600 hover:bg-green-700 active:scale-95 text-white px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0 shadow-md'
-            : 'bg-gray-200 text-gray-400 cursor-not-allowed px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0';
     }
+
     btn.disabled = !enabled;
+    btn.className = 'px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0';
+
+    if (enabled) {
+        btn.style.backgroundColor = '#16a34a'; // hijau
+        btn.style.color = '#ffffff';           // teks putih
+        btn.style.cursor = 'pointer';
+        btn.style.opacity = '1';
+    } else {
+        btn.style.backgroundColor = '#e5e7eb'; // abu-abu
+        btn.style.color = '#9ca3af';
+        btn.style.cursor = 'not-allowed';
+        btn.style.opacity = '1';
+    }
 }
 
 // -- Render tabel pulang --
