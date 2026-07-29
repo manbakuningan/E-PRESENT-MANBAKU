@@ -3216,7 +3216,20 @@ function initDashboard() {
     // --- AMBIL DATA KELAS (Untuk Autocomplete/Dropdown) ---
     loadKelasSuggestions();
 }
-    
+
+    // Auto-refresh ringan agar status Alpa/Bolos langsung terpantau
+    if (window._autoRefreshInterval) clearInterval(window._autoRefreshInterval);
+    window._autoRefreshInterval = setInterval(() => {
+        const activeView = document.querySelector('.view-section.active');
+        if (!activeView) return;
+        if (activeView.id === 'view-monitoring') { tableState.monitoring.fullData = []; loadMonitoringAbsensi(); }
+        else if (activeView.id === 'view-admin-dashboard') { 
+            if (currentUser.role === 'admin' || currentUser.role === 'pimpinan') loadAdminDashboard();
+            else if (currentUser.role === 'guru') loadGuruDashboard();
+        }
+        else if (activeView.id === 'view-siswa-dashboard') { loadSiswaDashboard(); }
+    }, 60000); // tiap 60 detik
+  
     // --- DROPDOWN KELAS LOGIC ---
     function loadKelasSuggestions() {
         console.log("Memuat daftar kelas dari Konfigurasi...");
@@ -4433,6 +4446,15 @@ function loadGuruDashboard() {
                     if (elValMasuk) elValMasuk.textContent = "--:--";
                     if (elValPulang) elValPulang.textContent = "--:--";
                     if (elAlert) { elAlert.classList.remove('hidden'); elAlert.classList.add('flex'); }
+                } else if (absensi.status === 'Alpa') {
+                    if (elHero) elHero.className = "relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-700 to-red-900 p-6 text-white shadow-xl shadow-rose-200 transition-all duration-500 group";
+                    if (elBadge) {
+                        elBadge.className = "px-4 py-2 rounded-xl bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-sm";
+                        elBadge.innerHTML = `<i class="fas fa-times-circle mr-2"></i> ALPA HARI INI`;
+                    }
+                    if (elValMasuk) elValMasuk.textContent = "--:--";
+                    if (elValPulang) elValPulang.textContent = "--:--";
+                    if (elAlert) { elAlert.classList.add('hidden'); elAlert.classList.remove('flex'); }
                 } else {
                     if (elAlert) { elAlert.classList.add('hidden'); elAlert.classList.remove('flex'); }
                     if (elValMasuk) elValMasuk.textContent = absensi.jamDatang || "--:--";
