@@ -7200,7 +7200,7 @@ function ensureAutoTableLoaded() {
     return _autoTableLoading;
 }
 
-function cetakPDFRekapBulanan() {
+async function cetakPDFRekapBulanan() {
     const theadRow = document.getElementById('thead-rekap-bulanan');
     const tbody = document.getElementById('tbody-rekap-bulanan');
     if (!theadRow || !theadRow.children.length || !tbody || tbody.querySelector('td[colspan]')) {
@@ -7213,138 +7213,219 @@ function cetakPDFRekapBulanan() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span class="hidden sm:inline">Memproses...</span>';
 
-    ensureAutoTableLoaded().then(() => {
-        try {
-            const head = Array.from(theadRow.children).map(th => th.textContent.trim());
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            const body = rows.map(tr => Array.from(tr.children).map(td => td.textContent.trim()));
+    try {
+        await ensureAutoTableLoaded();
 
-            const totalCols = head.length;
-            const statColsCount = 6; // H, S, I, A, B, %
-            const dayColsCount = Math.max(totalCols - 2 - statColsCount, 0); // dikurangi No & Nama
-            const lastDayColIndex = 1 + dayColsCount; // index kolom hari terakhir
+        const head = Array.from(theadRow.children).map(th => th.textContent.trim());
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const body = rows.map(tr => Array.from(tr.children).map(td => td.textContent.trim()));
 
-            const kelasEl = document.getElementById('rekapKelas');
-            const bulanEl = document.getElementById('rekapBulan');
-            const tahunEl = document.getElementById('rekapTahun');
-            const kelasText = kelasEl && kelasEl.selectedIndex >= 0 ? kelasEl.options[kelasEl.selectedIndex].text : 'Semua Kelas';
-            const bulanText = bulanEl && bulanEl.selectedIndex >= 0 ? bulanEl.options[bulanEl.selectedIndex].text : '';
-            const tahunText = tahunEl ? tahunEl.value : '';
+        const totalCols = head.length;
+        const statColsCount = 6; // H, S, I, A, B, %
+        const dayColsCount = Math.max(totalCols - 2 - statColsCount, 0);
+        const lastDayColIndex = 1 + dayColsCount;
 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
+        const kelasEl = document.getElementById('rekapKelas');
+        const bulanEl = document.getElementById('rekapBulan');
+        const tahunEl = document.getElementById('rekapTahun');
+        const kelasText = kelasEl && kelasEl.selectedIndex >= 0 ? kelasEl.options[kelasEl.selectedIndex].text : 'Semua Kelas';
+        const bulanText = bulanEl && bulanEl.selectedIndex >= 0 ? bulanEl.options[bulanEl.selectedIndex].text : '';
+        const tahunText = tahunEl ? tahunEl.value : '';
 
-            // --- HITUNG LEBAR KOLOM MANUAL AGAR TABEL PAS PENUH SELEBAR KERTAS ---
-            const marginLR = 3; // margin kiri-kanan tipis, biar tabel selebar mungkin
-            const usableWidth = pageWidth - (marginLR * 2);
-
-            const noColWidth = 8;
-            const namaColWidth = Math.min(48, Math.max(30, usableWidth * 0.14));
-            const statColWidth = Math.min(14, Math.max(9, (usableWidth - noColWidth - namaColWidth) * 0.028));
-            const statTotalWidth = statColWidth * statColsCount;
-
-            const remainingForDays = usableWidth - noColWidth - namaColWidth - statTotalWidth;
-            const dayColWidth = dayColsCount > 0 ? (remainingForDays / dayColsCount) : 0;
-
-            // Susun columnStyles untuk SEMUA kolom (No, Nama, hari-hari, H,S,I,A,B,%)
-            const columnStyles = {
-                0: { cellWidth: noColWidth, halign: 'center' },
-                1: { cellWidth: namaColWidth, halign: 'left', fontStyle: 'bold' }
-            };
-            for (let i = 2; i <= lastDayColIndex; i++) {
-                columnStyles[i] = { cellWidth: dayColWidth, halign: 'center' };
-            }
-            for (let i = lastDayColIndex + 1; i < totalCols; i++) {
-                columnStyles[i] = { cellWidth: statColWidth, halign: 'center', fontStyle: 'bold' };
-            }
-
-            // Ukuran font menyesuaikan lebar kolom hari supaya tetap terbaca & tidak terpotong
-            let bodyFontSize = 9;
-            if (dayColWidth < 9) bodyFontSize = 8;
-            if (dayColWidth < 7) bodyFontSize = 7;
-            if (dayColWidth < 5.5) bodyFontSize = 6;
-            if (dayColWidth < 4.2) bodyFontSize = 5.2;
-
-            const colorMap = {
-                'H': { fill: [220, 252, 231], text: [21, 128, 61] },
-                'S': { fill: [254, 249, 195], text: [161, 98, 7] },
-                'I': { fill: [219, 234, 254], text: [29, 78, 216] },
-                'A': { fill: [254, 226, 226], text: [185, 28, 28] },
-                'B': { fill: [255, 237, 213], text: [194, 65, 12] },
-                'L': { fill: [254, 242, 242], text: [252, 165, 165] }
-            };
-
-            doc.autoTable({
-                head: [head],
-                body: body,
-                startY: 17,
-                margin: { left: marginLR, right: marginLR, bottom: 10 },
-                tableWidth: usableWidth,   // paksa tabel selebar area kertas yang tersedia
-                theme: 'grid',
-                styles: {
-                    fontSize: bodyFontSize,
-                    cellPadding: { top: 1.6, bottom: 1.6, left: 0.8, right: 0.8 },
-                    halign: 'center',
-                    valign: 'middle',
-                    lineWidth: 0.15,
-                    lineColor: [150, 150, 150],
-                    textColor: [20, 20, 20],
-                    overflow: 'visible'
-                },
-                headStyles: {
-                    fillColor: [67, 56, 202],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold',
-                    fontSize: bodyFontSize + 0.5,
-                    halign: 'center',
-                    cellPadding: { top: 2, bottom: 2, left: 0.8, right: 0.8 }
-                },
-                columnStyles: columnStyles,
-                didParseCell: function (data) {
-                    const colIdx = data.column.index;
-                    if (data.section === 'body' && colIdx > 1 && colIdx <= lastDayColIndex) {
-                        const code = (data.cell.raw || '').toString().trim();
-                        const c = colorMap[code];
-                        if (c) {
-                            data.cell.styles.fillColor = c.fill;
-                            data.cell.styles.textColor = c.text;
-                            data.cell.styles.fontStyle = 'bold';
-                        }
-                    }
-                },
-                didDrawPage: function (data) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(13);
-                    doc.text('REKAPITULASI ABSENSI BULANAN SISWA', pageWidth / 2, 8, { align: 'center' });
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(9);
-                    doc.text(`Kelas: ${kelasText}   |   Periode: ${bulanText} ${tahunText}`, pageWidth / 2, 13, { align: 'center' });
-
-                    doc.setFontSize(7);
-                    doc.setFont('helvetica', 'italic');
-                    doc.text('H: Hadir  S: Sakit  I: Izin  A: Alpha  B: Bolos  L: Libur', marginLR, pageHeight - 4);
-                    doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), pageWidth - marginLR, pageHeight - 4, { align: 'right' });
-                    doc.text('Hal. ' + data.pageNumber, pageWidth - marginLR, 13, { align: 'right' });
-                }
-            });
-
-            const fileKelas = (kelasText || 'Semua_Kelas').replace(/\s+/g, '_');
-            const fileName = `Rekap_Bulanan_${fileKelas}_${bulanText}_${tahunText}.pdf`;
-            doc.save(fileName);
-        } catch (err) {
-            console.error(err);
-            showAlert('error', 'Gagal membuat PDF: ' + (err.message || err));
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
+        // --- Ambil data guru untuk mencari Wali Kelas ---
+        let guruList = (tableState.guru && tableState.guru.fullData && tableState.guru.fullData.length > 0)
+            ? tableState.guru.fullData
+            : [];
+        if (guruList.length === 0) {
+            try {
+                const token = currentUser ? currentUser.token : null;
+                const res = await callGAS('getGuruList', token);
+                if (res && res.success) guruList = res.data;
+            } catch (e) { /* biarkan kosong, nama wali kelas akan ditulis manual di kertas */ }
         }
-    }).catch(err => {
-        showAlert('error', err.message || 'Gagal memuat modul PDF');
+
+        const waliKelasNama = findWaliKelasNama(kelasText, guruList);
+        const kepalaInfo = getKepalaInfo(kelasText);
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        const marginLR = 3;
+        const usableWidth = pageWidth - (marginLR * 2);
+
+        const noColWidth = 8;
+        const namaColWidth = Math.min(48, Math.max(30, usableWidth * 0.14));
+        const statColWidth = Math.min(14, Math.max(9, (usableWidth - noColWidth - namaColWidth) * 0.028));
+        const statTotalWidth = statColWidth * statColsCount;
+        const remainingForDays = usableWidth - noColWidth - namaColWidth - statTotalWidth;
+        const dayColWidth = dayColsCount > 0 ? (remainingForDays / dayColsCount) : 0;
+
+        const columnStyles = {
+            0: { cellWidth: noColWidth, halign: 'center' },
+            1: { cellWidth: namaColWidth, halign: 'left', fontStyle: 'bold' }
+        };
+        for (let i = 2; i <= lastDayColIndex; i++) columnStyles[i] = { cellWidth: dayColWidth, halign: 'center' };
+        for (let i = lastDayColIndex + 1; i < totalCols; i++) columnStyles[i] = { cellWidth: statColWidth, halign: 'center', fontStyle: 'bold' };
+
+        let bodyFontSize = 9;
+        if (dayColWidth < 9) bodyFontSize = 8;
+        if (dayColWidth < 7) bodyFontSize = 7;
+        if (dayColWidth < 5.5) bodyFontSize = 6;
+        if (dayColWidth < 4.2) bodyFontSize = 5.2;
+
+        const colorMap = {
+            'H': { fill: [220, 252, 231], text: [21, 128, 61] },
+            'S': { fill: [254, 249, 195], text: [161, 98, 7] },
+            'I': { fill: [219, 234, 254], text: [29, 78, 216] },
+            'A': { fill: [254, 226, 226], text: [185, 28, 28] },
+            'B': { fill: [255, 237, 213], text: [194, 65, 12] },
+            'L': { fill: [254, 242, 242], text: [252, 165, 165] }
+        };
+
+        doc.autoTable({
+            head: [head],
+            body: body,
+            startY: 17,
+            margin: { left: marginLR, right: marginLR, bottom: 10 },
+            tableWidth: usableWidth,
+            theme: 'grid',
+            styles: {
+                fontSize: bodyFontSize,
+                cellPadding: { top: 1.6, bottom: 1.6, left: 0.8, right: 0.8 },
+                halign: 'center',
+                valign: 'middle',
+                lineWidth: 0.15,
+                lineColor: [150, 150, 150],
+                textColor: [20, 20, 20],
+                overflow: 'visible'
+            },
+            headStyles: {
+                fillColor: [67, 56, 202],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: bodyFontSize + 0.5,
+                halign: 'center',
+                cellPadding: { top: 2, bottom: 2, left: 0.8, right: 0.8 }
+            },
+            columnStyles: columnStyles,
+            didParseCell: function (data) {
+                const colIdx = data.column.index;
+                if (data.section === 'body' && colIdx > 1 && colIdx <= lastDayColIndex) {
+                    const code = (data.cell.raw || '').toString().trim();
+                    const c = colorMap[code];
+                    if (c) {
+                        data.cell.styles.fillColor = c.fill;
+                        data.cell.styles.textColor = c.text;
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
+            },
+            didDrawPage: function (data) {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(13);
+                doc.text('REKAPITULASI ABSENSI BULANAN SISWA', pageWidth / 2, 8, { align: 'center' });
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                doc.text(`Kelas: ${kelasText}   |   Periode: ${bulanText} ${tahunText}`, pageWidth / 2, 13, { align: 'center' });
+
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'italic');
+                doc.text('H: Hadir  S: Sakit  I: Izin  A: Alpha  B: Bolos  L: Libur', marginLR, pageHeight - 4);
+                doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), pageWidth - marginLR, pageHeight - 4, { align: 'right' });
+                doc.text('Hal. ' + data.pageNumber, pageWidth - marginLR, 13, { align: 'right' });
+            }
+        });
+
+        // ============================================================
+        // BLOK TANDA TANGAN — WALI KELAS & KEPALA MADRASAH/SEKOLAH
+        // ============================================================
+        const sigBlockHeight = 42; // perkiraan tinggi ruang yang dibutuhkan
+        let sigY = doc.lastAutoTable.finalY + 8;
+
+        // Kalau ruang di halaman sekarang tidak cukup, pindah ke halaman baru
+        if (sigY + sigBlockHeight > pageHeight - 8) {
+            doc.addPage();
+            sigY = 15;
+        }
+
+        const todayStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        const leftX = marginLR + 20;
+        const rightX = pageWidth - marginLR - 80;
+        const signatureGap = 20; // ruang kosong untuk tanda tangan basah
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+
+        // Baris tempat & tanggal (kanan atas)
+        doc.text(`Kuningan, ${todayStr}`, rightX, sigY);
+
+        // Baris jabatan
+        let jabatanY = sigY + 6;
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Wali Kelas ${kelasText}`, leftX, jabatanY);
+        doc.text(kepalaInfo.jabatan, rightX, jabatanY);
+
+        // Garis tanda tangan
+        const lineY = jabatanY + signatureGap;
+        doc.setDrawColor(50, 50, 50);
+        doc.setLineWidth(0.2);
+        doc.line(leftX, lineY, leftX + 65, lineY);
+        doc.line(rightX, lineY, rightX + 65, lineY);
+
+        // Nama di bawah garis
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        const waliNameText = waliKelasNama ? waliKelasNama : '(...........................................)';
+        doc.text(waliNameText, leftX, lineY + 5);
+        doc.text(kepalaInfo.nama || '(...........................................)', rightX, lineY + 5);
+
+        const fileKelas = (kelasText || 'Semua_Kelas').replace(/\s+/g, '_');
+        const fileName = `Rekap_Bulanan_${fileKelas}_${bulanText}_${tahunText}.pdf`;
+        doc.save(fileName);
+    } catch (err) {
+        console.error(err);
+        showAlert('error', 'Gagal membuat PDF: ' + (err.message || err));
+    } finally {
         btn.disabled = false;
         btn.innerHTML = originalHtml;
+    }
+}
+
+// --- Fungsi bantu: cari nama Wali Kelas berdasarkan kelas yang dipilih ---
+function findWaliKelasNama(kelasText, guruList) {
+    if (!kelasText || kelasText === 'Semua Kelas' || !guruList || guruList.length === 0) return null;
+    const target = kelasText.trim();
+    const match = guruList.find(g => {
+        if (!g.kelas) return false;
+        const kelasArr = String(g.kelas).split(',').map(k => k.trim());
+        return kelasArr.includes(target);
     });
+    return match ? (match.nama || match.username) : null;
+}
+
+// --- Fungsi bantu: tentukan jabatan & nama Kepala berdasarkan tingkat kelas ---
+// --- Fungsi bantu: tentukan jabatan & nama Kepala berdasarkan tingkat kelas ---
+// Format kelas bisa: "1A", "1A/7A", "4", "5", "6", dst.
+// Kelas 1-6 setara kelas 7-12 (notasi ganda dipisah "/"), jadi ambil ANGKA PERTAMA
+// sebelum tanda "/" sebagai acuan tingkatan (selalu di rentang 1-6).
+function getKepalaInfo(kelasText) {
+    if (!kelasText) return { jabatan: 'Kepala Madrasah / Kepala Sekolah', nama: '' };
+
+    // Ambil bagian sebelum '/' jika ada notasi ganda, mis. "1A/7A" -> "1A"
+    const firstPart = String(kelasText).split('/')[0].trim();
+    const m = firstPart.match(/\d+/);
+    const grade = m ? parseInt(m[0], 10) : null;
+
+    if (grade !== null && grade >= 1 && grade <= 3) {
+        return { jabatan: 'Kepala Madrasah', nama: 'Yayat Hidayat, S.Pd.I' };
+    } else if (grade !== null && grade >= 4 && grade <= 6) {
+        return { jabatan: 'Kepala Sekolah', nama: 'Ato Sugiarto, S.Pd.' };
+    }
+
+    // Fallback kalau format kelas tidak terdeteksi angkanya
+    return { jabatan: 'Kepala Madrasah / Kepala Sekolah', nama: '' };
 }
 // ==========================================
 // LOGIKA KENAIKAN KELAS & ARSIP
