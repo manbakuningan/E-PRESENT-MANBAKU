@@ -1650,6 +1650,10 @@
                 <button onclick="exportRekapBulananExcel()" id="btnExportRekap" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-700 transition shadow-sm flex items-center gap-2">
                     <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Export</span>
                 </button>
+
+                <button onclick="cetakPDFRekapBulanan()" id="btnCetakPdfRekap" class="bg-rose-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-rose-700 transition shadow-sm flex items-center gap-2">
+                    <i class="fas fa-file-pdf"></i> <span class="hidden sm:inline">Cetak PDF</span>
+                </button>
             </div>
         </div>
 
@@ -7176,6 +7180,148 @@ function exportRekapBulananExcel() {
     });
 }
 
+// ==========================================================================
+// CETAK PDF - REKAP BULANAN SISWA (A4 Landscape, siap cetak)
+// ==========================================================================
+let _autoTableLoading = null;
+function ensureAutoTableLoaded() {
+    if (_autoTableLoading) return _autoTableLoading;
+    _autoTableLoading = new Promise((resolve, reject) => {
+        if (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable) {
+            resolve();
+            return;
+        }
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Gagal memuat modul PDF (AutoTable)'));
+        document.head.appendChild(s);
+    });
+    return _autoTableLoading;
+}
+
+function cetakPDFRekapBulanan() {
+    const theadRow = document.getElementById('thead-rekap-bulanan');
+    const tbody = document.getElementById('tbody-rekap-bulanan');
+    if (!theadRow || !theadRow.children.length || !tbody || tbody.querySelector('td[colspan]')) {
+        showAlert('error', 'Tidak ada data untuk dicetak. Silakan pilih filter dan klik Tampilkan dulu.');
+        return;
+    }
+
+    const btn = document.getElementById('btnCetakPdfRekap');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span class="hidden sm:inline">Memproses...</span>';
+
+    ensureAutoTableLoaded().then(() => {
+        try {
+            const head = Array.from(theadRow.children).map(th => th.textContent.trim());
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const body = rows.map(tr => Array.from(tr.children).map(td => td.textContent.trim()));
+
+            const totalCols = head.length;
+            const statColsCount = 6; // H, S, I, A, B, %
+            const dayColsCount = Math.max(totalCols - 2 - statColsCount, 0); // dikurangi No & Nama
+            const lastDayColIndex = 1 + dayColsCount; // index kolom hari terakhir
+
+            const kelasEl = document.getElementById('rekapKelas');
+            const bulanEl = document.getElementById('rekapBulan');
+            const tahunEl = document.getElementById('rekapTahun');
+            const kelasText = kelasEl && kelasEl.selectedIndex >= 0 ? kelasEl.options[kelasEl.selectedIndex].text : 'Semua Kelas';
+            const bulanText = bulanEl && bulanEl.selectedIndex >= 0 ? bulanEl.options[bulanEl.selectedIndex].text : '';
+            const tahunText = tahunEl ? tahunEl.value : '';
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            // Ukuran font otomatis menyesuaikan jumlah kolom agar tetap terbaca
+            let bodyFontSize = 7.5;
+            if (dayColsCount > 15) bodyFontSize = 6.5;
+            if (dayColsCount > 25) bodyFontSize = 5.5;
+            if (dayColsCount > 30) bodyFontSize = 5;
+
+            const colorMap = {
+                'H': { fill: [220, 252, 231], text: [21, 128, 61] },
+                'S': { fill: [254, 249, 195], text: [161, 98, 7] },
+                'I': { fill: [219, 234, 254], text: [29, 78, 216] },
+                'A': { fill: [254, 226, 226], text: [185, 28, 28] },
+                'B': { fill: [255, 237, 213], text: [194, 65, 12] },
+                'L': { fill: [254, 242, 242], text: [252, 165, 165] }
+            };
+
+            doc.autoTable({
+                head: [head],
+                body: body,
+                startY: 20,
+                margin: { left: 4, right: 4, bottom: 12 },
+                tableWidth: 'wrap',
+                theme: 'grid',
+                styles: {
+                    fontSize: bodyFontSize,
+                    cellPadding: 1,
+                    halign: 'center',
+                    valign: 'middle',
+                    lineWidth: 0.1,
+                    lineColor: [180, 180, 180],
+                    textColor: [30, 30, 30]
+                },
+                headStyles: {
+                    fillColor: [67, 56, 202],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: bodyFontSize,
+                    halign: 'center'
+                },
+                columnStyles: {
+                    0: { cellWidth: 8, halign: 'center' },
+                    1: { cellWidth: 34, halign: 'left', fontStyle: 'bold' }
+                },
+                didParseCell: function (data) {
+                    const colIdx = data.column.index;
+                    if (data.section === 'body' && colIdx > 1 && colIdx <= lastDayColIndex) {
+                        const code = (data.cell.raw || '').toString().trim();
+                        const c = colorMap[code];
+                        if (c) {
+                            data.cell.styles.fillColor = c.fill;
+                            data.cell.styles.textColor = c.text;
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
+                },
+                didDrawPage: function (data) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.text('REKAPITULASI ABSENSI BULANAN SISWA', pageWidth / 2, 8, { align: 'center' });
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8.5);
+                    doc.text(`Kelas: ${kelasText}   |   Periode: ${bulanText} ${tahunText}`, pageWidth / 2, 13, { align: 'center' });
+
+                    doc.setFontSize(6.5);
+                    doc.setFont('helvetica', 'italic');
+                    doc.text('H: Hadir  S: Sakit  I: Izin  A: Alpha  B: Bolos  L: Libur', 4, pageHeight - 4);
+                    doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), pageWidth - 4, pageHeight - 4, { align: 'right' });
+                    doc.text('Hal. ' + data.pageNumber, pageWidth - 4, 13, { align: 'right' });
+                }
+            });
+
+            const fileKelas = (kelasText || 'Semua_Kelas').replace(/\s+/g, '_');
+            const fileName = `Rekap_Bulanan_${fileKelas}_${bulanText}_${tahunText}.pdf`;
+            doc.save(fileName);
+        } catch (err) {
+            console.error(err);
+            showAlert('error', 'Gagal membuat PDF: ' + (err.message || err));
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }).catch(err => {
+        showAlert('error', err.message || 'Gagal memuat modul PDF');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    });
+}
 // ==========================================
 // LOGIKA KENAIKAN KELAS & ARSIP
 // ==========================================
