@@ -1664,7 +1664,7 @@
                         </tr>
                 </thead>
                 <tbody id="tbody-rekap-bulanan" class="divide-y divide-gray-100 bg-white">
-                    <tr><td class="p-8 text-center text-gray-500" colspan="10">Silakan pilih filter dan klik Tampilkan.</td></tr>
+                    <tr class="rekap-info-row"><td class="p-8 text-center text-gray-500" colspan="10">Silakan pilih filter dan klik Tampilkan.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -6951,11 +6951,11 @@ function loadDataRekapBulanan() {
     const tbody = document.getElementById('tbody-rekap-bulanan');
     const thead = document.getElementById('thead-rekap-bulanan');
     
-    tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center"><i class="fas fa-circle-notch fa-spin mr-2"></i>Mengambil data...</td></tr>';
+    tbody.innerHTML = '<tr class="rekap-info-row"><td colspan="10" class="p-8 text-center"><i class="fas fa-circle-notch fa-spin mr-2"></i>Mengambil data...</td></tr>';
 
     callGAS('getMonthlyReportData', parseInt(bulan), parseInt(tahun), kelas).then(res => {
         if(!res.success) {
-            tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-red-500">${res.message}</td></tr>`;
+            tbody.innerHTML = `<tr class="rekap-info-row"><td colspan="10" class="p-4 text-center text-red-500">${res.message}</td></tr>`;
             return;
         }
         
@@ -6965,38 +6965,35 @@ function loadDataRekapBulanan() {
         let headerHTML = '<th class="p-3 w-10 text-center bg-gray-100 sticky left-0 z-20">No</th>';
         headerHTML += '<th class="p-3 w-40 bg-gray-100 sticky left-10 z-20">Nama Siswa</th>';
         
-        // Loop tanggal 1 s.d akhir bulan
         for(let d=1; d<=data.daysInMonth; d++) {
             headerHTML += `<th class="p-1 text-center w-8 text-[10px] border-l border-gray-200">${d}</th>`;
         }
-        // Header Statistik
-        // di loadDataRekapBulanan()
         headerHTML += '<th class="p-2 w-8 text-center bg-green-50 text-green-700 border-l">H</th>';
         headerHTML += '<th class="p-2 w-8 text-center bg-yellow-50 text-yellow-700">S</th>';
         headerHTML += '<th class="p-2 w-8 text-center bg-blue-50 text-blue-700">I</th>';
         headerHTML += '<th class="p-2 w-8 text-center bg-red-50 text-red-700">A</th>';
-        headerHTML += '<th class="p-2 w-8 text-center bg-orange-50 text-orange-700">B</th>'; // BARU
+        headerHTML += '<th class="p-2 w-8 text-center bg-orange-50 text-orange-700">B</th>';
         headerHTML += '<th class="p-2 w-12 text-center bg-gray-100">%</th>';
         
         thead.innerHTML = headerHTML;
 
+        const totalCols = 2 + data.daysInMonth + 6;
+
         // 2. RENDER BODY
         if(data.students.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="40" class="p-8 text-center text-gray-400">Tidak ada data siswa.</td></tr>';
+            tbody.innerHTML = `<tr class="rekap-info-row"><td colspan="${totalCols}" class="p-8 text-center text-gray-400">Tidak ada data siswa.</td></tr>`;
             return;
         }
 
-        let rowsHTML = '';
-        data.students.forEach((siswa, idx) => {
+        const renderSiswaRow = (siswa, nomor) => {
             let row = `<tr class="hover:bg-gray-50 border-b border-gray-100 group">`;
-            row += `<td class="p-3 text-center text-gray-500 sticky left-0 bg-white group-hover:bg-gray-50 z-10">${idx+1}</td>`;
+            row += `<td class="p-3 text-center text-gray-500 sticky left-0 bg-white group-hover:bg-gray-50 z-10">${nomor}</td>`;
             row += `<td class="p-3 font-bold text-gray-700 text-xs sticky left-10 bg-white group-hover:bg-gray-50 z-10 truncate max-w-[150px]" title="${siswa.nama}">${siswa.nama}</td>`;
             
-            // Loop Kode Harian
             siswa.dailyCodes.forEach(day => {
                 let colorClass = '';
                 let bgClass = '';
-                if(day.isHoliday) bgClass = 'bg-red-50'; // Kolom Libur
+                if(day.isHoliday) bgClass = 'bg-red-50';
                 
                 if(day.code === 'H') colorClass = 'text-green-600 font-bold';
                 else if(day.code === 'S') colorClass = 'text-yellow-600 font-bold bg-yellow-50';
@@ -7008,22 +7005,57 @@ function loadDataRekapBulanan() {
                 row += `<td class="p-1 text-center text-[10px] border-l border-gray-100 ${colorClass} ${bgClass}">${day.code}</td>`;
             });
 
-            // Statistik
-            // di dalam rowsHTML data.students.forEach(...)
             row += `<td class="p-2 text-center text-xs font-bold text-green-700 bg-green-50/30 border-l">${siswa.stats.h}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-yellow-700 bg-yellow-50/30">${siswa.stats.s}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-blue-700 bg-blue-50/30">${siswa.stats.i}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-red-700 bg-red-50/30">${siswa.stats.a}</td>`;
-            row += `<td class="p-2 text-center text-xs font-bold text-orange-700 bg-orange-50/30">${siswa.stats.b}</td>`; // BARU
+            row += `<td class="p-2 text-center text-xs font-bold text-orange-700 bg-orange-50/30">${siswa.stats.b}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-gray-700 bg-gray-50">${siswa.stats.percent}%</td>`;
             
             row += `</tr>`;
-            rowsHTML += row;
-        });
+            return row;
+        };
+
+        let rowsHTML = '';
+
+        if (!kelas) {
+            // "Semua Kelas" dipilih -> kelompokkan per kelas dengan baris header
+            const groups = {};
+            data.students.forEach(s => {
+                const k = getKelas(s) || 'Tanpa Kelas';
+                if (!groups[k]) groups[k] = [];
+                groups[k].push(s);
+            });
+
+            const sortedKeys = Object.keys(groups).sort(compareKelasNatural);
+
+            sortedKeys.forEach(k => {
+                const list = groups[k];
+                rowsHTML += `<tr class="rekap-group-header" data-kelas="${k}">
+                    <td colspan="${totalCols}" class="p-2 text-left text-xs font-bold text-white bg-indigo-600 sticky left-0 z-10">
+                        <i class="fas fa-users mr-1"></i> Kelas ${k} &nbsp;<span class="font-normal opacity-80">(${list.length} siswa)</span>
+                    </td>
+                </tr>`;
+                list.forEach((siswa, i) => { rowsHTML += renderSiswaRow(siswa, i + 1); });
+            });
+        } else {
+            data.students.forEach((siswa, idx) => { rowsHTML += renderSiswaRow(siswa, idx + 1); });
+        }
         
         tbody.innerHTML = rowsHTML;
 
     }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
+}
+
+// --- Fungsi bantu: urutkan nama kelas secara natural (1A, 1B, 2A, ... bukan alfabet biasa) ---
+function compareKelasNatural(a, b) {
+    const parse = (s) => {
+        const m = String(s).match(/(\d+)\s*([A-Za-z]*)/);
+        return m ? { num: parseInt(m[1], 10), suf: (m[2] || '').toUpperCase() } : { num: 9999, suf: String(s) };
+    };
+    const pa = parse(a), pb = parse(b);
+    if (pa.num !== pb.num) return pa.num - pb.num;
+    return pa.suf.localeCompare(pb.suf);
 }
 
 function renderRekapTable(result) {
@@ -7145,39 +7177,70 @@ function renderRekapTable(result) {
 }
 
 function exportRekapBulananExcel() {
-    const btn = document.getElementById('btnExportRekap');
-    const originalContent = btn.innerHTML;
-    const bulan = document.getElementById('rekapBulan').value;
-    const tahun = document.getElementById('rekapTahun').value;
-    
-    // AMBIL FILTER KELAS
-    let kelas = document.getElementById('rekapKelas').value;
-    if (currentUser.role === 'guru' && currentUser.kelas) {
-        kelas = currentUser.kelas;
+    const theadRow = document.getElementById('thead-rekap-bulanan');
+    const tbody = document.getElementById('tbody-rekap-bulanan');
+    const hasStudentRow = tbody ? tbody.querySelector('tr:not(.rekap-info-row):not(.rekap-group-header)') : null;
+
+    if (!theadRow || !theadRow.children.length || !tbody || !hasStudentRow) {
+        showAlert('error', 'Tidak ada data untuk di-export. Silakan pilih filter dan klik Tampilkan dulu.');
+        return;
     }
 
+    const btn = document.getElementById('btnExportRekap');
+    const originalHtml = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Loading...';
+    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span class="hidden sm:inline">Memproses...</span>';
 
-    const filters = {
-        bulan: parseInt(bulan),
-        tahun: parseInt(tahun),
-        kelas: kelas // Kirim kelas yang dipilih
-    };
+    try {
+        const head = Array.from(theadRow.children).map(th => th.textContent.trim());
+        const totalCols = head.length;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
 
-    callGAS('generateExcel', 'laporan_bulanan', filters).then(result => {
+        const aoa = [head];
+        const merges = [];
+
+        rows.forEach(tr => {
+            const rIndex = aoa.length; // baris ke-berapa di sheet (0-based, header sudah di index 0)
+            if (tr.classList.contains('rekap-group-header')) {
+                const label = tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '';
+                const rowArr = new Array(totalCols).fill('');
+                rowArr[0] = '>> ' + label.replace(/\s+/g, ' ').trim();
+                aoa.push(rowArr);
+                merges.push({ s: { r: rIndex, c: 0 }, e: { r: rIndex, c: totalCols - 1 } });
+            } else {
+                aoa.push(Array.from(tr.children).map(td => td.textContent.trim()));
+            }
+        });
+
+        const kelasEl = document.getElementById('rekapKelas');
+        const bulanEl = document.getElementById('rekapBulan');
+        const tahunEl = document.getElementById('rekapTahun');
+        const kelasText = kelasEl && kelasEl.selectedIndex >= 0 ? kelasEl.options[kelasEl.selectedIndex].text : 'Semua Kelas';
+        const bulanText = bulanEl && bulanEl.selectedIndex >= 0 ? bulanEl.options[bulanEl.selectedIndex].text : '';
+        const tahunText = tahunEl ? tahunEl.value : '';
+
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws['!merges'] = merges;
+
+        ws['!cols'] = head.map((h, i) => {
+            if (i === 0) return { wch: 5 };
+            if (i === 1) return { wch: 28 };
+            return { wch: 4 };
+        });
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Rekap Bulanan');
+
+        const fileKelas = (kelasText || 'Semua_Kelas').replace(/\s+/g, '_');
+        const fileName = `Rekap_Bulanan_${fileKelas}_${bulanText}_${tahunText}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    } catch (err) {
+        console.error(err);
+        showAlert('error', 'Gagal membuat Excel: ' + (err.message || err));
+    } finally {
         btn.disabled = false;
-        btn.innerHTML = originalContent;
-        if (result.success) {
-            window.open(result.url, '_blank');
-        } else {
-            showAlert('error', result.message);
-        }
-    }).catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = originalContent;
-        showAlert('error', 'Gagal: ' + err);
-    });
+        btn.innerHTML = originalHtml;
+    }
 }
 
 // ==========================================================================
@@ -7203,7 +7266,8 @@ function ensureAutoTableLoaded() {
 async function cetakPDFRekapBulanan() {
     const theadRow = document.getElementById('thead-rekap-bulanan');
     const tbody = document.getElementById('tbody-rekap-bulanan');
-    if (!theadRow || !theadRow.children.length || !tbody || tbody.querySelector('td[colspan]')) {
+    const hasStudentRow = tbody.querySelector('tr:not(.rekap-info-row):not(.rekap-group-header)');
+    if (!theadRow || !theadRow.children.length || !tbody || !hasStudentRow) {
         showAlert('error', 'Tidak ada data untuk dicetak. Silakan pilih filter dan klik Tampilkan dulu.');
         return;
     }
@@ -7216,14 +7280,24 @@ async function cetakPDFRekapBulanan() {
     try {
         await ensureAutoTableLoaded();
 
-        const head = Array.from(theadRow.children).map(th => th.textContent.trim());
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        const body = rows.map(tr => Array.from(tr.children).map(td => td.textContent.trim()));
-
-        const totalCols = head.length;
-        const statColsCount = 6; // H, S, I, A, B, %
-        const dayColsCount = Math.max(totalCols - 2 - statColsCount, 0);
-        const lastDayColIndex = 1 + dayColsCount;
+      const head = Array.from(theadRow.children).map(th => th.textContent.trim());
+      const totalCols = head.length;
+      const statColsCount = 6; // H, S, I, A, B, %
+      const dayColsCount = Math.max(totalCols - 2 - statColsCount, 0); // dikurangi No & Nama
+      const lastDayColIndex = 1 + dayColsCount; // index kolom hari terakhir
+      
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const body = rows.map(tr => {
+          if (tr.classList.contains('rekap-group-header')) {
+              const label = tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '';
+              return [{
+                  content: label,
+                  colSpan: totalCols,
+                  styles: { halign: 'left', fillColor: [67, 56, 202], textColor: [255, 255, 255], fontStyle: 'bold' }
+              }];
+          }
+          return Array.from(tr.children).map(td => td.textContent.trim());
+      });
 
         const kelasEl = document.getElementById('rekapKelas');
         const bulanEl = document.getElementById('rekapBulan');
