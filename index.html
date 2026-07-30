@@ -7367,14 +7367,10 @@ async function cetakPDFRekapBulanan() {
         doc.text(`Wali Kelas ${kelasText}`, leftX, jabatanY);
         doc.text(kepalaInfo.jabatan, rightX, jabatanY);
 
-        // Garis tanda tangan
+       // Ruang kosong untuk tanda tangan basah (tanpa garis)
         const lineY = jabatanY + signatureGap;
-        doc.setDrawColor(50, 50, 50);
-        doc.setLineWidth(0.2);
-        doc.line(leftX, lineY, leftX + 65, lineY);
-        doc.line(rightX, lineY, rightX + 65, lineY);
 
-        // Nama di bawah garis
+        // Nama langsung ditulis, tanpa garis di atasnya
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9.5);
         const waliNameText = waliKelasNama ? waliKelasNama : '(...........................................)';
