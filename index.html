@@ -7306,21 +7306,6 @@ async function cetakPDFRekapBulanan() {
         const bulanText = bulanEl && bulanEl.selectedIndex >= 0 ? bulanEl.options[bulanEl.selectedIndex].text : '';
         const tahunText = tahunEl ? tahunEl.value : '';
 
-        // --- Ambil data guru untuk mencari Wali Kelas ---
-        let guruList = (tableState.guru && tableState.guru.fullData && tableState.guru.fullData.length > 0)
-            ? tableState.guru.fullData
-            : [];
-        if (guruList.length === 0) {
-            try {
-                const token = currentUser ? currentUser.token : null;
-                const res = await callGAS('getGuruList', token);
-                if (res && res.success) guruList = res.data;
-            } catch (e) { /* biarkan kosong, nama wali kelas akan ditulis manual di kertas */ }
-        }
-
-        const waliKelasNama = findWaliKelasNama(kelasText, guruList);
-        const kepalaInfo = getKepalaInfo(kelasText);
-
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -7412,45 +7397,6 @@ async function cetakPDFRekapBulanan() {
             }
         });
 
-        // ============================================================
-        // BLOK TANDA TANGAN — WALI KELAS & KEPALA MADRASAH/SEKOLAH
-        // ============================================================
-        const sigBlockHeight = 42; // perkiraan tinggi ruang yang dibutuhkan
-        let sigY = doc.lastAutoTable.finalY + 8;
-
-        // Kalau ruang di halaman sekarang tidak cukup, pindah ke halaman baru
-        if (sigY + sigBlockHeight > pageHeight - 8) {
-            doc.addPage();
-            sigY = 15;
-        }
-
-        const todayStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-        const leftX = marginLR + 20;
-        const rightX = pageWidth - marginLR - 80;
-        const signatureGap = 20; // ruang kosong untuk tanda tangan basah
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-
-        // Baris tempat & tanggal (kanan atas)
-        doc.text(`Kuningan, ${todayStr}`, rightX, sigY);
-
-        // Baris jabatan
-        let jabatanY = sigY + 6;
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Wali Kelas ${kelasText}`, leftX, jabatanY);
-        doc.text(kepalaInfo.jabatan, rightX, jabatanY);
-
-       // Ruang kosong untuk tanda tangan basah (tanpa garis)
-        const lineY = jabatanY + signatureGap;
-
-        // Nama langsung ditulis, tanpa garis di atasnya
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9.5);
-        const waliNameText = waliKelasNama ? waliKelasNama : '(...........................................)';
-        doc.text(waliNameText, leftX, lineY + 5);
-        doc.text(kepalaInfo.nama || '(...........................................)', rightX, lineY + 5);
-
         const fileKelas = (kelasText || 'Semua_Kelas').replace(/\s+/g, '_');
         const fileName = `Rekap_Bulanan_${fileKelas}_${bulanText}_${tahunText}.pdf`;
         doc.save(fileName);
@@ -7463,40 +7409,6 @@ async function cetakPDFRekapBulanan() {
     }
 }
 
-// --- Fungsi bantu: cari nama Wali Kelas berdasarkan kelas yang dipilih ---
-function findWaliKelasNama(kelasText, guruList) {
-    if (!kelasText || kelasText === 'Semua Kelas' || !guruList || guruList.length === 0) return null;
-    const target = kelasText.trim();
-    const match = guruList.find(g => {
-        if (!g.kelas) return false;
-        const kelasArr = String(g.kelas).split(',').map(k => k.trim());
-        return kelasArr.includes(target);
-    });
-    return match ? (match.nama || match.username) : null;
-}
-
-// --- Fungsi bantu: tentukan jabatan & nama Kepala berdasarkan tingkat kelas ---
-// --- Fungsi bantu: tentukan jabatan & nama Kepala berdasarkan tingkat kelas ---
-// Format kelas bisa: "1A", "1A/7A", "4", "5", "6", dst.
-// Kelas 1-6 setara kelas 7-12 (notasi ganda dipisah "/"), jadi ambil ANGKA PERTAMA
-// sebelum tanda "/" sebagai acuan tingkatan (selalu di rentang 1-6).
-function getKepalaInfo(kelasText) {
-    if (!kelasText) return { jabatan: 'Kepala Madrasah / Kepala Sekolah', nama: '' };
-
-    // Ambil bagian sebelum '/' jika ada notasi ganda, mis. "1A/7A" -> "1A"
-    const firstPart = String(kelasText).split('/')[0].trim();
-    const m = firstPart.match(/\d+/);
-    const grade = m ? parseInt(m[0], 10) : null;
-
-    if (grade !== null && grade >= 1 && grade <= 3) {
-        return { jabatan: 'Kepala Madrasah', nama: 'Yayat Hidayat, S.Pd.I' };
-    } else if (grade !== null && grade >= 4 && grade <= 6) {
-        return { jabatan: 'Kepala Sekolah', nama: 'Ato Sugiarto, S.Pd.' };
-    }
-
-    // Fallback kalau format kelas tidak terdeteksi angkanya
-    return { jabatan: 'Kepala Madrasah / Kepala Sekolah', nama: '' };
-}
 // ==========================================
 // LOGIKA KENAIKAN KELAS & ARSIP
 // ==========================================
