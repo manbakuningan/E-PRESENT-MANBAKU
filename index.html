@@ -4152,7 +4152,26 @@ function dhPlayBeep(type = 'success') {
 }
 
 var dhLastScannedNisn = null;
+let dhPendingBatch = [];
+let dhBatchTimer = null;
+const DH_BATCH_INTERVAL = 1500;
 
+function dhQueueScanForBatch(item) {
+    dhPendingBatch.push(item);
+    if (!dhBatchTimer) dhBatchTimer = setTimeout(dhFlushBatch, DH_BATCH_INTERVAL);
+}
+
+function dhFlushBatch() {
+    dhBatchTimer = null;
+    if (dhPendingBatch.length === 0) return;
+    const batch = dhPendingBatch;
+    dhPendingBatch = [];
+    const tanggalScan = document.getElementById('dhTanggal').value;
+    callGASOffline('submitDaftarHadirGuru', batch, tanggalScan,
+        currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru')
+        .catch(err => console.warn('Batch gagal:', err));
+}
+window.addEventListener('beforeunload', dhFlushBatch);
 var dhLastScannedNisn = null;
 
 function dhOnScanResult(rawNisn) {
@@ -4189,16 +4208,24 @@ function dhOnScanResult(rawNisn) {
         setTimeout(() => notif.classList.add('hidden'), 2500);
         return;
     }
-    dhLastScannedNisn = nisn;
-    dhPlayBeep('success');
-    showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk' });
+dhLastScannedNisn = nisn;
+dhPlayBeep('success');
+showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk' });
 
-    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-purple-50 text-purple-600 border border-purple-100';
-    notif.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Menyimpan ' + siswa.nama + '...';
-    notif.classList.remove('hidden');
+const now = new Date();
+const jamNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+dhLockedMap[nisn] = { status: 'hadir', jamDatang: jamNow, hasJamDatang: true };
+delete dhStatusMap[nisn];
+dhRenderStudentTable();
 
-    const tanggalScan = document.getElementById('dhTanggal').value;
-    const kelasSiswaScan = siswa.kelas || document.getElementById('dhKelasSelect').value;
+notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
+notif.textContent = '✅ ' + siswa.nama + ' — Hadir tersimpan';
+notif.classList.remove('hidden');
+setTimeout(() => notif.classList.add('hidden'), 1500);
+
+const kelasSiswaScan = siswa.kelas || document.getElementById('dhKelasSelect').value;
+dhQueueScanForBatch({ nisn: siswa.nisn, nama: siswa.nama, kelas: kelasSiswaScan, status: 'hadir' });
+  
 
     callGASOffline('submitDaftarHadirGuru', [{ nisn: siswa.nisn, nama: siswa.nama, kelas: kelasSiswaScan, status: 'hadir' }], tanggalScan, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru')
         .then(res => {
