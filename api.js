@@ -5,7 +5,7 @@
     // KONEKSI KE BACKEND (Apps Script Web App) — pengganti google.script.run
     // ==========================================================================
     // GANTI dengan URL Web App hasil deploy ulang Apps Script (harus diakhiri /exec)
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz4bIddXG6vFYTLVble5UddLc266u5UBex7NJxGG7Ps2orGc94v-VDj57B8mqUfsPUDBg/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwiWT3pZCosH3cwWjTkMaa6ftFSpsKO-71rQdU9LCvJl5Xvo7IRP1TOoBAXA4vJZYnx/exec';
 
 // ==========================================================================
 // REQUEST QUEUE — batasi request bersamaan + retry otomatis
