@@ -584,7 +584,7 @@
                       <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Ringkasan Kehadiran Siswa</h3>
                   </div>
 
-                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                       
                       <div class="bg-white p-5 rounded-xl shadow-sm border border-indigo-100 flex flex-col justify-between relative overflow-hidden group">
                           <div class="absolute right-0 top-0 w-16 h-16 bg-indigo-50 rounded-bl-full -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
@@ -631,16 +631,7 @@
                           </div>
                       </div>
                   
-                      <!-- CARD BARU: BOLOS -->
-                      <div class="bg-white p-5 rounded-xl shadow-sm border border-orange-100 flex flex-col justify-between relative overflow-hidden group">
-                          <div class="absolute right-0 top-0 w-16 h-16 bg-orange-50 rounded-bl-full -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
-                          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest relative z-10">Bolos</p>
-                          <div class="flex items-center justify-between mt-2 relative z-10">
-                              <h3 id="admStatBolos" class="text-2xl font-bold text-gray-800">-</h3>
-                              <div class="text-orange-500 bg-orange-50 p-2 rounded-lg"><i class="fas fa-running"></i></div>
-                          </div>
                       </div>
-                  </div>
 
                   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
                       
@@ -1565,7 +1556,6 @@
                     <option value="Sakit">Sakit (Kuning)</option>
                     <option value="Izin">Izin (Biru)</option>
                     <option value="Alpa">Alpa (Merah)</option>
-                    <option value="Bolos">Bolos (Oranye)</option>
                     <option value="Belum Absen">Belum Absen (Abu)</option>
                 </select>
 
@@ -1674,7 +1664,6 @@
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-400"></span> S: Sakit</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span> I: Izin</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> A: Alpha</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span> B: Bolos</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-red-100 border border-red-200"></span> Libur</span>
         </div>
 
@@ -3431,7 +3420,6 @@ function loadAdminDashboard() {
         const sakit = data.filter(d => d.status === 'Sakit').length;
         const izin = data.filter(d => d.status === 'Izin').length;
         const alpa = data.filter(d => d.status === 'Alpa').length;
-        const bolos = data.filter(d => d.status === 'Bolos').length; // BARU
         const belum = data.filter(d => d.status === 'Belum Absen').length;
 
         animateValue("admStatTotal", 0, total, 800);
@@ -3439,7 +3427,6 @@ function loadAdminDashboard() {
         animateValue("admStatSakit", 0, sakit, 800);
         animateValue("admStatIzin", 0, izin, 800);
         animateValue("admStatAlpa", 0, alpa, 800);
-        animateValue("admStatBolos", 0, bolos, 800); // BARU
 
         renderAdminChart(hadir, sakit, izin, alpa, belum, bolos); // tambahkan bolos
     }
@@ -3484,7 +3471,7 @@ function renderAdminGuruChart(hadir, belum) {
     });
 }
 
-        function renderAdminChart(hadir, sakit, izin, alpa, belum, bolos) {
+       function renderAdminChart(hadir, sakit, izin, alpa, belum) {
         const ctx = document.getElementById('adminAttendanceChart');
         if (!ctx) return;
         if (adminChartInstance) adminChartInstance.destroy();
@@ -3493,11 +3480,11 @@ function renderAdminGuruChart(hadir, belum) {
         adminChartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
-              labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Bolos', 'Belum Absen'],
+              labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Belum Absen'],
               datasets: [{
                   label: 'Jumlah Siswa',
-                  data: [hadir, sakit, izin, alpa, bolos || 0, belum],
-                  backgroundColor: ['#10B981', '#EAB308', '#3B82F6', '#EF4444', '#F97316', '#9CA3AF'],
+                  data: [hadir, sakit, izin, alpa, belum],
+                  backgroundColor: ['#10B981', '#EAB308', '#3B82F6', '#EF4444', '#9CA3AF'],
                   borderRadius: 8,
                   barPercentage: 0.5,
               }]
@@ -5566,7 +5553,6 @@ function renderRekapRows(data) {
          if(status === 'Izin') return 'bg-blue-100 text-blue-700';
          if(status === 'Sakit') return 'bg-yellow-100 text-yellow-700';
          if(status === 'Alpa') return 'bg-red-100 text-red-700';
-         if(status === 'Bolos') return 'bg-orange-100 text-orange-700';
          return 'bg-gray-100 text-gray-600';
     };
 
@@ -5751,7 +5737,6 @@ function renderMonitoringRows(data, startIdx) {
         else if(d.status === 'Izin') statusColor = 'bg-blue-100 text-blue-700';
         else if(d.status === 'Sakit') statusColor = 'bg-yellow-100 text-yellow-700';
         else if(d.status === 'Alpa') statusColor = 'bg-red-100 text-red-700';
-        else if(d.status === 'Bolos') statusColor = 'bg-orange-100 text-orange-700';
 
         // --- B. LOGIKA TAMPILAN KETERANGAN WAKTU (Kolom G) ---
         let ketText = d.keterangan || "-"; // Ambil teks dari server (misal: "Terlambat (15 m)")
@@ -5804,7 +5789,6 @@ function renderMonitoringRows(data, startIdx) {
                     <option value="Izin" ${d.status === 'Izin' ? 'selected' : ''}>Izin</option>
                     <option value="Sakit" ${d.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
                     <option value="Alpa" ${d.status === 'Alpa' ? 'selected' : ''}>Alpa</option>
-                    <option value="Bolos" ${d.status === 'Bolos' ? 'selected' : ''}>Bolos</option>
                 </select>
                 ${canEdit ? '<i class="fas fa-chevron-down absolute right-6 top-1/2 transform -translate-y-1/2 text-[10px] pointer-events-none opacity-40"></i>' : ''}
             </td>
@@ -7030,7 +7014,6 @@ function loadDataRekapBulanan() {
         headerHTML += '<th class="p-2 w-8 text-center bg-yellow-50 text-yellow-700">S</th>';
         headerHTML += '<th class="p-2 w-8 text-center bg-blue-50 text-blue-700">I</th>';
         headerHTML += '<th class="p-2 w-8 text-center bg-red-50 text-red-700">A</th>';
-        headerHTML += '<th class="p-2 w-8 text-center bg-orange-50 text-orange-700">B</th>';
         headerHTML += '<th class="p-2 w-12 text-center bg-gray-100">%</th>';
         
         thead.innerHTML = headerHTML;
@@ -7057,7 +7040,6 @@ function loadDataRekapBulanan() {
                 else if(day.code === 'S') colorClass = 'text-yellow-600 font-bold bg-yellow-50';
                 else if(day.code === 'I') colorClass = 'text-blue-600 font-bold bg-blue-50';
                 else if(day.code === 'A') colorClass = 'text-red-600 font-bold bg-red-50';
-                else if(day.code === 'B') colorClass = 'text-orange-600 font-bold bg-orange-50';
                 else if(day.code === 'L') { colorClass = 'text-red-300'; bgClass = 'bg-red-50'; }
                 
                 row += `<td class="p-1 text-center text-[10px] border-l border-gray-100 ${colorClass} ${bgClass}">${day.code}</td>`;
@@ -7067,7 +7049,6 @@ function loadDataRekapBulanan() {
             row += `<td class="p-2 text-center text-xs font-bold text-yellow-700 bg-yellow-50/30">${siswa.stats.s}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-blue-700 bg-blue-50/30">${siswa.stats.i}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-red-700 bg-red-50/30">${siswa.stats.a}</td>`;
-            row += `<td class="p-2 text-center text-xs font-bold text-orange-700 bg-orange-50/30">${siswa.stats.b}</td>`;
             row += `<td class="p-2 text-center text-xs font-bold text-gray-700 bg-gray-50">${siswa.stats.percent}%</td>`;
             
             row += `</tr>`;
@@ -7340,7 +7321,7 @@ async function cetakPDFRekapBulanan() {
 
       const head = Array.from(theadRow.children).map(th => th.textContent.trim());
       const totalCols = head.length;
-      const statColsCount = 6; // H, S, I, A, B, %
+      const statColsCount = 6; // H, S, I, A, %
       const dayColsCount = Math.max(totalCols - 2 - statColsCount, 0); // dikurangi No & Nama
       const lastDayColIndex = 1 + dayColsCount; // index kolom hari terakhir
       
@@ -7397,7 +7378,6 @@ async function cetakPDFRekapBulanan() {
             'S': { fill: [254, 249, 195], text: [161, 98, 7] },
             'I': { fill: [219, 234, 254], text: [29, 78, 216] },
             'A': { fill: [254, 226, 226], text: [185, 28, 28] },
-            'B': { fill: [255, 237, 213], text: [194, 65, 12] },
             'L': { fill: [254, 242, 242], text: [252, 165, 165] }
         };
 
@@ -7449,7 +7429,7 @@ async function cetakPDFRekapBulanan() {
 
                 doc.setFontSize(7);
                 doc.setFont('helvetica', 'italic');
-                doc.text('H: Hadir  S: Sakit  I: Izin  A: Alpha  B: Bolos  L: Libur', marginLR, pageHeight - 4);
+                doc.text('H: Hadir  S: Sakit  I: Izin  A: Alpha  L: Libur', marginLR, pageHeight - 4);
                 doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), pageWidth - marginLR, pageHeight - 4, { align: 'right' });
                 doc.text('Hal. ' + data.pageNumber, pageWidth - marginLR, 13, { align: 'right' });
             }
