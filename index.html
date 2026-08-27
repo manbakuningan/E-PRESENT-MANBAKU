@@ -3252,7 +3252,7 @@ function initDashboard() {
             else if (currentUser.role === 'guru') loadGuruDashboard();
         }
         else if (activeView.id === 'view-siswa-dashboard') { loadSiswaDashboard(); }
-    }, 60000); // tiap 60 detik
+    }, 1000000); // tiap 60 detik
   
     // --- DROPDOWN KELAS LOGIC ---
     function loadKelasSuggestions() {
@@ -3428,7 +3428,7 @@ function loadAdminDashboard() {
         animateValue("admStatIzin", 0, izin, 800);
         animateValue("admStatAlpa", 0, alpa, 800);
 
-        renderAdminChart(hadir, sakit, izin, alpa, belum, bolos); // tambahkan bolos
+        renderAdminChart(hadir, sakit, izin, alpa, belum);
     }
 }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
 
