@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
-  <meta name="description" content="Sistem Absensi Digital Madrasah Muallimin Muallimat Manba'ul Huda — Kelola absensi siswa, scan QR, rekap bulanan, dan cetak kartu digital.">
+  <meta name="description" content="Sistem Absensi Digital Madrasah Muallimin Muallimat Manba'ul Huda — Kelola absensi siswa secara manual, rekap bulanan, dan cetak kartu digital.">
   <meta name="theme-color" content="#1a1967">
   <meta name="color-scheme" content="light">
   <title>E-PRESENT MANBAKU</title>
@@ -165,10 +165,6 @@
       .view-section .overflow-x-auto td { padding: 0.5rem 0.625rem; white-space: nowrap; }
     }
 
-    /* Make QR scanner overlay responsive */
-    #inlineScannerOverlay { max-width: 100vw; }
-    #inlineScannerOverlay video { max-height: 60vh; }
-
     /* SweetAlert2 mobile adjustments */
     @media (max-width: 640px) {
       .swal2-popup { width: 92vw !important; max-width: 92vw !important; font-size: 14px !important; padding: 1rem !important; }
@@ -239,55 +235,26 @@
     }
     @keyframes pwaSpin { to { transform: rotate(360deg); } }
     /* ============================================================
-       RESPONSIVE FIX — INPUT ABSENSI MANUAL (Daftar Hadir)
+       RESPONSIVE FIX — DAFTAR HADIR MANUAL (tanpa scanner)
        ============================================================ */
     @media (max-width: 767px) {
-      /* Grid kiri-kanan jadi 1 kolom, scanner pindah ke atas */
-      #view-daftar-hadir-guru .grid.lg\:grid-cols-5 {
-        grid-template-columns: 1fr !important;
-      }
-      #view-daftar-hadir-guru .lg\:col-span-3,
-      #view-daftar-hadir-guru .lg\:col-span-2 {
-        grid-column: span 1 / span 1 !important;
-      }
-      /* Urutan: scanner dulu baru tabel, biar mobile ga perlu scroll jauh buat scan */
-      #view-daftar-hadir-guru .lg\:col-span-2 { order: 1; }
-      #view-daftar-hadir-guru .lg\:col-span-3 { order: 2; }
-    
-      /* Filter kelas/tanggal/counter jadi stack rapi */
-      #view-daftar-hadir-guru .flex.flex-col.md\:flex-row.gap-3.items-end {
-        gap: 10px;
-      }
-      #view-daftar-hadir-guru .flex.items-center.gap-2.flex-shrink-0 {
-        width: 100%;
-        justify-content: space-between;
-        background: #f8fafc;
-        padding: 6px 10px;
-        border-radius: 10px;
-      }
-    
-    
-      /* Tabel siswa: font kecil, padding rapat, scroll horizontal aman */
+      /* Tabel siswa: font kecil, padding rapat */
       #view-daftar-hadir-guru .overflow-y-auto { max-height: 55vh !important; }
       #view-daftar-hadir-guru table { font-size: 11px; }
       #view-daftar-hadir-guru th, #view-daftar-hadir-guru td { padding: 6px 8px !important; }
-    
-      /* Kolom status (Masuk mode): tombol hadir/sakit/izin/alpa wrap rapi, full width per baris */
+
+      /* Tombol status wrap rapi, touch-friendly */
       #view-daftar-hadir-guru .flex.justify-center.gap-1.flex-wrap {
         justify-content: flex-start;
       }
       #view-daftar-hadir-guru .flex.justify-center.gap-1.flex-wrap button {
         font-size: 9px;
         padding: 4px 6px;
+        min-height: 26px;
       }
-    
-    
-      /* Kartu scanner: tombol kamera & input manual full width, touch-friendly */
-      #dhScanCard button { min-height: 44px; }
-      #dhScanCard input[type="number"] { font-size: 16px; } /* cegah zoom iOS */
-    
-      /* Footer submit: tombol full width, sticky di bawah biar gampang dijangkau jempol */
-      #view-daftar-hadir-guru .mt-4.bg-white.rounded-2xl.shadow-sm.border.border-gray-100.p-4 {
+
+      /* Bar kirim: sticky di bawah agar mudah dijangkau jempol */
+      #view-daftar-hadir-guru .dh-submit-bar {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
@@ -296,21 +263,13 @@
         z-index: 20;
         box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
       }
-      #view-daftar-hadir-guru .mt-4 button#dhSubmitBtn {
+      #view-daftar-hadir-guru .dh-submit-bar button#dhSubmitBtn {
         width: 100%;
         justify-content: center;
         min-height: 48px;
       }
-    
-      /* Popup kamera inline: pastikan video tidak overflow & tombol besar */
-      #inlineScannerOverlay { padding: 10px; gap: 8px; }
-      #inlineScannerOverlay video { max-height: 42vh !important; }
-      #inlineScannerOverlay button { min-height: 44px; font-size: 12px; }
-    
-      /* Riwayat scan: batasi tinggi biar tidak mendorong video keluar layar */
-      #inlineScanHistoryList { max-height: 22vh; }
     }
-    
+
     @media (max-width: 380px) {
       #view-daftar-hadir-guru table { font-size: 10px; }
     }
@@ -676,141 +635,37 @@
 
               </div>
 <!-- ====================================================== -->
-<!-- VIEW: DAFTAR HADIR GURU (Scan + Manual)                -->
+<!-- VIEW: DAFTAR HADIR GURU (Manual — Instan, Tanpa Loading) -->
 <!-- ====================================================== -->
 <div id="view-daftar-hadir-guru" class="view-section animate-fade-in hidden">
 
-  <!-- Header Filter -->
+  <!-- Header: Tanggal + Counter -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-
-    <div class="flex flex-col md:flex-row gap-3 items-end">
+    <div class="flex flex-col md:flex-row gap-3 md:items-end">
       <div class="flex-1">
-        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pilih Kelas</label>
-        <select id="dhKelasSelect" onchange="onDhKelasChange()" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-400 outline-none transition cursor-pointer">
-          <option value="">-- Pilih Kelas --</option>
-        </select>
-      </div>
-      <div class="flex-1">
-        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tanggal</label>
-        <input type="date" id="dhTanggal" onchange="onDhKelasChange()" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-400 outline-none transition">
+        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tanggal Absensi</label>
+        <input type="date" id="dhTanggal" onchange="dhOnTanggalChange()" class="w-full md:w-56 bg-gray-50 border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-400 outline-none transition">
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
-          <span class="text-xs text-gray-500" id="dhCounterLabel">Terisi:</span>
-          <span id="dhCounter" class="font-bold text-blue-600 text-sm">0 / 0</span>
-        </div>
-      </div>
-    </div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
-
-    <!-- KIRI: Tabel Daftar Siswa -->
-    <div class="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 p-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-            <i class="fas fa-list-check text-white text-sm"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-sm text-white">Input Absensi Manual</h3>
-            <p class="text-indigo-200 text-[10px]">Hanya menampilkan siswa yang belum absen hari ini</p>
-          </div>
-        </div>
-        <button onclick="dhTandaiSemua()" id="dhTandaiSemuaBtn" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition border border-white/20">
-          &#10003; Tandai Semua
-        </button>
-      </div>
-      <div id="dhSubmittedBanner" class="hidden bg-green-50 border-b border-green-200 px-4 py-2 flex items-center gap-2">
-        <i class="fas fa-check-circle text-green-500 text-xs"></i>
-        <p class="text-[10px] text-green-700 font-semibold">Sebagian siswa sudah tercatat absensinya hari ini dan tidak ditampilkan di daftar ini.</p>
-      </div>
-      <div class="overflow-y-auto" style="max-height:62vh;">
-        <table class="w-full text-sm">
-          <thead class="sticky top-0 z-10">
-            <tr class="bg-gray-50 border-b border-gray-100" id="dhTheadMasuk">
-              <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase w-8">#</th>
-              <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Siswa</th>
-              <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody id="dhSiswaTbody">
-            <tr id="dhEmptyRow">
-              <td colspan="3" class="py-16 text-center">
-                <div class="flex flex-col items-center gap-3">
-                  <i class="fas fa-users text-4xl text-gray-200"></i>
-                  <p class="text-sm text-gray-400 font-semibold">Pilih kelas untuk menampilkan siswa</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- KANAN: Scanner Inline -->
-    <div class="lg:col-span-2 space-y-4" id="dhScanCard">
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="dhScanCardInner">
-        <div id="dhScanCardHeader" class="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 text-white text-center">
-          <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2">
-            <i class="fas fa-qrcode text-lg"></i>
-          </div>
-          <h3 class="font-bold text-sm" id="dhScanCardTitle">Scan QR Siswa</h3>
-          <p class="text-[10px] mt-0.5 opacity-80" id="dhScanCardSub">Scan langsung tandai Hadir</p>
-        </div>
-        <div class="p-4 space-y-3">
-          <!-- Tombol Buka Popup Kamera -->
-          <button id="dhCamBtn" onclick="dhOpenCameraPopup()"
-            class="w-full bg-purple-600 hover:bg-purple-700 active:scale-95 text-white py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-md">
-            <i class="fas fa-camera text-base"></i> Buka Kamera Live
-          </button>
-
-          <!-- Status Polling (tampil saat popup terbuka) -->
-          <div id="dhPollingStatus" class="hidden bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
-            <div class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse flex-shrink-0"></div>
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-bold text-purple-700" id="dhPollingText">Kamera aktif — menunggu QR...</p>
-              <p class="text-[10px] text-purple-500 mt-0.5">Scan QR di popup kamera yang terbuka</p>
-            </div>
-            <button onclick="dhStopPopup()" title="Tutup kamera" class="w-7 h-7 bg-purple-200 hover:bg-purple-300 text-purple-700 rounded-lg flex items-center justify-center transition flex-shrink-0">
-              <i class="fas fa-times text-xs"></i>
-            </button>
-          </div>
-
-          <!-- Notifikasi hasil scan -->
-          <div id="dhScanNotif" class="hidden rounded-xl p-3 text-sm font-semibold text-center"></div>
-          <div class="flex items-center gap-2 my-1">
-            <div class="flex-1 h-px bg-gray-200"></div>
-            <span class="text-[10px] text-gray-400 font-bold uppercase">atau</span>
-            <div class="flex-1 h-px bg-gray-200"></div>
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Input NISN Manual</label>
-            <div class="flex gap-2">
-              <input type="number" id="dhManualNisn" placeholder="Ketik NISN siswa..."
-                class="flex-1 border border-gray-200 bg-gray-50 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 focus:bg-white outline-none transition"
-                onkeydown="if(event.key==='Enter') dhSubmitManual()">
-              <button onclick="dhSubmitManual()" class="bg-gray-900 hover:bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold transition">
-                <i class="fas fa-check"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Keterangan Status</p>
-        <div class="grid grid-cols-2 gap-2">
-          <div class="flex items-center gap-2 text-xs"><span class="w-3 h-3 rounded-full bg-emerald-500 flex-shrink-0"></span>Hadir</div>
-          <div class="flex items-center gap-2 text-xs"><span class="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0"></span>Sakit</div>
-          <div class="flex items-center gap-2 text-xs"><span class="w-3 h-3 rounded-full bg-blue-400 flex-shrink-0"></span>Izin</div>
-          <div class="flex items-center gap-2 text-xs"><span class="w-3 h-3 rounded-full bg-red-400 flex-shrink-0"></span>Alpa</div>
-        </div>
+        <span class="text-xs text-gray-500" id="dhCounterLabel">Terisi:</span>
+        <span id="dhCounter" class="font-bold text-blue-600 text-sm">0 / 0</span>
       </div>
     </div>
   </div>
 
-  <div class="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+  <!-- Kartu per kelas (dirender instan dari cache siswa lokal) -->
+  <div id="dhClassesWrap" class="space-y-4">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+      <i class="fas fa-circle-notch fa-spin text-gray-300 text-2xl mb-2"></i>
+      <p class="text-sm text-gray-400 font-semibold">Menyiapkan daftar siswa...</p>
+    </div>
+  </div>
+
+  <!-- Bar Kirim -->
+  <div class="dh-submit-bar mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
     <div class="text-xs text-gray-500 flex items-center gap-2">
       <i class="fas fa-info-circle text-indigo-400"></i>
-      <span>Tombol ini hanya berlaku untuk absensi yang diisi <b>manual</b> (klik status per siswa). Absensi hasil <b>scan QR / input NISN cepat</b> langsung tersimpan otomatis ke server.</span>
+      <span>Klik status <b>Hadir / Sakit / Izin / Alpa</b> per siswa lalu kirim. Siswa yang sudah absen tetap tampil dengan status terisi (terkunci).</span>
     </div>
     <button onclick="submitDaftarHadir()" id="dhSubmitBtn" disabled
       style="background-color:#e5e7eb; color:#9ca3af; cursor:not-allowed;"
@@ -822,7 +677,6 @@
 <style>
   .dh-row-flash { animation: dhFlash .7s ease; }
   @keyframes dhFlash { 0%,30%{background:#d1fae5} 100%{background:transparent} }
-  .dh-row-last-scan { background-color: #fef08a !important; box-shadow: inset 3px 0 0 #f59e0b; }
 </style>
 
 
@@ -867,7 +721,7 @@
                             <div>
                                 <h4 class="text-sm font-bold text-rose-800 mb-0.5">Peringatan Absensi</h4>
                                 <p class="text-xs font-medium text-rose-600/80 leading-relaxed">
-                                  Anda belum melakukan scan absensi datang hari ini. Harap segera lakukan absensi.
+                                  Anda belum tercatat absen datang hari ini. Silakan hubungi guru kelas untuk pencatatan absensi.
                                 </p>
                             </div>
                         </div>
@@ -898,18 +752,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <button onclick="loadQRCodeSiswa()" class="w-full group relative overflow-hidden rounded-2xl bg-slate-900 p-1 shadow-lg shadow-slate-900/10 transition-all active:scale-[0.98]">
-                            <div class="relative bg-slate-900 rounded-[0.9rem] px-5 py-4 flex items-center justify-between transition-all group-hover:bg-slate-800">
-                                <div class="text-left">
-                                    <h3 class="text-white font-bold text-sm">Kartu Digital</h3>
-                                    <p class="text-slate-400 text-[10px]">Tampilkan QR Code</p>
-                                </div>
-                                <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white text-lg">
-                                    <i class="fas fa-qrcode"></i>
-                                </div>
-                            </div>
-                        </button>
 
                     </div> 
                 </div> 
@@ -1011,88 +853,9 @@
   </div>
 </div>
 
-  <div id="view-data-guru" class="view-section animate-fade-in">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        
-       <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-gray-50/30">
-      <div>
-          <h3 class="font-bold text-sm text-gray-800">Manajemen Guru</h3>
-      </div>
-      <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
-          <button onclick="refreshData('guru')" class="bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-50 hover:text-purple-600 transition" title="Perbarui Data">
-              <i class="fas fa-sync-alt"></i>
-          </button>
-  
-          <button onclick="downloadTemplate('guru')" class="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-amber-600 transition transform active:scale-95" title="Download Template Excel">
-              <i class="fas fa-download mr-1"></i> Template
-          </button>
-  
-  
-          <button onclick="triggerImportGuru()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition">
-              <i class="fas fa-file-excel mr-1"></i> Import Excel
-          </button>
-          <input type="file" id="fileInputGuru" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileImportGuru(this)">
-  
-          <button onclick="showAddGuruModal()" class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-purple-700 transition">
-              <i class="fas fa-plus mr-1"></i> Tambah
-          </button>
-      </div>
-  </div>
-
-      <div class="p-4 bg-white border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          
-          <div class="flex flex-col sm:flex-row items-center gap-3 text-xs w-full md:w-auto">
-              <div class="flex items-center gap-2">
-                  <span class="text-gray-500 font-bold">Show</span>
-                  <select onchange="handleTableLimit('guru', this.value)" class="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2">
-                      <option value="10">10</option>
-                      <option value="25">25</option>
-                      <option value="50">50</option>
-                      <option value="all">Semua</option>
-                  </select>
-              </div>
-
-              <select id="filterKelasGuru" onchange="handleTableClassFilter('guru', this.value)" class="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2 w-full sm:w-40 font-bold shadow-sm">
-                    <option value="">Semua Kelas</option>
-              </select>
-          </div>
-
-          <div class="relative w-full md:w-64">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <i class="fas fa-search text-gray-400 text-xs"></i>
-              </div>
-              <input type="text" oninput="handleTableSearch('guru', this.value)" class="bg-gray-50 border border-gray-200 text-gray-900 text-xs rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full pl-10 p-2" placeholder="Cari Username...">
-          </div>
-      </div>
-
-      <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-semibold">
-                <tr>
-                    <th class="p-3 text-center w-10">No</th>
-                    <th class="p-3">ID Guru</th>
-                    <th class="p-3">Nama Lengkap</th>
-                    <th class="p-3">Jabatan</th>
-                    <th class="p-3 text-center">Aksi</th>
-                </tr>
-            </thead>
-              <tbody id="tbody-guru" class="divide-y divide-gray-50 bg-white text-xs">
-                  </tbody>
-          </table>
-      </div>
-
-      <div id="footer-guru" class="p-4 border-t border-gray-100 bg-gray-50/30 flex justify-between items-center text-xs text-gray-500">
-          <span id="info-guru">Menampilkan 0 data</span>
-          <div class="flex gap-1">
-              <button onclick="changePage('guru', -1)" class="px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition" id="btn-prev-guru">Prev</button>
-              <button onclick="changePage('guru', 1)" class="px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition" id="btn-next-guru">Next</button>
-          </div>
-      </div>
-  </div>
-</div>
-
-
 <!-- ====================================================== -->
+<!-- VIEW: MANAJEMEN KELAS (Admin)                          -->
+<!-- ====================================================== --><!-- ====================================================== -->
 <!-- VIEW: MANAJEMEN KELAS (Admin)                          -->
 <!-- ====================================================== -->
 <div id="view-manajemen-kelas" class="view-section animate-fade-in hidden">
@@ -1505,7 +1268,7 @@
                         </li>
                         <li class="flex gap-2">
                             <span class="font-bold text-indigo-600 w-24 shrink-0">Status Alpha :</span>
-                            <span>Siswa dianggap Alpha jika hari tersebut adalah <b>Hari Efektif</b> (sekolah masuk) namun siswa tidak melakukan scan kehadiran.</span>
+                            <span>Siswa dianggap Alpha jika hari tersebut adalah <b>Hari Efektif</b> (sekolah masuk) namun siswa tidak hadir / tidak diabsen oleh guru.</span>
                         </li>
                     </ul>
                 </div>
@@ -1903,8 +1666,8 @@ async function syncOfflineQueue() {
         // Refresh tampilan yang sedang aktif supaya data terbaru langsung terlihat
         if (currentUser) {
             const dhView = document.getElementById('view-daftar-hadir-guru');
-            if (dhView && dhView.classList.contains('active') && typeof onDhKelasChange === 'function') {
-                onDhKelasChange();
+            if (dhView && dhView.classList.contains('active') && typeof dhFetchAllStatuses === 'function') {
+                dhFetchAllStatuses();
             }
         }
     } finally {
@@ -1918,225 +1681,6 @@ window.addEventListener('online', syncOfflineQueue);
 window.addEventListener('load', () => {
     setTimeout(() => { updateOfflineQueueBadge(); syncOfflineQueue(); }, 1500);
 });
-// ==========================================================================
-// INLINE QR SCANNER — pengganti popup window terpisah (lebih stabil di mobile)
-// ==========================================================================
-let inlineScanState = { stream: null, scanLoop: null };
-
-// --- RIWAYAT SCAN TERAKHIR (tampil di bawah kamera, 5-10 entri terakhir) ---
-let scanHistoryList = []; // {id, name, status, note, jam}
-const SCAN_HISTORY_MAX = 5; // jumlah baris riwayat yang ditampilkan
-
-function addScanHistoryEntry(id, name, status, note) {
-    const now = new Date();
-    const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const cleanName = (name || '').trim();
-    const key = id ? String(id).trim() : '';
-
-    // 1) Cocokkan dulu berdasarkan ID (NISN/NIP) — ini selalu ada walau scan gagal
-    let existingIndex = -1;
-    if (key) {
-        existingIndex = scanHistoryList.findIndex(item => item.id && item.id === key);
-    }
-    // 2) Fallback: cocokkan berdasarkan nama (untuk kompatibilitas kalau id tidak dikirim)
-    if (existingIndex === -1 && cleanName) {
-        existingIndex = scanHistoryList.findIndex(item =>
-            item.name && item.name.trim().toLowerCase() === cleanName.toLowerCase()
-        );
-    }
-
-    // Pertahankan nama lama jika scan kali ini tidak membawa nama (mis. gagal karena NISN belum dikenal)
-    let finalName = cleanName;
-    if (!finalName && existingIndex !== -1) finalName = scanHistoryList[existingIndex].name;
-    if (!finalName) finalName = key || '-';
-
-    if (existingIndex !== -1) {
-        // Sudah ada orang yang sama: hapus entri lama, ganti dengan status terbaru (tidak menumpuk)
-        scanHistoryList.splice(existingIndex, 1);
-    }
-
-    scanHistoryList.unshift({ id: key, name: finalName, status, note: note || '', jam });
-    if (scanHistoryList.length > SCAN_HISTORY_MAX) scanHistoryList.length = SCAN_HISTORY_MAX;
-    renderScanHistoryPanel();
-}
-
-function renderScanHistoryPanel() {
-    const panel = document.getElementById('inlineScanHistoryList');
-    const countEl = document.getElementById('inlineScanHistoryCount');
-    if (!panel) return;
-    if (countEl) countEl.textContent = scanHistoryList.length + ' terakhir';
-    if (scanHistoryList.length === 0) {
-        panel.innerHTML = '<div style="text-align:center;color:#64748b;font-size:11px;padding:20px 0;">Belum ada riwayat scan</div>';
-        return;
-    }
-    panel.innerHTML = scanHistoryList.map(item => {
-        const ok = item.status === 'success';
-        const bg = ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
-        const border = ok ? '#10b981' : '#ef4444';
-        const icon = ok ? '✅' : '❌';
-        return `<div style="display:flex;align-items:center;gap:10px;background:${bg};border-left:3px solid ${border};padding:8px 10px;border-radius:8px;margin-bottom:6px;">
-            <span style="font-size:16px;flex-shrink:0;">${icon}</span>
-            <div style="flex:1;min-width:0;">
-                <div style="color:#f1f5f9;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
-                ${item.note ? `<div style="color:#94a3b8;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.note}</div>` : ''}
-            </div>
-            <div style="color:#94a3b8;font-size:10px;font-family:monospace;flex-shrink:0;">${item.jam}</div>
-        </div>`;
-    }).join('');
-}
-
-function closeInlineScanner() {
-    if (inlineScanState.scanLoop) { clearInterval(inlineScanState.scanLoop); inlineScanState.scanLoop = null; }
-    if (inlineScanState.stream) { inlineScanState.stream.getTracks().forEach(t => t.stop()); inlineScanState.stream = null; }
-    const overlay = document.getElementById('inlineScannerOverlay');
-    if (overlay) overlay.remove();
-}
-
-async function openInlineScanner({ title = 'Scan QR', onDetect }) {
-    closeInlineScanner();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'inlineScannerOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;flex-direction:column;align-items:center;padding:16px;gap:12px;overflow-y:auto;';
-    overlay.innerHTML = `
-      <div style="width:100%;max-width:440px;display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="color:#e2e8f0;font-size:13px;font-weight:700;margin:0;letter-spacing:.5px;">${title}</h3>
-        <button id="btnCloseInlineScan" style="background:#1e293b;color:#fff;border:1px solid #334155;padding:8px 14px;border-radius:10px;font-size:11px;font-weight:700;">&#10005; Tutup</button>
-      </div>
-      <div style="position:relative;width:100%;max-width:440px;flex-shrink:0;">
-        <video id="inlineScanVideo" autoplay playsinline muted style="width:100%;max-height:32vh;border-radius:14px;background:#000;min-height:180px;object-fit:cover;display:block;"></video>
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-          <div style="width:180px;height:180px;border:3px solid #6366f1;border-radius:14px;"></div>
-        </div>
-      </div>
-      <p id="inlineScanStatus" style="color:#94a3b8;font-size:12px;text-align:center;max-width:400px;min-height:20px;flex-shrink:0;">Meminta izin kamera...</p>
-      <button id="btnSwitchCamInline" style="width:100%;max-width:440px;background:#4f46e5;color:#fff;border:none;padding:11px;border-radius:12px;font-size:12px;font-weight:700;flex-shrink:0;">&#128260; Ganti Kamera</button>
-
-      <div style="width:100%;max-width:440px;flex:1;min-height:150px;display:flex;flex-direction:column;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 6px;">
-          <span style="color:#cbd5e1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;"><i class="fas fa-history" style="margin-right:6px;"></i>Riwayat Scan Terakhir</span>
-          <span id="inlineScanHistoryCount" style="color:#64748b;font-size:10px;"></span>
-        </div>
-        <div id="inlineScanHistoryList" style="flex:1;min-height:0;overflow-y:auto;background:rgba(15,23,42,0.5);border-radius:12px;padding:8px;border:1px solid #1e293b;"></div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    renderScanHistoryPanel();
-
-    const video = overlay.querySelector('#inlineScanVideo');
-    const statusEl = overlay.querySelector('#inlineScanStatus');
-    overlay.querySelector('#btnCloseInlineScan').onclick = closeInlineScanner;
-
-    let facing = 'environment';
-    overlay.querySelector('#btnSwitchCamInline').onclick = () => {
-        facing = facing === 'environment' ? 'user' : 'environment';
-        startInlineCam(facing);
-    };
-
-    async function startInlineCam(f) {
-        try {
-            if (inlineScanState.stream) inlineScanState.stream.getTracks().forEach(t => t.stop());
-            if (inlineScanState.scanLoop) { clearInterval(inlineScanState.scanLoop); inlineScanState.scanLoop = null; }
-            statusEl.textContent = 'Membuka kamera...';
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                throw { name: 'NotSupportedError', message: 'Browser tidak mendukung kamera.' };
-            }
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: f === 'environment' ? { ideal: 'environment' } : 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
-            });
-            inlineScanState.stream = stream;
-            video.srcObject = stream;
-            // Mirror kamera depan agar tidak terbalik saat dilihat user (kamera belakang tetap normal)
-            video.style.transform = (f === 'user') ? 'scaleX(-1)' : 'none';
-            await video.play();
-            statusEl.textContent = 'Arahkan QR ke kamera';
-            beginInlineScan(video, onDetect, statusEl);
-        } catch (e) {
-            let msg = 'Kamera gagal: ' + (e.message || e.name || 'Error');
-            if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                msg = 'Izin kamera ditolak. Buka Setelan browser → Izin Situs → Kamera → Izinkan.';
-            } else if (e.name === 'NotReadableError') {
-                msg = 'Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain lalu coba lagi.';
-            } else if (e.name === 'OverconstrainedError') {
-                msg = 'Kamera tidak mendukung mode ini, coba ganti kamera.';
-            }
-            statusEl.textContent = msg;
-            statusEl.style.color = '#f87171';
-        }
-    }
-
-    startInlineCam(facing);
-}
-
-    function beginInlineScan(video, onDetect, statusEl) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        let lastScan = 0;
-
-        function runZXingLoop() {
-            let reader;
-            try {
-                const hints = new Map();
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
-                reader = new ZXing.BrowserQRCodeReader(hints);
-            } catch (e) { runJsQRLoop(); return; }
-
-            inlineScanState.scanLoop = setInterval(() => {
-                if (video.readyState < video.HAVE_ENOUGH_DATA) return;
-                const now = Date.now();
-                if (now - lastScan < 1500) return;
-                const W = video.videoWidth, H = video.videoHeight;
-                if (!W || !H) return;
-                canvas.width = W; canvas.height = H;
-                ctx.drawImage(video, 0, 0, W, H);
-                try {
-                    const lum = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
-                    const bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
-                    const result = reader.decodeBitmap(bmp);
-                    if (result && result.getText()) {
-                        lastScan = now;
-                        if (statusEl) { statusEl.textContent = '✓ Terdeteksi!'; statusEl.style.color = '#4ade80'; }
-                        onDetect(result.getText());
-                        setTimeout(() => { if (statusEl) { statusEl.textContent = 'Arahkan QR ke kamera'; statusEl.style.color = '#94a3b8'; } }, 1200);
-                    }
-                } catch (e) {}
-            }, 150);
-        }
-
-        function runJsQRLoop() {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-            s.onload = () => {
-                inlineScanState.scanLoop = setInterval(() => {
-                    if (video.readyState < video.HAVE_ENOUGH_DATA) return;
-                    const now = Date.now();
-                    if (now - lastScan < 1500) return;
-                    const W = video.videoWidth, H = video.videoHeight;
-                    if (!W || !H) return;
-                    canvas.width = W; canvas.height = H;
-                    ctx.drawImage(video, 0, 0, W, H);
-                    const d = ctx.getImageData(0, 0, W, H);
-                    const r = jsQR(d.data, W, H, { inversionAttempts: 'attemptBoth' });
-                    if (r && r.data) {
-                        lastScan = now;
-                        onDetect(r.data);
-                    }
-                }, 150);
-            };
-            document.head.appendChild(s);
-        }
-
-        if (typeof ZXing !== 'undefined') {
-            runZXingLoop();
-        } else {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js';
-            s.onload = runZXingLoop;
-            s.onerror = runJsQRLoop;
-            document.head.appendChild(s);
-        }
-    }
 
     let currentUser = null;
     let isSidebarOpen = true;
@@ -2156,8 +1700,6 @@ async function openInlineScanner({ title = 'Scan QR', onDetect }) {
 
     const tableState = {
                 siswa: { fullData: [], filtered: [], limit: 10, page: 1, search: '', classFilter: '' },
-                // UPDATE BAGIAN INI: Tambahkan classFilter: ''
-                guru: { fullData: [], filtered: [], limit: 10, page: 1, search: '', classFilter: '' },
                 
                 libur: { fullData: [], filtered: [], limit: 10, page: 1, search: '' },
                 rekap: { fullData: [], filtered: [], limit: 10, page: 1, search: '' },
@@ -2210,8 +1752,8 @@ function processTableData(type) {
         // 1. Mulai dari data mentah (Full Data)
         let result = [...state.fullData];
 
-        // 2. FILTER KHUSUS: KELAS (Untuk Siswa, Guru, dan Monitoring)
-        if ((type === 'siswa' || type === 'guru' || type === 'monitoring') && state.classFilter) {
+        // 2. FILTER KHUSUS: KELAS (Untuk Siswa dan Monitoring)
+        if ((type === 'siswa' || type === 'monitoring') && state.classFilter) {
             result = result.filter(item => item.kelas === state.classFilter);
         }
 
@@ -2249,7 +1791,6 @@ function processTableData(type) {
 
         // 7. RENDER TABEL (Pilih renderer berdasarkan tipe)
         if (type === 'siswa') renderSiswaRows(pagedData, startIdx);
-        else if (type === 'guru') renderGuruRows(pagedData, startIdx);
         else if (type === 'libur') renderLiburRows(pagedData, startIdx);
         else if (type === 'rekap') renderRekapRows(pagedData);
         else if (type === 'monitoring') renderMonitoringRows(pagedData, startIdx);
@@ -2303,13 +1844,9 @@ function processTableData(type) {
     // 3. UI NAVIGATION & SIDEBAR
     // ==========================================================================
     function showView(viewId) {
-        // Hentikan kamera Daftar Hadir jika pindah ke halaman lain
-        if (viewId !== 'view-daftar-hadir-guru' && typeof dhStopPopup === 'function') {
-            dhStopPopup();
-        }
         document.querySelectorAll('.view-section').forEach(el => {
             el.classList.remove('active');
-            el.style.display = 'none'; 
+            el.style.display = 'none';
         });
         
         const target = document.getElementById(viewId);
@@ -2323,7 +1860,6 @@ function processTableData(type) {
         switch (viewId) {
             case 'view-data-siswa': title = "Direktori Siswa"; break;
             case 'view-manajemen-kelas': title = "Manajemen Kelas"; break;
-            case 'view-data-guru': title = "Manajemen Guru"; break;
             case 'view-kelola-absen': title = "Kelola Hari Libur"; break; // JUDUL BARU
             case 'view-daftar-hadir-guru': title = "Daftar Hadir"; break;
             case 'view-monitoring': title = "Monitoring Realtime"; break;
@@ -2535,7 +2071,6 @@ function initDashboard() {
         menuHTML += createItem('Monitoring', 'fa-eye', 'loadMonitoringAbsensi()');
         menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
         menuHTML += createItem('Data Siswa', 'fa-user-graduate', 'loadDataSiswa()');
-        menuHTML += createItem('Data Guru', 'fa-chalkboard-teacher', 'loadDataGuru()');
         menuHTML += createItem('Rekap Bulanan', 'fa-calendar-alt', 'loadMenuRekapBulanan()');
         menuHTML += createItem('Kelola Absen', 'fa-calendar-times', 'loadKelolaAbsen()');
         menuHTML += createItem('Manajemen Kelas', 'fa-th-large', 'loadManajemenKelas()'); 
@@ -2559,7 +2094,6 @@ function initDashboard() {
     // --- MENU UNTUK SISWA ---
     else if (currentUser.role === 'siswa') {
         menuHTML += createItem('Dashboard', 'fa-home', 'loadSiswaDashboard()', true);
-        menuHTML += createItem('Kartu Saya', 'fa-id-card', 'loadQRCodeSiswa()');
         loadSiswaDashboard();
     }
 
@@ -2568,6 +2102,11 @@ function initDashboard() {
     
     // --- AMBIL DATA KELAS (Untuk Autocomplete/Dropdown) ---
     loadKelasSuggestions();
+
+    // Prefetch semua siswa di background agar Daftar Hadir terbuka instan
+    if (currentUser.role === 'admin' || currentUser.role === 'guru') {
+        setTimeout(dhPrefetchStudents, 300);
+    }
 }
 
     // Auto-refresh ringan agar status Alpa/Bolos langsung terpantau
@@ -2599,7 +2138,6 @@ function initDashboard() {
 function populateAllClassDropdowns() {
     const dropdownIds = [
         'filterKelas',      // Di Data Siswa
-        'filterKelasGuru',  // Di Data Guru (jika ada)
         'rekapKelas',       // Di Rekap Bulanan
         'promoKelasAsal',   // Di Kenaikan Kelas
         'promoKelasTujuan'  // Di Kenaikan Kelas
@@ -2694,11 +2232,6 @@ function refreshData(type) {
             tableState.siswa.fullData = []; // Clear cache
             loadDataSiswa();       
             showAlert('success', 'Data siswa diperbarui.');
-        } 
-        else if (type === 'guru') {
-             tableState.guru.fullData = []; // Clear cache
-            loadDataGuru();        
-            showAlert('success', 'Data guru diperbarui.');
         }
         else if (type === 'dashboard') {
             if (currentUser.role === 'admin') loadAdminDashboard();
@@ -2805,252 +2338,335 @@ function loadAdminDashboard() {
     // --- GURU DASHBOARD ---
 
 // ============================================================
-// DAFTAR HADIR GURU — Logika JavaScript
+// DAFTAR HADIR — MANUAL, INSTAN (cache siswa lokal)
+// Semua kelas yang dipegang guru (atau semua kelas untuk admin)
+// langsung tampil saat halaman dibuka, tanpa menunggu loading.
+// Siswa yang sudah absen hari itu tetap tampil dengan status
+// terisi (terkunci).
 // ============================================================
-let dhStudents      = [];   // [{nisn, nama, kelas}] list siswa aktif
-let dhStatusMap     = {};   // {nisn: 'hadir'|'sakit'|'izin'|'alpa'}
-let dhLockedMap     = {}; // { nisn: status } — sudah absen, tidak bisa diubah
+let dhClasses    = [];   // [{ kelas, students:[{nisn,nama}], status:{nisn:st}, locked:{nisn:{status,jamDatang}} }]
+let dhStatusDate = '';   // tanggal yang sedang aktif di halaman
+const DH_CACHE_KEY = 'ep_siswa_cache_v2';
 
-// -- Buka halaman --
+const DH_STATUS_CFG = {
+    hadir: { label: 'Hadir', bg: 'bg-emerald-500', ring: 'ring-emerald-300', rowBg: 'bg-emerald-50/60' },
+    sakit: { label: 'Sakit', bg: 'bg-yellow-400',  ring: 'ring-yellow-200',  rowBg: 'bg-yellow-50/60'  },
+    izin:  { label: 'Izin',  bg: 'bg-blue-400',    ring: 'ring-blue-200',    rowBg: 'bg-blue-50/60'    },
+    alpa:  { label: 'Alpa',  bg: 'bg-red-400',     ring: 'ring-red-200',     rowBg: 'bg-red-50/60'     }
+};
+const DH_STATUSES = ['hadir', 'sakit', 'izin', 'alpa'];
+
+function dhGetCache() {
+    try {
+        const c = JSON.parse(localStorage.getItem(DH_CACHE_KEY) || 'null');
+        return (c && c.byClass) ? c : null;
+    } catch (e) { return null; }
+}
+
+function dhSaveCache(byClass, order) {
+    try {
+        localStorage.setItem(DH_CACHE_KEY, JSON.stringify({ ts: Date.now(), byClass: byClass, order: order }));
+    } catch (e) { /* storage penuh / private mode — abaikan */ }
+}
+
+function dhGroupStudents(list) {
+    const byClass = {};
+    (list || []).forEach(s => {
+        const k = (s.kelas && String(s.kelas).trim()) ? String(s.kelas).trim() : 'Tanpa Kelas';
+        if (!byClass[k]) byClass[k] = [];
+        byClass[k].push({ nisn: String(s.nisn), nama: s.nama, kelas: k });
+    });
+    Object.keys(byClass).forEach(k => byClass[k].sort((a, b) => String(a.nama).localeCompare(String(b.nama))));
+    return byClass;
+}
+
+// Prefetch semua siswa di background (dipanggil setelah login) — agar halaman
+// Daftar Hadir selalu siap dibuka tanpa loading. Nama siswa selalu sama,
+// jadi cache lokal dipakai untuk render instan.
+function dhPrefetchStudents() {
+    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
+        if (!Array.isArray(list) || list.length === 0) return;
+        const byClass = dhGroupStudents(list);
+        dhSaveCache(byClass, Object.keys(byClass).sort());
+    }).catch(() => {});
+}
+
+// -- Buka halaman: render instan dari cache, tanpa menunggu server --
 function loadDaftarHadirGuru() {
-    dhStopPopup();
     setActiveMenu('Daftar Hadir');
     showView('view-daftar-hadir-guru');
 
-    // Isi tanggal hari ini
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('dhTanggal').value = today;
+    dhStatusDate = today;
 
-    const sel = document.getElementById('dhKelasSelect');
-    sel.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-
-    if (currentUser && currentUser.role === 'admin') {
-        // Admin: muat semua kelas dari database
-        sel.innerHTML = '<option value="">Memuat kelas...</option>';
-        sel.disabled = true;
-        callGAS('getKelasList').then(result => {
-                sel.disabled = false;
-                sel.innerHTML = '<option value="">-- Pilih Kelas --</option>' +
-                    '<option value="SEMUA">📋 Semua Kelas</option>';
-                const kelasList = (result && result.success && result.data) ? result.data : [];
-                kelasList.forEach(k => {
-                    const opt = document.createElement('option');
-                    opt.value = k;
-                    opt.textContent = k;
-                    sel.appendChild(opt);
-                });
-            }).catch(() => {
-                sel.disabled = false;
-                sel.innerHTML = '<option value="">-- Gagal memuat kelas --</option>';
-            });
-    } else {
-        // Guru: hanya tampilkan kelas miliknya
-        if (currentUser && currentUser.kelas) {
-            const kelasList = String(currentUser.kelas).split(',').map(k => k.trim()).filter(Boolean);
-            kelasList.forEach(k => {
-                const opt = document.createElement('option');
-                opt.value = k;
-                opt.textContent = k;
-                sel.appendChild(opt);
-            });
-            if (kelasList.length === 1) {
-                sel.value = kelasList[0];
-                onDhKelasChange();
-            }
-        }
+    // Kelas yang dipegang guru (kolom kelas pada akun guru). Admin = semua kelas.
+    let kelasGuru = [];
+    if (currentUser && currentUser.role === 'guru' && currentUser.kelas) {
+        kelasGuru = String(currentUser.kelas).split(',').map(k => k.trim()).filter(Boolean);
     }
-}
 
-// -- Ketika kelas atau tanggal berubah --
-function onDhKelasChange() {
-    const kelas   = document.getElementById('dhKelasSelect').value;
-    const tanggal = document.getElementById('dhTanggal').value;
-    if (!kelas) return;
-
-    dhStudents  = [];
-    dhStatusMap = {};
-    dhLockedMap = {};
-    document.getElementById('dhCounter').textContent = '0 / 0';
-    document.getElementById('dhSubmittedBanner').classList.add('hidden');
-    dhUpdateSubmitBtn();
-
-    const colspan = 3;
-    const tbody = document.getElementById('dhSiswaTbody');
-    tbody.innerHTML = `<tr><td colspan="${colspan}" class="py-8 text-center text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat siswa...</td></tr>`;
-
-    // Mode masuk (default)
-    callGAS('getSiswaByKelas', kelas).then(result => {
-            dhStudents = result || [];
-            dhStatusMap = {};
-
-            if (tanggal) {
-                callGAS('getDaftarHadirByKelasAndTanggal', kelas, tanggal).then(res => {
-                        dhLockedMap = {};
-                        dhStatusMap = {};
-                        if (res.success && res.data && Object.keys(res.data).length > 0) {
-                            document.getElementById('dhSubmittedBanner').classList.remove('hidden');
-                            Object.entries(res.data).forEach(([nisn, d]) => {
-                                // Simpan seluruh objek agar bisa tampilkan jam di UI
-                                if (d && typeof d === 'object') {
-                                    dhLockedMap[nisn] = d; // { status, jamDatang, hasJamDatang }
-                                } else {
-                                    dhLockedMap[nisn] = { status: d, jamDatang: '', hasJamDatang: true };
-                                }
-                            });
-                        }
-                        dhRenderStudentTable();
-                    }).catch(() => dhRenderStudentTable());
-            } else {
-                dhLockedMap = {};
-                dhRenderStudentTable();
-            }
-        }).catch(() => {
-            tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-red-400">Gagal memuat data siswa.</td></tr>';
-        });
-}
-
-// -- Render tabel siswa (hanya menampilkan siswa yang BELUM absen) --
-function dhRenderStudentTable() {
-    const tbody = document.getElementById('dhSiswaTbody');
-    if (!dhStudents || dhStudents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="py-12 text-center text-gray-400"><i class="fas fa-user-slash mr-2"></i>Tidak ada siswa di kelas ini.</td></tr>';
+    const cache = dhGetCache();
+    if (cache && cache.byClass && Object.keys(cache.byClass).length > 0) {
+        // CACHE ADA → langsung render TANPA loading
+        dhBuildClasses(kelasGuru, cache.byClass, cache.order || Object.keys(cache.byClass));
+        dhFetchAllStatuses();
+        // Segarkan cache diam-diam di background (jaga-jaga ada siswa baru)
+        dhPrefetchStudents();
         return;
     }
 
-    // Siswa yang sudah punya status absen (terkunci) disembunyikan dari daftar manual
-    const belumAbsenList = dhStudents.filter(s => !dhLockedMap[s.nisn]);
+    // Cache belum ada (pembukaan pertama) → ambil sekali, simpan, lalu render
+    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
+        if (!Array.isArray(list) || list.length === 0) throw new Error('Data siswa kosong');
+        const byClass = dhGroupStudents(list);
+        const order = Object.keys(byClass).sort();
+        dhSaveCache(byClass, order);
+        dhBuildClasses(kelasGuru, byClass, order);
+        dhFetchAllStatuses();
+    }).catch(() => {
+        const wrap = document.getElementById('dhClassesWrap');
+        if (wrap) wrap.innerHTML = '<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-sm text-red-400 font-semibold"><i class="fas fa-wifi mr-2"></i>Gagal memuat data siswa. Periksa koneksi lalu buka lagi halaman ini.</div>';
+    });
+}
 
-    if (belumAbsenList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="py-14 text-center">
-            <div class="flex flex-col items-center gap-2">
-                <i class="fas fa-circle-check text-4xl text-emerald-300"></i>
-                <p class="text-sm font-bold text-emerald-600">Semua siswa sudah absen hari ini</p>
-                <p class="text-[10px] text-gray-400">Tidak ada lagi yang perlu diisi manual</p>
-            </div>
-        </td></tr>`;
+// -- Susun kartu kelas & render semua --
+function dhBuildClasses(kelasGuru, byClass, order) {
+    const targets = (kelasGuru && kelasGuru.length > 0) ? kelasGuru : (order || Object.keys(byClass));
+    dhClasses = targets.map(k => ({
+        kelas: k,
+        students: (byClass[k] || []).slice(),
+        status: {},
+        locked: {}
+    }));
+
+    const wrap = document.getElementById('dhClassesWrap');
+    if (!dhClasses.length) {
+        wrap.innerHTML = '<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-sm text-gray-400 font-semibold"><i class="fas fa-users mr-2"></i>Tidak ada kelas yang terdaftar pada akun Anda.</div>';
         dhUpdateCounter();
         return;
     }
+    wrap.innerHTML = dhClasses.map((c, i) => dhCardHTML(c, i)).join('');
+    dhClasses.forEach((c, i) => dhRenderRows(i));
+    dhUpdateCounter();
 
-    const statusConfig = {
-        hadir: { label: 'Hadir', bg: 'bg-emerald-500', ring: 'ring-emerald-300', text: 'text-emerald-700', rowBg: 'bg-emerald-50' },
-        sakit: { label: 'Sakit', bg: 'bg-yellow-400',  ring: 'ring-yellow-200',  text: 'text-yellow-700',  rowBg: 'bg-yellow-50'  },
-        izin:  { label: 'Izin',  bg: 'bg-blue-400',    ring: 'ring-blue-200',    text: 'text-blue-700',    rowBg: 'bg-blue-50'    },
-        alpa:  { label: 'Alpa',  bg: 'bg-red-400',     ring: 'ring-red-200',     text: 'text-red-700',     rowBg: 'bg-red-50'     },
-    };
+    // Kelas yang belum ada di cache → ambil satu-satu di background
+    dhClasses.forEach((c, i) => {
+        if (c.students.length === 0) {
+            callGAS('getSiswaByKelas', c.kelas).then(list => {
+                if (Array.isArray(list) && list.length > 0) {
+                    c.students = dhGroupStudents(list)[c.kelas] || [];
+                    dhRenderRows(i);
+                    dhUpdateCounter();
+                }
+            }).catch(() => {
+                const tb = document.getElementById('dh-tbody-' + i);
+                if (tb) tb.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-sm text-red-400">Gagal memuat siswa kelas ini.</td></tr>';
+            });
+        }
+    });
+}
 
-    tbody.innerHTML = belumAbsenList.map((s, i) => {
-        const st   = dhStatusMap[s.nisn] || '';
-        const cfg  = statusConfig[st] || null;
-        const rowBg = cfg ? cfg.rowBg : '';
-        const isLastScan = s.nisn === dhLastScannedNisn;
-        const isSemua = document.getElementById('dhKelasSelect').value === 'SEMUA';
+function dhCardHTML(c, i) {
+    return `
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="dh-card-${i}">
+      <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 p-4 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-users text-white text-sm"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="font-bold text-sm text-white truncate">${c.kelas}</h3>
+            <p class="text-indigo-200 text-[10px]"><span id="dh-count-${i}">0</span> / ${c.students.length} siswa terisi</p>
+          </div>
+        </div>
+        <button onclick="dhTandaiSemua(${i})" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition border border-white/20 flex-shrink-0">&#10003; Tandai Semua</button>
+      </div>
+      <div class="overflow-y-auto" style="max-height:60vh;">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 z-10">
+            <tr class="bg-gray-50 border-b border-gray-100">
+              <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase w-8">#</th>
+              <th class="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Siswa</th>
+              <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase">Status</th>
+            </tr>
+          </thead>
+          <tbody id="dh-tbody-${i}"></tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// -- Render baris siswa satu kelas (semua siswa tampil; yang sudah absen terkunci) --
+function dhRenderRows(i) {
+    const c = dhClasses[i];
+    const tbody = document.getElementById('dh-tbody-' + i);
+    if (!c || !tbody) return;
+    if (!c.students.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-400 text-sm"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat siswa...</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = c.students.map((s, r) => {
+        const locked = c.locked[s.nisn];
+        const st = locked ? locked.status : (c.status[s.nisn] || '');
+        const cfg = DH_STATUS_CFG[st] || null;
+
+        let statusCell;
+        if (locked) {
+            // Sudah absen hari ini → tetap tampil, status terisi & terkunci
+            const jam = locked.jamDatang ? ' &middot; ' + locked.jamDatang : '';
+            statusCell = `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold text-white ${cfg ? cfg.bg : 'bg-gray-400'}" title="Sudah tercatat — tidak dapat diubah">${cfg ? cfg.label : st}${jam}</span>`;
+        } else {
+            statusCell = '<div class="flex justify-center gap-1 flex-wrap">' + DH_STATUSES.map(stt => {
+                const cc = DH_STATUS_CFG[stt];
+                const active = st === stt;
+                const btnClass = 'px-2 py-1 rounded-lg text-[10px] font-bold transition border ' + (active ? cc.bg + ' text-white ring-2 ' + cc.ring + ' border-transparent shadow-sm' : 'bg-gray-100 text-gray-500 border-gray-200 hover:border-gray-300');
+                const label = (active ? '&#10005; ' : '') + cc.label;
+                return `<button onclick="dhSetStatus(${i},'${s.nisn}','${stt}')" class="${btnClass}">${label}</button>`;
+            }).join('') + '</div>';
+        }
+
+        const avatar = `<div class="w-7 h-7 rounded-full ${cfg ? cfg.bg : 'bg-gray-200'} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">${cfg ? cfg.label[0] : (s.nama || '?').charAt(0).toUpperCase()}</div>`;
+
         return `
-        <tr id="dh-row-${s.nisn}" class="${isLastScan ? 'dh-row-last-scan' : rowBg} border-b border-gray-50 transition-colors duration-500">
-          <td class="px-3 py-3 text-center text-xs text-gray-400">${i+1}</td>
-          <td class="px-4 py-3">
+        <tr id="dh-row-${i}-${s.nisn}" class="${cfg ? cfg.rowBg : ''} border-b border-gray-50 transition-colors duration-500">
+          <td class="px-3 py-2.5 text-center text-xs text-gray-400">${r + 1}</td>
+          <td class="px-4 py-2.5">
             <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-full ${cfg ? cfg.bg : 'bg-gray-200'} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                ${cfg ? cfg.label[0] : s.nama.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div class="font-semibold text-sm text-gray-800">${s.nama}</div>
-                <div class="text-[10px] text-gray-400 font-mono">${s.nisn}${isSemua ? ` <span class="ml-1 bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-bold">${s.kelas}</span>` : ''}</div>
+              ${avatar}
+              <div class="min-w-0">
+                <div class="font-semibold text-sm text-gray-800 truncate">${s.nama}</div>
+                <div class="text-[10px] text-gray-400 font-mono">${s.nisn}</div>
               </div>
             </div>
           </td>
-          <td class="px-3 py-3">
-            <div class="flex justify-center gap-1 flex-wrap">
-               ${['hadir','sakit','izin','alpa'].map(status => {
-                 const c = statusConfig[status];
-                 const active = st === status;
-                 const btnClass = 'px-2 py-1 rounded-lg text-[10px] font-bold transition border ' + (active ? c.bg + ' text-white ring-2 ' + c.ring + ' border-transparent shadow-sm' : 'bg-gray-100 text-gray-500 border-gray-200 hover:border-gray-300');
-                 const btnTitle = active ? 'Klik untuk batalkan' : c.label;
-                 const btnLabel = active ? '✕ ' + c.label : c.label;
-                 return `<button onclick="dhSetStatus('${s.nisn}','${status}')" title="${btnTitle}" class="${btnClass}">${btnLabel}</button>`;
-               }).join('')}
-            </div>
-          </td>
+          <td class="px-3 py-2.5">${statusCell}</td>
         </tr>`;
     }).join('');
 
-    dhUpdateCounter();
+    dhUpdateClassCount(i);
 }
-  
+
 // -- Set status satu siswa (klik ulang = batalkan) --
-function dhSetStatus(nisn, status) {
-    if (dhStatusMap[nisn] === status) {
-        // Klik status yang sudah aktif → batalkan
-        delete dhStatusMap[nisn];
-    } else {
-        dhStatusMap[nisn] = status;
-    }
-    dhRenderStudentTable();
-    const row = document.getElementById('dh-row-' + nisn);
+function dhSetStatus(i, nisn, status) {
+    const c = dhClasses[i];
+    if (!c || c.locked[nisn]) return; // yang sudah absen tidak bisa diubah
+    if (c.status[nisn] === status) delete c.status[nisn];
+    else c.status[nisn] = status;
+
+    dhRenderRows(i);
+    dhUpdateCounter();
+    const row = document.getElementById(`dh-row-${i}-${nisn}`);
     if (row) {
         row.classList.add('dh-row-flash');
-        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         setTimeout(() => row.classList.remove('dh-row-flash'), 800);
     }
 }
 
-// -- Tandai semua hadir --
-function dhTandaiSemua() {
-    // Tandai semua yang belum terkunci (belum absen)
-    dhStudents.forEach(s => { if (!dhLockedMap[s.nisn]) dhStatusMap[s.nisn] = 'hadir'; });
-    dhRenderStudentTable();
+// -- Tandai semua siswa di kelas ini hadir (yang sudah absen dilewati) --
+function dhTandaiSemua(i) {
+    const c = dhClasses[i];
+    if (!c) return;
+    c.students.forEach(s => { if (!c.locked[s.nisn]) c.status[s.nisn] = 'hadir'; });
+    dhRenderRows(i);
+    dhUpdateCounter();
 }
 
-// -- Update counter & tombol kirim --
+function dhUpdateClassCount(i) {
+    const c = dhClasses[i];
+    const el = document.getElementById('dh-count-' + i);
+    if (!c || !el) return;
+    el.textContent = c.students.filter(s => c.locked[s.nisn] || c.status[s.nisn]).length;
+}
+
 function dhUpdateCounter() {
-    const total   = dhStudents.length;
-    const locked  = Object.keys(dhLockedMap).filter(k => dhStudents.find(s => s.nisn === k)).length;
-    const filled  = Object.keys(dhStatusMap).filter(k => dhStudents.find(s => s.nisn === k) && !dhLockedMap[k]).length;
-    const unset   = total - locked - filled;
-    document.getElementById('dhCounter').textContent = filled + ' baru / ' + unset + ' belum (' + locked + ' terkunci)';
+    let total = 0, filled = 0, baru = 0;
+    dhClasses.forEach(c => c.students.forEach(s => {
+        total++;
+        if (c.locked[s.nisn]) filled++;
+        else if (c.status[s.nisn]) { filled++; baru++; }
+    }));
+    const el = document.getElementById('dhCounter');
+    if (el) el.textContent = filled + ' / ' + total + (baru ? ' (' + baru + ' baru)' : '');
     dhUpdateSubmitBtn();
 }
 
 function dhUpdateSubmitBtn() {
     const btn = document.getElementById('dhSubmitBtn');
-    const enabled = Object.keys(dhStatusMap).filter(k => dhStudents.find(s => s.nisn === k) && !dhLockedMap[k]).length > 0;
-
+    if (!btn) return;
+    const enabled = dhClasses.some(c => c.students.some(s => !c.locked[s.nisn] && c.status[s.nisn]));
     btn.disabled = !enabled;
     btn.className = 'px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0';
-
     if (enabled) {
-        btn.style.backgroundColor = '#16a34a'; // hijau
-        btn.style.color = '#ffffff';           // teks putih
+        btn.style.backgroundColor = '#16a34a';
+        btn.style.color = '#ffffff';
         btn.style.cursor = 'pointer';
-        btn.style.opacity = '1';
     } else {
-        btn.style.backgroundColor = '#e5e7eb'; // abu-abu
+        btn.style.backgroundColor = '#e5e7eb';
         btn.style.color = '#9ca3af';
         btn.style.cursor = 'not-allowed';
-        btn.style.opacity = '1';
     }
 }
 
-// -- Kirim ke server --
+// -- Ambil status absensi (siapa yang sudah absen) untuk semua kelas di background --
+function dhFetchAllStatuses() {
+    const tanggal = document.getElementById('dhTanggal') ? document.getElementById('dhTanggal').value : '';
+    if (!tanggal) return;
+    dhStatusDate = tanggal;
+    dhClasses.forEach((c, i) => {
+        callGAS('getDaftarHadirByKelasAndTanggal', c.kelas, tanggal).then(res => {
+            if (dhStatusDate !== tanggal) return; // pengguna sudah ganti tanggal
+            c.locked = {};
+            if (res && res.success && res.data) {
+                Object.entries(res.data).forEach(([nisn, d]) => {
+                    c.locked[String(nisn)] = (d && typeof d === 'object')
+                        ? d
+                        : { status: d, jamDatang: '', hasJamDatang: true };
+                });
+            }
+            dhRenderRows(i);
+            dhUpdateCounter();
+        }).catch(() => {});
+    });
+}
+
+// -- Tanggal diganti: kosongkan pilihan, ambil ulang status --
+function dhOnTanggalChange() {
+    dhClasses.forEach(c => { c.status = {}; c.locked = {}; });
+    dhRenderAllCards();
+    dhUpdateCounter();
+    dhFetchAllStatuses();
+}
+
+function dhRenderAllCards() {
+    const wrap = document.getElementById('dhClassesWrap');
+    if (!wrap) return;
+    if (!dhClasses.length) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = dhClasses.map((c, i) => dhCardHTML(c, i)).join('');
+    dhClasses.forEach((c, i) => dhRenderRows(i));
+}
+
+// -- Kirim semua status yang baru diisi (bisa lintas kelas sekaligus) --
 function submitDaftarHadir() {
-    const kelas   = document.getElementById('dhKelasSelect').value;
     const tanggal = document.getElementById('dhTanggal').value;
-    if (!kelas || !tanggal) { showAlert('error', 'Pilih kelas dan tanggal terlebih dahulu.'); return; }
+    if (!tanggal) { showAlert('error', 'Pilih tanggal terlebih dahulu.'); return; }
 
-    // Hanya kirim siswa yang belum pernah absen (tidak terkunci)
-    const dataList = dhStudents
-        .filter(s => dhStatusMap[s.nisn] && !dhLockedMap[s.nisn])
-        .map(s => ({ nisn: s.nisn, nama: s.nama, kelas: s.kelas, status: dhStatusMap[s.nisn] }));
-
+    const dataList = [];
+    dhClasses.forEach(c => c.students.forEach(s => {
+        if (c.status[s.nisn] && !c.locked[s.nisn]) {
+            dataList.push({ nisn: s.nisn, nama: s.nama, kelas: c.kelas, status: c.status[s.nisn] });
+        }
+    }));
     if (dataList.length === 0) { showAlert('error', 'Belum ada siswa yang diisi statusnya.'); return; }
 
-    const kelasLabel = kelas === 'SEMUA' ? 'Semua Kelas' : kelas;
     const hadir = dataList.filter(d => d.status === 'hadir').length;
     const lain  = dataList.length - hadir;
+    const nKelas = new Set(dataList.map(d => d.kelas)).size;
 
     Swal.fire({
         title: 'Kirim Absensi?',
-        html: `<p class="text-gray-500 text-sm">Kelas: <b>${kelasLabel}</b> &bull; Tanggal: <b>${tanggal}</b></p>
+        html: `<p class="text-gray-500 text-sm">${nKelas} kelas &bull; Tanggal: <b>${tanggal}</b></p>
                <div class="flex justify-center gap-4 mt-3 text-sm">
                  <span class="text-emerald-600 font-bold">${hadir} Hadir</span>
                  <span class="text-yellow-600 font-bold">${lain} Lainnya</span>
@@ -3064,9 +2680,16 @@ function submitDaftarHadir() {
     }).then(res => {
         if (!res.isConfirmed) return;
         showLoading();
-        callGAS('submitDaftarHadirGuru', dataList, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru').then(result => {
+        callGASOffline('submitDaftarHadirGuru', dataList, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru').then(result => {
                 hideLoading();
-                if (result.success) {
+                if (result && result.offline) {
+                    // Tersimpan di antrian offline — akan tersinkron otomatis saat online
+                    dhClasses.forEach(c => { c.status = {}; });
+                    dhRenderAllCards();
+                    dhUpdateCounter();
+                    return;
+                }
+                if (result && result.success) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Absensi Tersimpan!',
@@ -3074,209 +2697,16 @@ function submitDaftarHadir() {
                         timer: 2000,
                         showConfirmButton: false
                     });
-                    // Refresh tabel agar banner "sudah dikirim" muncul
-                    onDhKelasChange();
+                    dhClasses.forEach(c => { c.status = {}; });
+                    dhFetchAllStatuses(); // segarkan status terkunci dari server
                 } else {
-                    Swal.fire('Gagal', result.message, 'error');
+                    Swal.fire('Gagal', (result && result.message) || 'Terjadi kesalahan.', 'error');
                 }
             }).catch(err => {
                 hideLoading();
                 Swal.fire('Error Server', err.message || String(err), 'error');
             });
     });
-}
-
-// ---- KAMERA POPUP (Daftar Hadir Guru) ----
-let dhCameraPopup     = null;
-let dhPollingInterval = null;
-const DH_LS_KEY       = 'dh_qr_result';
-
-// Listener postMessage dari popup kamera DH
-window.addEventListener('message', function(event) {
-    if (!event.data || event.data.type !== 'DH_QR_SCAN_RESULT') return;
-    const nisn = event.data.nisn;
-    if (!nisn || typeof nisn !== 'string') return;
-    if (event.data.ts && (Date.now() - event.data.ts) > 30000) return;
-    dhOnScanResult(nisn);
-    // Kirim feedback ke popup
-    if (dhCameraPopup && !dhCameraPopup.closed) {
-        const siswa = dhStudents.find(s => s.nisn === String(nisn).replace(/[^a-zA-Z0-9]/g,'').trim());
-        if (siswa) {
-            try { dhCameraPopup.postMessage({ type: 'DH_SCAN_SUCCESS', nama: siswa.nama }, '*'); } catch(e) {}
-        } else {
-            try { dhCameraPopup.postMessage({ type: 'DH_SCAN_ERROR', message: 'NISN tidak ada di kelas ini' }, '*'); } catch(e) {}
-        }
-    }
-});
-
-function dhStopPolling() {
-    if (dhPollingInterval) { clearInterval(dhPollingInterval); dhPollingInterval = null; }
-    const ps = document.getElementById('dhPollingStatus');
-    if (ps) ps.classList.add('hidden');
-    const btn = document.getElementById('dhCamBtn');
-    if (btn) {
-        btn.classList.remove('hidden');
-        btn.innerHTML = '<i class="fas fa-camera text-base"></i> Buka Kamera Live';
-    }
-}
-
-function dhStartPolling() {
-    dhStopPolling();
-    try { localStorage.removeItem(DH_LS_KEY); } catch(e) {}
-    const ps = document.getElementById('dhPollingStatus');
-    if (ps) ps.classList.remove('hidden');
-    const btn = document.getElementById('dhCamBtn');
-    if (btn) btn.classList.add('hidden');
-
-    dhPollingInterval = setInterval(() => {
-        if (dhCameraPopup && dhCameraPopup.closed) {
-            dhCameraPopup = null;
-            dhStopPolling();
-            return;
-        }
-        try {
-            const raw = localStorage.getItem(DH_LS_KEY);
-            if (!raw) return;
-            const data = JSON.parse(raw);
-            if (Date.now() - data.ts > 30000) { localStorage.removeItem(DH_LS_KEY); return; }
-            localStorage.removeItem(DH_LS_KEY);
-            dhOnScanResult(data.nisn);
-        } catch(e) {}
-    }, 300);
-}
-
-function dhStopPopup() {
-    closeInlineScanner();
-    dhStopPolling();
-}
-
-function dhOpenCameraPopup() {
-    const kelas = document.getElementById('dhKelasSelect')?.value;
-    if (!kelas) {
-        showAlert('error', 'Pilih kelas terlebih dahulu sebelum membuka kamera.');
-        return;
-    }
-    openInlineScanner({
-        title: '&#128247; SCAN QR — DAFTAR HADIR',
-        onDetect: (text) => { dhOnScanResult(String(text).replace(/[^a-zA-Z0-9]/g,'').trim()); }
-    });
-}
-
-
-
-// -- Suara notifikasi scan --
-function dhPlayBeep(type = 'success') {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (type === 'success') {
-            // Dua nada naik: bip bip ✅
-            [0, 0.15].forEach((delay, i) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(i === 0 ? 880 : 1100, ctx.currentTime + delay);
-                gain.gain.setValueAtTime(0.4, ctx.currentTime + delay);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18);
-                osc.start(ctx.currentTime + delay);
-                osc.stop(ctx.currentTime + delay + 0.18);
-            });
-        } else {
-            // Satu nada rendah pendek: bup ❌
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(300, ctx.currentTime);
-            gain.gain.setValueAtTime(0.35, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.25);
-        }
-    } catch(e) { /* AudioContext tidak didukung, abaikan */ }
-}
-
-var dhLastScannedNisn = null;
-let dhPendingBatch = [];
-let dhBatchTimer = null;
-const DH_BATCH_INTERVAL = 1500;
-
-function dhQueueScanForBatch(item) {
-    dhPendingBatch.push(item);
-    if (!dhBatchTimer) dhBatchTimer = setTimeout(dhFlushBatch, DH_BATCH_INTERVAL);
-}
-
-function dhFlushBatch() {
-    dhBatchTimer = null;
-    if (dhPendingBatch.length === 0) return;
-    const batch = dhPendingBatch;
-    dhPendingBatch = [];
-    const tanggalScan = document.getElementById('dhTanggal').value;
-    callGASOffline('submitDaftarHadirGuru', batch, tanggalScan,
-        currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru')
-        .catch(err => console.warn('Batch gagal:', err));
-}
-window.addEventListener('beforeunload', dhFlushBatch);
-
-function dhOnScanResult(rawNisn) {
-    const nisn = String(rawNisn).replace(/[^a-zA-Z0-9]/g,'').trim();
-    const notif = document.getElementById('dhScanNotif');
-
-    // Cari siswa di daftar
-    const siswa = dhStudents.find(s => s.nisn === nisn);
-    if (!siswa) {
-        dhPlayBeep('error');
-        showBigScanPopup({ type: 'error', customMsg: 'NISN [' + nisn + '] tidak ada di kelas ini' });
-        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
-        notif.textContent = '❌ NISN [' + nisn + '] tidak ada di kelas ini';
-        notif.classList.remove('hidden');
-        setTimeout(() => notif.classList.add('hidden'), 3000);
-        return;
-    }
-
-    // ── Mode Masuk ──
-    if (dhLockedMap[nisn]) {
-        dhPlayBeep('success');
-        const lockedObj = dhLockedMap[nisn];
-        const st = (lockedObj && typeof lockedObj === 'object') ? lockedObj.status : String(lockedObj);
-        showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk', id: nisn, customMsg: 'Sudah absen (' + st + ')' });
-        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-        notif.textContent = '✅ ' + siswa.nama + ' — sudah tercatat (' + st.charAt(0).toUpperCase() + st.slice(1) + ')';
-        notif.classList.remove('hidden');
-        setTimeout(() => notif.classList.add('hidden'), 2500);
-        return;
-    }
-dhLastScannedNisn = nisn;
-dhPlayBeep('success');
-showBigScanPopup({ type: 'success', nama: siswa.nama, mode: 'masuk' });
-
-const now = new Date();
-const jamNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-dhLockedMap[nisn] = { status: 'hadir', jamDatang: jamNow, hasJamDatang: true };
-delete dhStatusMap[nisn];
-dhRenderStudentTable();
-
-notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-notif.textContent = '✅ ' + siswa.nama + ' — Hadir tersimpan';
-notif.classList.remove('hidden');
-setTimeout(() => notif.classList.add('hidden'), 1500);
-
-const kelasSiswaScan = siswa.kelas || document.getElementById('dhKelasSelect').value;
-dhQueueScanForBatch({ nisn: siswa.nisn, nama: siswa.nama, kelas: kelasSiswaScan, status: 'hadir' });
-    const row = document.getElementById('dh-row-' + nisn);
-    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// -- Input NISN Manual --
-function dhSubmitManual() {
-    const inp = document.getElementById('dhManualNisn');
-    if (!inp) return;
-    const val = inp.value.trim();
-    if (!val) { showAlert('error', 'Masukkan NISN terlebih dahulu.'); return; }
-    inp.value = '';
-    dhOnScanResult(val);
 }
 
 
@@ -4174,7 +3604,7 @@ function renderSiswaRows(data, startIdx) {
                     </button>
                     <button onclick='editSiswa(${JSON.stringify(siswa)})' class="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition" title="Edit"><i class="fas fa-edit"></i></button>
                     <button onclick="deleteSiswaConfirm('${siswa.nisn}', '${siswa.nama}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition" title="Hapus"><i class="fas fa-trash"></i></button>
-                    <button onclick="generateQRForSiswa('${siswa.nisn}', '${siswa.nama}', '${siswa.kelas}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="QR Code"><i class="fas fa-qrcode"></i></button>
+                    <button onclick="generateQRForSiswa('${siswa.nisn}', '${siswa.nama}', '${siswa.kelas}')" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="Kartu Pelajar"><i class="fas fa-id-card"></i></button>
                 </div>
             </td>
         </tr>`;
@@ -4182,80 +3612,6 @@ function renderSiswaRows(data, startIdx) {
     }
 
     // --- DATA GURU ---
-function loadDataGuru() {
-        stopAndBack(false);
-        setActiveMenu('Data Guru');
-        showView('view-data-guru');
-        
-        // --- LOGIKA POPULATE DROPDOWN KELAS GURU ---
-        const dropdown = document.getElementById('filterKelasGuru');
-        if (dropdown && existingClasses && existingClasses.length > 0) {
-            const currentValue = dropdown.value; 
-            
-            let options = '<option value="">Semua Kelas</option>';
-            existingClasses.forEach(kelas => {
-                options += `<option value="${kelas}">${kelas}</option>`;
-            });
-            dropdown.innerHTML = options;
-            
-            if (currentValue) dropdown.value = currentValue;
-        }
-        // --------------------------------------------------
-
-        // Cek Cache Data
-        if (tableState.guru.fullData.length > 0) {
-            processTableData('guru');
-        } else {
-            // Tampilkan Loading di Tabel
-            document.getElementById('tbody-guru').innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat data guru...</td></tr>';
-            
-            // === KEAMANAN: AMBIL TOKEN ===
-            const token = currentUser.token;
-
-            // Panggil Backend dengan Token
-            callGAS('getGuruList', token).then(result => {
-                if (result.success) {
-                    tableState.guru.fullData = result.data;
-                    processTableData('guru');
-                } else {
-                    // Jika gagal (Token invalid/Bukan Admin)
-                    document.getElementById('tbody-guru').innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>${result.message}</td></tr>`;
-                    showAlert('error', result.message);
-                }
-            }).catch(error => {
-                document.getElementById('tbody-guru').innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">Gagal koneksi: ${error}</td></tr>`;
-            }); // <-- PARAMETER TOKEN DITAMBAHKAN DI SINI
-        }
-    }
-
-// UPDATE: Menampilkan kolom kelas di tabel
-function formatJabatanBullets(jabatanStr) {
-    if (!jabatanStr) return '<span class="text-gray-400 italic text-xs">-</span>';
-    const list = String(jabatanStr).split(',').map(j => j.trim()).filter(Boolean);
-    return list.map(j => `<div class="flex items-start gap-1"><span class="text-amber-500">•</span><span>${j}</span></div>`).join('');
-}
-
-function renderGuruRows(data, startIdx) {
-    const tbody = document.getElementById('tbody-guru');
-    if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400">Data tidak ditemukan.</td></tr>';
-        return;
-    }
-    tbody.innerHTML = data.map((guru, i) => {
-        return `
-    <tr class="hover:bg-gray-50 transition border-b border-gray-50 group">
-        <td class="p-4 text-center text-gray-500 text-sm">${startIdx + i + 1}</td>
-        <td class="p-4 text-xs font-mono font-bold text-amber-600">${guru.idGuru || '-'}</td>
-        <td class="p-4 text-sm font-bold text-gray-800">${guru.nama || guru.username}</td>
-        <td class="p-4 text-xs text-gray-600">${formatJabatanBullets(guru.jabatan)}</td>
-        <td class="p-4 text-center">
-            <div class="flex justify-center space-x-2 opacity-80 group-hover:opacity-100">
-                <button onclick='editGuru(${JSON.stringify(guru)})' class="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition" title="Edit Akun"><i class="fas fa-edit"></i></button>
-                <button onclick="deleteGuruConfirm('${guru.username}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition" title="Hapus Akun"><i class="fas fa-trash"></i></button>
-            </div>
-        </td>
-    </tr>`}).join('');
-}
 function saveSiswa(e, isEdit) {
     e.preventDefault();
     showLoading();
@@ -4730,9 +4086,6 @@ function changeStatus(nisn, nama, kelas, selectElement) {
     // --- KARTU SISWA ---
 function loadQRCodeSiswa(nisnParam, namaParam, kelasParam) {
     if (typeof stopAndBack === "function") stopAndBack(false);
-    if (currentUser && currentUser.role === 'siswa' && typeof setActiveMenu === "function") {
-        setActiveMenu('Kartu Saya');
-    }
     if (typeof showView === "function") showView('view-kartu-siswa');
 
     const container = document.getElementById('kartuSiswaContainer');
@@ -4807,7 +4160,6 @@ function loadQRCodeSiswa(nisnParam, namaParam, kelasParam) {
 }
 
     function stopAndBack(redirect = true) {
-        closeInlineScanner();
         if (redirect && currentUser) returnToDashboard();
     }
     function returnToDashboard() {
@@ -4846,8 +4198,6 @@ function loadQRCodeSiswa(nisnParam, namaParam, kelasParam) {
     function showAddSiswaModal() { showModal(createSiswaModal()); }
     function editSiswa(s) { showModal(createSiswaModal(s)); }
     
-    function showAddGuruModal() { showModal(createGuruModal()); }
-    function editGuru(guruData) { showModal(createGuruModal(guruData)); }
 
     function createSiswaModal(s = null) {
         const isEdit = s !== null;
@@ -5028,111 +4378,6 @@ function loadQRCodeSiswa(nisnParam, namaParam, kelasParam) {
     }
 
 // UPDATE: Modal Guru kini mendukung MULTI-KELAS (checkbox)
-    function createGuruModal(guru = null) {
-    const isEdit = guru !== null;
-    const inputClass = "w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-3 transition-all mb-4";
-
-    const selectedKelas = guru && guru.kelas
-        ? String(guru.kelas).split(',').map(k => k.trim()).filter(Boolean)
-        : [];
-
-    let kelasCheckboxes = '';
-    if (existingClasses && existingClasses.length > 0) {
-        kelasCheckboxes = existingClasses.map(k => {
-            const checked = selectedKelas.includes(k) ? 'checked' : '';
-            return `<label class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-purple-50 cursor-pointer transition">
-                <input type="checkbox" name="kelas_cb" value="${k}" ${checked} class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer">
-                <span class="text-sm text-gray-700 font-medium">${k}</span></label>`;
-        }).join('');
-    } else {
-        kelasCheckboxes = '<p class="text-xs text-gray-400 px-3 py-2">Belum ada data kelas</p>';
-    }
-
-    return `
-    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full relative overflow-hidden max-h-[90vh] overflow-y-auto">
-        <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-        <div class="text-center mb-6">
-            <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl shadow-sm"><i class="fas fa-chalkboard-teacher"></i></div>
-            <h3 class="font-bold text-xl text-gray-800">${isEdit ? 'Edit Data Guru' : 'Tambah Guru'}</h3>
-            ${isEdit && guru.idGuru ? `<p class="text-xs text-amber-600 font-mono font-bold mt-1">ID: ${guru.idGuru}</p>` : `<p class="text-xs text-gray-400 mt-1">ID Guru akan dibuat otomatis</p>`}
-        </div>
-
-        <form onsubmit="saveGuru(event, ${isEdit})">
-            <label class="block mb-1 text-xs font-bold text-gray-500 uppercase">Nama Lengkap</label>
-            <input name="namaLengkap" value="${guru?.nama || ''}" placeholder="Nama Lengkap" required class="${inputClass}">
-
-            <label class="block mb-1 text-xs font-bold text-gray-500 uppercase">Jabatan (pisahkan dengan koma jika lebih dari 1)</label>
-            <input name="jabatan" value="${guru?.jabatan || ''}" placeholder="cth: Guru Mapel, Wali Kelas" class="${inputClass}">
-
-            <label class="block mb-1 text-xs font-bold text-gray-500 uppercase">Username</label>
-            <input name="username" value="${guru?.username || ''}" placeholder="Username" required class="${inputClass}">
-
-            <label class="block mb-1 text-xs font-bold text-gray-500 uppercase">Password</label>
-            <input name="password" value="${guru?.password || ''}" placeholder="Password" required class="${inputClass}">
-
-            <label class="block mb-1 text-xs font-bold text-gray-500 uppercase">Wali Kelas Untuk</label>
-            <div class="border border-gray-200 rounded-lg overflow-y-auto mb-1" style="max-height:140px;">${kelasCheckboxes}</div>
-            <p class="text-[10px] text-gray-400 mb-4">Centang satu atau lebih kelas. Kosongkan = akses semua.</p>
-
-            ${isEdit ? `<input type="hidden" name="oldUsername" value="${guru.username}">` : ''}
-
-            <div class="flex gap-3 mt-2">
-                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-200 transition">Batal</button>
-                <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg transition transform active:scale-95">Simpan</button>
-            </div>
-        </form>
-    </div>`;
-}
-
-    // --- FORM ACTIONS (SIMPAN & UPDATE) ---
-    // FUNCTION UPDATE: Simpan Guru dengan Loading Button
-function saveGuru(e, isEdit) {
-    e.preventDefault();
-    const form = e.target;
-    const btn = form.querySelector('button[type="submit"]');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Menyimpan...';
-    btn.classList.add('opacity-75', 'cursor-not-allowed');
-
-    const fd = new FormData(form);
-    const namaLengkap = fd.get('namaLengkap');
-    const jabatan = fd.get('jabatan');
-    const username = "'" + fd.get('username');
-    const password = "'" + fd.get('password');
-    const checkedKelas = Array.from(form.querySelectorAll('input[name="kelas_cb"]:checked')).map(cb => cb.value);
-    const kelas = checkedKelas.join(',');
-
-    const token = currentUser ? currentUser.token : null;
-
-    const onComplete = (r) => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        btn.classList.remove('opacity-75', 'cursor-not-allowed');
-        if (r && r.success) {
-            closeModal();
-            tableState.guru.fullData = [];
-            loadDataGuru();
-            showAlert('success', isEdit ? 'Data guru berhasil diperbarui' : 'Akun Guru berhasil dibuat');
-        } else {
-            showAlert('error', r ? r.message : 'Terjadi kesalahan tidak diketahui');
-        }
-    };
-    const onFailure = (error) => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        btn.classList.remove('opacity-75', 'cursor-not-allowed');
-        showAlert('error', 'Gagal koneksi server: ' + error);
-    };
-
-    if (isEdit) {
-        const oldUsername = fd.get('oldUsername');
-        callGAS('updateGuru', token, oldUsername, namaLengkap, jabatan, username, password, kelas).then(onComplete).catch(onFailure);
-    } else {
-        callGAS('addGuru', token, namaLengkap, jabatan, username, password, kelas).then(onComplete).catch(onFailure);
-    }
-}
-    
 function deleteSiswaConfirm(nisn, nama) {
         // Panggil SweetAlert untuk konfirmasi
         Swal.fire({
@@ -5305,93 +4550,6 @@ function processImportSiswa(data, inputElement) {
             });
     }
 
-
-// ==========================================================================
-    // FITUR IMPORT EXCEL GURU
-    // ==========================================================================
-    
-    function triggerImportGuru() {
-        document.getElementById('fileInputGuru').click();
-    }
-
-    function handleFileImportGuru(input) {
-        const file = input.files[0];
-        if (!file) return;
-
-        showLoading(); 
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-            if (jsonData.length === 0) {
-                hideLoading();
-                showAlert('error', 'File Excel kosong atau format salah.');
-                input.value = ''; 
-                return;
-            }
-
-            // Validasi Header
-            const firstRow = jsonData[0];
-            // Kita cek header 'Username' dan 'Password'
-            const hasUser = firstRow.hasOwnProperty('Username');
-            const hasPass = firstRow.hasOwnProperty('Password');
-
-            if (!hasUser || !hasPass) {
-                hideLoading();
-                showAlert('error', 'Format Excel salah! Pastikan ada kolom header: Username dan Password.');
-                input.value = '';
-                return;
-            }
-
-            processImportGuru(jsonData, input);
-        };
-
-        reader.onerror = function() {
-            hideLoading();
-            showAlert('error', 'Gagal membaca file.');
-            input.value = '';
-        };
-
-        reader.readAsArrayBuffer(file);
-    }
-
-    function processImportGuru(data, inputElement) {
-        // Mapping data Excel ke Format Database
-        const formattedData = data.map(row => {
-            const clean = (val) => (val ? String(val).trim() : '');
-            return {
-                username: clean(row['Username']),
-                password: clean(row['Password']),
-                // Opsional: Jika guru tersebut adalah Wali Kelas
-                kelas: clean(row['Kelas'] || row['Wali Kelas']) 
-            };
-        });
-
-        callGAS('importGuruBulk', formattedData).then(res => {
-                hideLoading();
-                inputElement.value = ''; 
-                
-                if (res.success) {
-                    tableState.guru.fullData = []; // Clear cache
-                    loadDataGuru(); // Reload tabel
-                    let msg = `Berhasil: ${res.added}, Gagal/Duplikat: ${res.skipped}`;
-                    showAlert('success', 'Import Guru Selesai! ' + msg);
-                } else {
-                    showAlert('error', res.message);
-                }
-            }).catch(err => {
-                hideLoading();
-                inputElement.value = '';
-                showAlert('error', 'Error Server: ' + err);
-            });
-    }
 
 // ==========================================
 // LOGIKA REKAP BULANAN
@@ -6570,33 +5728,6 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
         }
     }, 500);
 }
-    function deleteGuruConfirm(username) {
-        if (confirm(`Hapus akses untuk guru: ${username}?`)) {
-            showLoading(); // Tampilkan overlay loading
-
-            // --- KEAMANAN: AMBIL TOKEN USER ---
-            const token = currentUser ? currentUser.token : null;
-            // ----------------------------------
-
-            callGAS('deleteGuru', token, username).then(r => {
-                hideLoading();
-                
-                if (r.success) {
-                    // Bersihkan cache data guru
-                    tableState.guru.fullData = []; 
-                    // Reload tabel
-                    loadDataGuru();
-                    showAlert('success', 'Akun guru berhasil dihapus');
-                } else {
-                    showAlert('error', r.message);
-                }
-            }).catch(error => {
-                hideLoading();
-                showAlert('error', 'Gagal menghapus: ' + error);
-            }); // <-- Token dikirim
-        }
-    }
-
     // Fungsi untuk Tampilkan/Sembunyikan Password
     function togglePassword() {
         const passwordInput = document.getElementById('password');
@@ -6637,58 +5768,6 @@ async function downloadKartuSiswaBulk(nisnListTerpilih) {
         loadQRCodeSiswa(nisn, nama, kelas);
     }
   
-// ==========================================================================
-// POPUP BESAR + SUARA HASIL SCAN
-// ==========================================================================
-function speakScan(text) {
-    try {
-        if (!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.lang = 'id-ID';
-        utter.rate = 0.95;
-        utter.pitch = 1;
-        window.speechSynthesis.speak(utter);
-    } catch (e) { console.warn('TTS gagal:', e); }
-}
-
-const SAPAAN_MASUK = [
-    'Yeay, sudah datang!',
-    'Hai, semangat pagi!',
-    'Asyik, sudah hadir!',
-    'Wah, rajin sekali!',
-    'Halo, selamat belajar!',
-    'Cieee sudah datang!'
-];
-
-function pilihAcak(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg = '', id = null }) {
-    const isSuccess = type === 'success';
-
-    let sub;
-    if (isSuccess) {
-        sub = nama ? `Selamat datang, ${nama}!` : '';
-    } else {
-        sub = customMsg || (nama ? `${nama}` : 'Periksa kembali QR / NISN');
-    }
-
-    // Catat ke riwayat scan, dikunci berdasarkan ID (NISN/NIP) supaya 1 orang = 1 baris
-    addScanHistoryEntry(id, nama, type, sub);
-
-    if (isSuccess) {
-        if (mode === 'masuk') {
-            speakScan(pilihAcak(SAPAAN_MASUK));
-        } else {
-            speakScan('Absensi berhasil');
-        }
-    } else {
-        speakScan(customMsg ? 'Yah, scan gagal, coba lagi ya' : 'Yah, scan gagal, coba lagi ya');
-    }
-}
-
     // ==========================================================================
     // CETAK BEBERAPA — SISWA
     // ==========================================================================
