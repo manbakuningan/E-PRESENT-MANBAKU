@@ -243,14 +243,11 @@
       #view-daftar-hadir-guru table { font-size: 11px; }
       #view-daftar-hadir-guru th, #view-daftar-hadir-guru td { padding: 6px 8px !important; }
 
-      /* Tombol status wrap rapi, touch-friendly */
-      #view-daftar-hadir-guru .flex.justify-center.gap-1.flex-wrap {
-        justify-content: flex-start;
-      }
-      #view-daftar-hadir-guru .flex.justify-center.gap-1.flex-wrap button {
-        font-size: 9px;
-        padding: 4px 6px;
-        min-height: 26px;
+      /* Dropdown status: rapi & touch-friendly */
+      #view-daftar-hadir-guru select.dh-select {
+        font-size: 11px;
+        min-height: 34px;
+        min-width: 110px;
       }
 
       /* Bar kirim: sticky di bawah agar mudah dijangkau jempol */
@@ -665,7 +662,7 @@
   <div class="dh-submit-bar mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
     <div class="text-xs text-gray-500 flex items-center gap-2">
       <i class="fas fa-info-circle text-indigo-400"></i>
-      <span>Klik status <b>Hadir / Sakit / Izin / Alpa</b> per siswa lalu kirim. Siswa yang sudah absen tetap tampil dengan status terisi (terkunci).</span>
+      <span>Pilih status di dropdown per siswa: <b>Hadir / Izin / Sakit / Bolos / Alpa</b>, lalu kirim. Siswa yang sudah absen tetap tampil dengan status terisi (terkunci).</span>
     </div>
     <button onclick="submitDaftarHadir()" id="dhSubmitBtn" disabled
       style="background-color:#e5e7eb; color:#9ca3af; cursor:not-allowed;"
@@ -677,6 +674,27 @@
 <style>
   .dh-row-flash { animation: dhFlash .7s ease; }
   @keyframes dhFlash { 0%,30%{background:#d1fae5} 100%{background:transparent} }
+
+  /* Dropdown status kehadiran — pilihan hanya terlihat saat diklik */
+  #view-daftar-hadir-guru select.dh-select {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    font-size: 12px; font-weight: 700;
+    padding: 7px 26px 7px 12px;
+    border-radius: 9px;
+    border: 1px solid rgba(0,0,0,0.07);
+    cursor: pointer; outline: none;
+    min-width: 118px; text-align: left; text-align-last: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    background-color: #f3f4f6;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%236b7280'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    background-size: 10px 6px;
+    transition: box-shadow .15s ease, transform .15s ease;
+  }
+  #view-daftar-hadir-guru select.dh-select:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+  #view-daftar-hadir-guru select.dh-select:focus { ring-width: 2px; box-shadow: 0 0 0 2px #a5b4fc; }
+  #view-daftar-hadir-guru select.dh-select:disabled { cursor: not-allowed; opacity: 0.92; box-shadow: none; }
 </style>
 
 
@@ -1087,96 +1105,6 @@
   </div>
 </div>
 
-<div id="view-monitoring" class="view-section animate-fade-in">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        
-        <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-gray-50/30 gap-4">
-            <div>
-                <h3 class="font-bold text-sm text-gray-800 mb-1">Monitoring Kehadiran</h3>
-                <p class="text-xs text-gray-500 font-medium">Data Realtime: <span id="monitoringDate" class="text-indigo-600 font-bold">...</span></p>
-            </div>
-            
-            <div class="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
-                <div class="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm w-full md:w-auto justify-center">
-                    <input type="date" id="exportMonStart" class="text-xs border-none focus:ring-0 text-gray-600 font-bold p-1 rounded bg-transparent cursor-pointer" title="Tanggal Mulai">
-                    <span class="text-gray-400 text-[10px]">-</span>
-                    <input type="date" id="exportMonEnd" class="text-xs border-none focus:ring-0 text-gray-600 font-bold p-1 rounded bg-transparent cursor-pointer" title="Tanggal Akhir">
-                </div>
-
-                <button onclick="exportMonitoringExcel()" id="btnExportMonitoring" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-emerald-700 transition transform active:scale-95 flex items-center gap-2 w-full md:w-auto justify-center">
-                    <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Export Excel</span>
-                </button>
-
-                <button onclick="refreshData('monitoring')" class="bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-50 hover:text-indigo-600 transition w-full md:w-auto" title="Perbarui Data">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
-        </div>
-
-        <div class="p-4 bg-white border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            
-            <div class="flex flex-col sm:flex-row items-center gap-2 text-xs w-full md:w-auto">
-                
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <span class="text-gray-500 font-bold hidden sm:inline">Show</span>
-                    <select onchange="handleTableLimit('monitoring', this.value)" class="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 w-full sm:w-auto cursor-pointer">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="all">Semua</option>
-                    </select>
-                </div>
-
-                <select onchange="handleTableStatusFilter('monitoring', this.value)" class="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 font-bold w-full sm:w-auto shadow-sm cursor-pointer">
-                    <option value="">Semua Status</option>
-                    <option value="Hadir">Hadir (Hijau)</option>
-                    <option value="Sakit">Sakit (Kuning)</option>
-                    <option value="Izin">Izin (Biru)</option>
-                    <option value="Alpa">Alpa (Merah)</option>
-                    <option value="Belum Absen">Belum Absen (Abu)</option>
-                </select>
-
-                <select id="filterKelasMonitoring" onchange="handleTableClassFilter('monitoring', this.value)" class="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 font-bold w-full sm:w-auto shadow-sm cursor-pointer">
-                    <option value="">Semua Kelas</option>
-                </select>
-            </div>
-
-            <div class="relative w-full md:w-64">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i class="fas fa-search text-gray-400 text-xs"></i>
-                </div>
-                <input type="text" oninput="handleTableSearch('monitoring', this.value)" class="bg-gray-50 border border-gray-200 text-gray-900 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 p-2 transition-all" placeholder="Cari Nama / Kelas...">
-            </div>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-              <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase font-semibold">
-                  <tr>
-                      <th class="p-4 text-center w-10">No</th>
-                      <th class="p-4">Siswa</th>
-                      <th class="p-4 text-center">Kelas</th>
-                      <th class="p-4 text-center">Jam Datang</th>
-                      <th class="p-4 text-center">Keterangan Waktu</th>
-                      <th class="p-4 text-center">Status Kehadiran</th>
-                  </tr>
-              </thead>
-              <tbody id="tbody-monitoring" class="divide-y divide-gray-50 bg-white text-sm">
-                  </tbody>
-            </table>
-        </div>
-
-        <div id="footer-monitoring" class="p-4 border-t border-gray-100 bg-gray-50/30 flex justify-between items-center text-xs text-gray-500">
-            <span id="info-monitoring">Menampilkan 0 data</span>
-            <div class="flex gap-1">
-                <button onclick="changePage('monitoring', -1)" class="px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition" id="btn-prev-monitoring">Prev</button>
-                <button onclick="changePage('monitoring', 1)" class="px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition" id="btn-next-monitoring">Next</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
 <div id="view-rekap-bulanan" class="view-section animate-fade-in hidden">
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         
@@ -1220,7 +1148,24 @@
                 <button onclick="cetakPDFRekapBulanan()" id="btnCetakPdfRekap" class="bg-rose-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-rose-700 transition shadow-sm flex items-center gap-2">
                     <i class="fas fa-file-pdf"></i> <span class="hidden sm:inline">Cetak PDF</span>
                 </button>
+
+                <button onclick="tutupBulanArsip()" id="btnTutupBulan" class="hidden bg-amber-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-amber-600 transition shadow-sm flex items-center gap-2">
+                    <i class="fas fa-lock"></i> <span class="hidden sm:inline">Tutup Bulan</span>
+                </button>
+
+                <button onclick="toggleArsipBulananPanel()" id="btnPanelArsip" class="hidden bg-white text-gray-600 border border-gray-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-50 hover:text-amber-600 transition shadow-sm flex items-center gap-2">
+                    <i class="fas fa-box-archive"></i> <span class="hidden sm:inline">Arsip</span>
+                </button>
             </div>
+        </div>
+
+        <div id="rekapClosedBadge" class="hidden px-4 py-2.5 bg-amber-50 border-b border-amber-100 text-[11px] font-bold text-amber-700 flex items-center gap-2">
+            <i class="fas fa-lock"></i> <span id="rekapClosedBadgeText"></span>
+        </div>
+
+        <div id="arsipBulananPanel" class="hidden px-4 py-3 bg-gray-50/70 border-b border-gray-100">
+            <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2"><i class="fas fa-box-archive mr-1 text-amber-500"></i> Arsip Tutup Bulan</h4>
+            <div id="arsipBulananList" class="space-y-2"></div>
         </div>
 
         <div class="overflow-x-auto relative">
@@ -1702,8 +1647,7 @@ window.addEventListener('load', () => {
                 siswa: { fullData: [], filtered: [], limit: 10, page: 1, search: '', classFilter: '' },
                 
                 libur: { fullData: [], filtered: [], limit: 10, page: 1, search: '' },
-                rekap: { fullData: [], filtered: [], limit: 10, page: 1, search: '' },
-                monitoring: { fullData: [], filtered: [], limit: 10, page: 1, search: '', statusFilter: '', classFilter: '' }
+                rekap: { fullData: [], filtered: [], limit: 10, page: 1, search: '' }
             };
 
 function handleTableSearch(type, query) {
@@ -1752,14 +1696,9 @@ function processTableData(type) {
         // 1. Mulai dari data mentah (Full Data)
         let result = [...state.fullData];
 
-        // 2. FILTER KHUSUS: KELAS (Untuk Siswa dan Monitoring)
-        if ((type === 'siswa' || type === 'monitoring') && state.classFilter) {
+        // 2. FILTER KHUSUS: KELAS (Untuk Siswa)
+        if (type === 'siswa' && state.classFilter) {
             result = result.filter(item => item.kelas === state.classFilter);
-        }
-
-        // 3. FILTER KHUSUS: STATUS KEHADIRAN (Untuk Monitoring)
-        if (type === 'monitoring' && state.statusFilter) {
-            result = result.filter(item => item.status === state.statusFilter);
         }
 
         // 4. FILTER UMUM: PENCARIAN (SEARCH)
@@ -1793,7 +1732,6 @@ function processTableData(type) {
         if (type === 'siswa') renderSiswaRows(pagedData, startIdx);
         else if (type === 'libur') renderLiburRows(pagedData, startIdx);
         else if (type === 'rekap') renderRekapRows(pagedData);
-        else if (type === 'monitoring') renderMonitoringRows(pagedData, startIdx);
 
         // 8. UPDATE UI PAGINATION (Footer Tabel)
         updatePaginationUI(type, startIdx, pagedData.length, total, state.page, totalPages);
@@ -1862,7 +1800,6 @@ function processTableData(type) {
             case 'view-manajemen-kelas': title = "Manajemen Kelas"; break;
             case 'view-kelola-absen': title = "Kelola Hari Libur"; break; // JUDUL BARU
             case 'view-daftar-hadir-guru': title = "Daftar Hadir"; break;
-            case 'view-monitoring': title = "Monitoring Realtime"; break;
             case 'view-rekap-absensi': title = "Laporan Kehadiran"; break;
             case 'view-kartu-siswa': title = "Kartu Pelajar Digital"; break;
         }
@@ -2068,7 +2005,6 @@ function initDashboard() {
     // --- MENU UNTUK ADMIN ---
     if (currentUser.role === 'admin') {
         menuHTML += createItem('Dashboard', 'fa-home', 'loadAdminDashboard()', true);
-        menuHTML += createItem('Monitoring', 'fa-eye', 'loadMonitoringAbsensi()');
         menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
         menuHTML += createItem('Data Siswa', 'fa-user-graduate', 'loadDataSiswa()');
         menuHTML += createItem('Rekap Bulanan', 'fa-calendar-alt', 'loadMenuRekapBulanan()');
@@ -2114,8 +2050,7 @@ function initDashboard() {
     window._autoRefreshInterval = setInterval(() => {
         const activeView = document.querySelector('.view-section.active');
         if (!activeView) return;
-        if (activeView.id === 'view-monitoring') { tableState.monitoring.fullData = []; loadMonitoringAbsensi(); }
-        else if (activeView.id === 'view-admin-dashboard') { 
+        if (activeView.id === 'view-admin-dashboard') { 
             if (currentUser.role === 'admin' || currentUser.role === 'pimpinan') loadAdminDashboard();
             else if (currentUser.role === 'guru') loadGuruDashboard();
         }
@@ -2240,13 +2175,6 @@ function refreshData(type) {
             showAlert('success', 'Statistik Dashboard diperbarui.');
         }
 
-        else if (type === 'monitoring') {
-            tableState.monitoring.fullData = [];
-            // Pertahankan classFilter & statusFilter agar dropdown tidak reset
-            loadMonitoringAbsensi(); 
-            showAlert('success', 'Data monitoring diperbarui.');
-        }
-
         if(btnIcon) setTimeout(() => btnIcon.classList.remove('fa-spin'), 1000);
     }
 
@@ -2349,12 +2277,13 @@ let dhStatusDate = '';   // tanggal yang sedang aktif di halaman
 const DH_CACHE_KEY = 'ep_siswa_cache_v2';
 
 const DH_STATUS_CFG = {
-    hadir: { label: 'Hadir', bg: 'bg-emerald-500', ring: 'ring-emerald-300', rowBg: 'bg-emerald-50/60' },
-    sakit: { label: 'Sakit', bg: 'bg-yellow-400',  ring: 'ring-yellow-200',  rowBg: 'bg-yellow-50/60'  },
-    izin:  { label: 'Izin',  bg: 'bg-blue-400',    ring: 'ring-blue-200',    rowBg: 'bg-blue-50/60'    },
-    alpa:  { label: 'Alpa',  bg: 'bg-red-400',     ring: 'ring-red-200',     rowBg: 'bg-red-50/60'     }
+    hadir: { label: 'Hadir', bg: 'bg-emerald-500', chipBg: 'bg-emerald-100', text: 'text-emerald-700', rowBg: 'bg-emerald-50/60' },
+    izin:  { label: 'Izin',  bg: 'bg-blue-400',    chipBg: 'bg-blue-100',    text: 'text-blue-700',    rowBg: 'bg-blue-50/60'    },
+    sakit: { label: 'Sakit', bg: 'bg-yellow-400',  chipBg: 'bg-yellow-100',  text: 'text-yellow-700',  rowBg: 'bg-yellow-50/60'  },
+    bolos: { label: 'Bolos', bg: 'bg-orange-400',  chipBg: 'bg-orange-100',  text: 'text-orange-700',  rowBg: 'bg-orange-50/60'  },
+    alpa:  { label: 'Alpa',  bg: 'bg-red-400',     chipBg: 'bg-red-100',     text: 'text-red-700',     rowBg: 'bg-red-50/60'     }
 };
-const DH_STATUSES = ['hadir', 'sakit', 'izin', 'alpa'];
+const DH_STATUSES = ['hadir', 'izin', 'sakit', 'bolos', 'alpa'];
 
 function dhGetCache() {
     try {
@@ -2486,9 +2415,9 @@ function dhCardHTML(c, i) {
         <table class="w-full text-sm">
           <thead class="sticky top-0 z-10">
             <tr class="bg-gray-50 border-b border-gray-100">
-              <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase w-8">#</th>
-              <th class="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Siswa</th>
-              <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase">Status</th>
+              <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase w-10">No</th>
+              <th class="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Lengkap</th>
+              <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase w-36">Status</th>
             </tr>
           </thead>
           <tbody id="dh-tbody-${i}"></tbody>
@@ -2510,38 +2439,30 @@ function dhRenderRows(i) {
     tbody.innerHTML = c.students.map((s, r) => {
         const locked = c.locked[s.nisn];
         const st = locked ? locked.status : (c.status[s.nisn] || '');
-        const cfg = DH_STATUS_CFG[st] || null;
+        const stKey = String(st || '').toLowerCase();
+        const cfg = DH_STATUS_CFG[stKey] || null;
+        const selClass = cfg ? (cfg.chipBg + ' ' + cfg.text) : 'bg-gray-100 text-gray-500';
 
         let statusCell;
         if (locked) {
-            // Sudah absen hari ini → tetap tampil, status terisi & terkunci
-            const jam = locked.jamDatang ? ' &middot; ' + locked.jamDatang : '';
-            statusCell = `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold text-white ${cfg ? cfg.bg : 'bg-gray-400'}" title="Sudah tercatat — tidak dapat diubah">${cfg ? cfg.label : st}${jam}</span>`;
+            // Sudah absen hari ini → tetap tampil, status terisi & terkunci (tanpa jam)
+            statusCell = `<select disabled class="dh-select ${selClass}" title="Sudah tercatat &mdash; tidak dapat diubah">` +
+                         `<option selected>${cfg ? cfg.label : st}</option></select>`;
         } else {
-            statusCell = '<div class="flex justify-center gap-1 flex-wrap">' + DH_STATUSES.map(stt => {
-                const cc = DH_STATUS_CFG[stt];
-                const active = st === stt;
-                const btnClass = 'px-2 py-1 rounded-lg text-[10px] font-bold transition border ' + (active ? cc.bg + ' text-white ring-2 ' + cc.ring + ' border-transparent shadow-sm' : 'bg-gray-100 text-gray-500 border-gray-200 hover:border-gray-300');
-                const label = (active ? '&#10005; ' : '') + cc.label;
-                return `<button onclick="dhSetStatus(${i},'${s.nisn}','${stt}')" class="${btnClass}">${label}</button>`;
-            }).join('') + '</div>';
+            // Dropdown status: pilihan baru terlihat saat diklik
+            const opts = ['<option value=""' + (stKey ? '' : ' selected') + ' class="text-gray-500">Pilih Status</option>']
+                .concat(DH_STATUSES.map(v => `<option value="${v}"${stKey === v ? ' selected' : ''}>${DH_STATUS_CFG[v].label}</option>`))
+                .join('');
+            statusCell = `<select class="dh-select ${selClass}" onchange="dhSetStatus(${i},'${s.nisn}',this.value)" title="Klik untuk memilih status">` + opts + '</select>';
         }
-
-        const avatar = `<div class="w-7 h-7 rounded-full ${cfg ? cfg.bg : 'bg-gray-200'} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">${cfg ? cfg.label[0] : (s.nama || '?').charAt(0).toUpperCase()}</div>`;
 
         return `
         <tr id="dh-row-${i}-${s.nisn}" class="${cfg ? cfg.rowBg : ''} border-b border-gray-50 transition-colors duration-500">
-          <td class="px-3 py-2.5 text-center text-xs text-gray-400">${r + 1}</td>
-          <td class="px-4 py-2.5">
-            <div class="flex items-center gap-2">
-              ${avatar}
-              <div class="min-w-0">
-                <div class="font-semibold text-sm text-gray-800 truncate">${s.nama}</div>
-                <div class="text-[10px] text-gray-400 font-mono">${s.nisn}</div>
-              </div>
-            </div>
+          <td class="px-3 py-2 text-center text-xs text-gray-400">${r + 1}</td>
+          <td class="px-4 py-2">
+            <div class="font-semibold text-[13px] text-gray-800 truncate" title="${s.nisn}">${s.nama}</div>
           </td>
-          <td class="px-3 py-2.5">${statusCell}</td>
+          <td class="px-3 py-2 text-center">${statusCell}</td>
         </tr>`;
     }).join('');
 
@@ -2552,15 +2473,17 @@ function dhRenderRows(i) {
 function dhSetStatus(i, nisn, status) {
     const c = dhClasses[i];
     if (!c || c.locked[nisn]) return; // yang sudah absen tidak bisa diubah
-    if (c.status[nisn] === status) delete c.status[nisn];
+    if (!status) delete c.status[nisn];
     else c.status[nisn] = status;
 
     dhRenderRows(i);
     dhUpdateCounter();
-    const row = document.getElementById(`dh-row-${i}-${nisn}`);
-    if (row) {
-        row.classList.add('dh-row-flash');
-        setTimeout(() => row.classList.remove('dh-row-flash'), 800);
+    if (status) {
+        const row = document.getElementById(`dh-row-${i}-${nisn}`);
+        if (row) {
+            row.classList.add('dh-row-flash');
+            setTimeout(() => row.classList.remove('dh-row-flash'), 800);
+        }
     }
 }
 
@@ -3850,239 +3773,6 @@ function renderRekapRows(data) {
     }).join('');
 }
 
-    // --- MONITORING ---
-function loadMonitoringAbsensi() {
-    stopAndBack(false);
-    setActiveMenu('Monitoring');
-    showView('view-monitoring');
-    document.getElementById('monitoringDate').textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    
-    // --- Set Default Tanggal Export ke Hari Ini ---
-    const todayISO = new Date().toISOString().split('T')[0];
-    const elStart = document.getElementById('exportMonStart');
-    const elEnd = document.getElementById('exportMonEnd');
-    if(elStart && !elStart.value) elStart.value = todayISO;
-    if(elEnd && !elEnd.value) elEnd.value = todayISO;
-
-    // --- Populate dropdown filter kelas ---
-    const kelasDropdown = document.getElementById('filterKelasMonitoring');
-    if (kelasDropdown) {
-        kelasDropdown.style.display = '';
-        if (kelasDropdown.parentElement) kelasDropdown.parentElement.style.display = '';
-
-        // Tentukan daftar kelas yang ditampilkan di dropdown
-        let kelasList = [];
-        if (currentUser.role === 'guru' && currentUser.kelas) {
-            // Guru: hanya kelas yang dipegang (bisa lebih dari satu)
-            kelasList = String(currentUser.kelas).split(',').map(k => k.trim()).filter(Boolean);
-        } else {
-            // Admin / pimpinan: semua kelas
-            kelasList = existingClasses || [];
-        }
-
-        const currentVal = kelasDropdown.value;
-        let opts = '<option value="">Semua Kelas</option>';
-        kelasList.forEach(k => {
-            opts += `<option value="${k}" ${currentVal === k ? 'selected' : ''}>${k}</option>`;
-        });
-        kelasDropdown.innerHTML = opts;
-    }
-
-    // Tentukan filter kelas server-side:
-    // - Guru 1 kelas : kirim kelas itu sebagai filter (hemat data)
-    // - Guru multi-kelas : kirim semua kelas miliknya ke server
-    // - Admin/pimpinan : tidak filter di server (ambil semua, filter di client)
-    const myClass = currentUser.role === 'guru' ? currentUser.kelas : null;
-
-    if (tableState.monitoring.fullData.length > 0) {
-        processTableData('monitoring');
-    } else {
-        document.getElementById('tbody-monitoring').innerHTML = '<tr><td colspan="7" class="p-8 text-center text-gray-500"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat data...</td></tr>';
-        callGAS('getMonitoringRealtime', myClass).then(result => {
-            if (result.success) {
-                tableState.monitoring.fullData = result.data;
-                processTableData('monitoring');
-            } else {
-                document.getElementById('tbody-monitoring').innerHTML = '<tr><td colspan="7" class="p-12 text-center text-gray-400 italic bg-white">Data tidak ditemukan.</td></tr>';
-            }
-        }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
-    }
-}
-
-function exportMonitoringExcel() {
-    // 1. Ambil elemen tombol
-    const btn = document.getElementById('btnExportMonitoring');
-    const originalContent = btn.innerHTML;
-
-    // 2. AMBIL TANGGAL DARI INPUT (BARU)
-    const startDate = document.getElementById('exportMonStart').value;
-    const endDate = document.getElementById('exportMonEnd').value;
-
-    if (!startDate || !endDate) {
-        showAlert('error', 'Harap pilih tanggal mulai dan akhir untuk export.');
-        return;
-    }
-
-    // 3. Ubah tampilan tombol menjadi "Loading"
-    btn.disabled = true;
-    btn.classList.add('cursor-not-allowed', 'opacity-75');
-    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span class="hidden sm:inline">Memproses...</span>';
-    
-    // 4. Siapkan Filter
-    // Prioritas: dropdown filter kelas (jika dipilih) > kelas guru (server-side)
-    const dropdownKelas = document.getElementById('filterKelasMonitoring')?.value || '';
-    const myClassDefault = (currentUser && currentUser.role === 'guru') ? currentUser.kelas : null;
-    const kelasForExport = dropdownKelas || myClassDefault || null;
-    
-    const filters = {
-        kelas: kelasForExport,
-        tanggalMulai: startDate,
-        tanggalAkhir: endDate
-    };
-
-    // 5. Panggil Backend
-    callGAS('generateExcel', 'monitoring', filters).then(result => {
-        btn.disabled = false;
-        btn.classList.remove('cursor-not-allowed', 'opacity-75');
-        btn.innerHTML = originalContent;
-
-        if (result.success) {
-            window.open(result.url, '_blank');
-            showAlert('success', 'Data monitoring berhasil di-export!');
-        } else {
-            showAlert('error', result.message);
-        }
-    }).catch(err => {
-        btn.disabled = false;
-        btn.classList.remove('cursor-not-allowed', 'opacity-75');
-        btn.innerHTML = originalContent;
-        showAlert('error', 'Gagal menghubungi server: ' + err);
-    });
-}
-    
-function renderMonitoringRows(data, startIdx) {
-    const tbody = document.getElementById('tbody-monitoring');
-    
-    // 1. Cek jika data kosong
-    if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-12 text-center text-gray-400 italic bg-white">Tidak ada data ditemukan.</td></tr>';
-        return;
-    }
-
-    // 2. Cek Hak Akses (Hanya Guru/Admin yang bisa edit dropdown)
-    const canEdit = (currentUser.role === 'guru' || currentUser.role === 'admin');
-    const cursorClass = canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-70';
-    const disabledAttr = canEdit ? '' : 'disabled';
-
-    // 3. Render Baris Tabel
-    tbody.innerHTML = data.map((d, i) => {
-        
-        // --- A. LOGIKA WARNA DROPDOWN STATUS (Kolom H) ---
-        let statusColor = 'bg-gray-100 text-gray-600';
-        if(d.status === 'Hadir') statusColor = 'bg-green-100 text-green-700';
-        else if(d.status === 'Izin') statusColor = 'bg-blue-100 text-blue-700';
-        else if(d.status === 'Sakit') statusColor = 'bg-yellow-100 text-yellow-700';
-        else if(d.status === 'Alpa') statusColor = 'bg-red-100 text-red-700';
-
-        // --- B. LOGIKA TAMPILAN KETERANGAN WAKTU (Kolom G) ---
-        let ketText = d.keterangan || "-"; // Ambil teks dari server (misal: "Terlambat (15 m)")
-        let ketStyle = "text-gray-400 font-mono text-[10px]"; // Default style
-        let ketIcon = "";
-
-        // Deteksi kata kunci dalam teks keterangan untuk memberi warna
-        if (String(ketText).includes("Terlambat")) {
-            // MERAH: Jika Terlambat
-            ketStyle = "text-rose-600 font-bold bg-rose-50 px-2 py-1 rounded border border-rose-100 text-[10px]";
-            ketIcon = '<i class="fas fa-history mr-1"></i>';
-        } else if (String(ketText).includes("Pulang Cepat")) {
-            // ORANYE: Jika Pulang Cepat
-            ketStyle = "text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded border border-orange-100 text-[10px]";
-            ketIcon = '<i class="fas fa-running mr-1"></i>';
-        } else if (ketText === "Tepat Waktu") {
-            // HIJAU: Jika Tepat Waktu
-            ketStyle = "text-emerald-600 font-bold text-[10px]";
-            ketIcon = '<i class="fas fa-check-double mr-1"></i>';
-        }
-
-        // --- C. HTML ROW ---
-        return `
-        <tr class="hover:bg-gray-50 border-b border-gray-50 transition group">
-            <td class="p-4 text-center text-gray-400 text-xs">${startIdx + i + 1}</td>
-            
-            <td class="p-4">
-                <div class="font-bold text-sm text-gray-900">${d.nama}</div>
-                <div class="text-xs text-gray-500 font-mono">${d.nisn}</div>
-            </td>
-            
-            <td class="p-4 text-center">
-                <span class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-xs font-bold border border-indigo-100">${d.kelas}</span>
-            </td>
-            
-            <td class="p-4 text-center text-xs font-mono text-gray-600">${d.jamDatang}</td>
-            
-            
-            <td class="p-4 text-center align-middle">
-                 <span class="${ketStyle} inline-block whitespace-nowrap">${ketIcon}${ketText}</span>
-            </td>
-
-            <td class="p-4 text-center relative">
-                <select onchange="changeStatus('${d.nisn}', '${d.nama}', '${d.kelas}', this)" 
-                        class="text-xs font-bold py-1.5 px-2 rounded-lg border-0 focus:ring-2 focus:ring-indigo-500 shadow-sm appearance-none text-center w-32 ${statusColor} ${cursorClass}"
-                        ${disabledAttr}>
-                    <option value="Belum Absen" ${d.status === 'Belum Absen' ? 'selected' : ''}>Belum Absen</option>
-                    <option value="Hadir" ${d.status === 'Hadir' ? 'selected' : ''}>Hadir</option>
-                    <option value="Izin" ${d.status === 'Izin' ? 'selected' : ''}>Izin</option>
-                    <option value="Sakit" ${d.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
-                    <option value="Alpa" ${d.status === 'Alpa' ? 'selected' : ''}>Alpa</option>
-                </select>
-                ${canEdit ? '<i class="fas fa-chevron-down absolute right-6 top-1/2 transform -translate-y-1/2 text-[10px] pointer-events-none opacity-40"></i>' : ''}
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-    // Fungsi Handler saat Guru mengubah Status
-function changeStatus(nisn, nama, kelas, selectElement) {
-    const newStatus = selectElement.value;
-    
-    // Visual Feedback: Disable sementara dropdown saat memproses
-    selectElement.disabled = true;
-    selectElement.style.opacity = '0.5';
-
-    // --- KEAMANAN: AMBIL TOKEN USER ---
-    const token = currentUser ? currentUser.token : null;
-    // ----------------------------------
-
-    callGAS('updateAbsensiStatus', token, nisn, nama, kelas, newStatus).then(res => {
-        // Aktifkan kembali dropdown
-        selectElement.disabled = false;
-        selectElement.style.opacity = '1';
-
-        if (res.success) {
-            // Update Warna Dropdown secara langsung agar interaktif (UI Feedback)
-            let newColor = 'bg-gray-100 text-gray-600';
-            if(newStatus === 'Hadir') newColor = 'bg-green-100 text-green-700';
-            else if(newStatus === 'Izin') newColor = 'bg-blue-100 text-blue-700';
-            else if(newStatus === 'Sakit') newColor = 'bg-yellow-100 text-yellow-700';
-            else if(newStatus === 'Alpa') newColor = 'bg-red-100 text-red-700';
-            
-            // Reset class dan tambahkan yang baru (pertahankan base styles)
-            selectElement.className = `text-xs font-bold py-1.5 px-2 rounded-lg border-0 focus:ring-2 focus:ring-indigo-500 shadow-sm appearance-none text-center w-32 cursor-pointer ${newColor}`;
-            
-            // Opsional: Tampilkan notifikasi kecil
-            // showAlert('success', 'Status diperbarui'); 
-        } else {
-            // Jika gagal (misal token expired/tidak ada hak akses)
-            showAlert('error', 'Gagal update: ' + res.message);
-            // Reload tabel untuk mengembalikan status asli dari server
-            loadMonitoringAbsensi();
-        }
-    }).catch(error => {
-        selectElement.disabled = false;
-        selectElement.style.opacity = '1';
-        showAlert('error', 'Error koneksi: ' + error);
-    }); // <-- Token dikirim
-}
     // --- KARTU SISWA ---
 function loadQRCodeSiswa(nisnParam, namaParam, kelasParam) {
     if (typeof stopAndBack === "function") stopAndBack(false);
@@ -4560,6 +4250,15 @@ function loadMenuRekapBulanan() {
     setActiveMenu('Rekap Bulanan');
     showView('view-rekap-bulanan');
 
+    // Tutup Bulan & Arsip hanya untuk admin
+    const isAdm = currentUser && currentUser.role === 'admin';
+    const bTB = document.getElementById('btnTutupBulan');
+    const bPA = document.getElementById('btnPanelArsip');
+    if (bTB) bTB.classList.toggle('hidden', !isAdm);
+    if (bPA) bPA.classList.toggle('hidden', !isAdm);
+    const pArsip = document.getElementById('arsipBulananPanel');
+    if (pArsip) pArsip.classList.add('hidden');
+
     // Setup Dropdown Tahun (5 tahun ke belakang)
     const selectTahun = document.getElementById('rekapTahun');
     const currentYear = new Date().getFullYear();
@@ -4719,6 +4418,9 @@ function loadDataRekapBulanan() {
         
         tbody.innerHTML = rowsHTML;
 
+        // Tampilkan badge jika bulan+kelas ini sudah pernah ditutup (diarsipkan)
+        checkBulanDitutup();
+
     }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
 }
 
@@ -4731,6 +4433,214 @@ function compareKelasNatural(a, b) {
     const pa = parse(a), pb = parse(b);
     if (pa.num !== pb.num) return pa.num - pb.num;
     return pa.suf.localeCompare(pb.suf);
+}
+
+// ==========================================
+// TUTUP BULAN (ARSIP) — REKAP BULANAN
+// Menutup & mengunci rekap bulan terpilih: disimpan ke arsip lokal,
+// otomatis mengunduh file Excel arsip, dan menandai bulan sebagai ditutup.
+// ==========================================
+const ARSIP_BULANAN_KEY = 'ep_arsip_bulanan_v1';
+const NAMA_BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function getArsipBulananList() {
+    try { return JSON.parse(localStorage.getItem(ARSIP_BULANAN_KEY) || '[]') || []; }
+    catch (e) { return []; }
+}
+
+function saveArsipBulananList(list) {
+    try { localStorage.setItem(ARSIP_BULANAN_KEY, JSON.stringify(list)); return true; }
+    catch (e) { return false; }
+}
+
+function tutupBulanArsip() {
+    const bulanEl = document.getElementById('rekapBulan');
+    const tahunEl = document.getElementById('rekapTahun');
+    const kelasEl = document.getElementById('rekapKelas');
+    if (!bulanEl || !tahunEl || !kelasEl) return;
+    const bulan = parseInt(bulanEl.value, 10);
+    const tahun = parseInt(tahunEl.value, 10);
+    const kelas = kelasEl.value || '';
+    const kelasText = kelasEl.selectedIndex >= 0 ? kelasEl.options[kelasEl.selectedIndex].text : 'Semua Kelas';
+
+    Swal.fire({
+        title: 'Tutup Bulan Ini?',
+        html: `<p class="text-sm text-gray-500">Rekap <b>${NAMA_BULAN_ID[bulan]} ${tahun}</b> (${kelasText}) akan diarsipkan &amp; ditandai sebagai bulan yang sudah ditutup.<br>File Excel arsip akan otomatis diunduh.</p>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '<i class="fas fa-lock"></i> Ya, Tutup Bulan',
+        cancelButtonText: 'Batal'
+    }).then(res => {
+        if (!res.isConfirmed) return;
+        showLoading();
+        callGAS('getMonthlyReportData', bulan, tahun, kelas).then(r => {
+            hideLoading();
+            if (!r || !r.success) {
+                Swal.fire('Gagal', (r && r.message) || 'Tidak dapat mengambil data rekap bulan ini.', 'error');
+                return;
+            }
+            const data = r.data || {};
+            const students = (data.students || []).map(s => ({
+                nama: s.nama,
+                kelas: getKelas(s) || '',
+                codes: (s.dailyCodes || []).map(d => d.code).join(''),
+                stats: s.stats || { h: 0, s: 0, i: 0, a: 0, percent: 0 }
+            }));
+            const rec = {
+                id: 'ab_' + Date.now(),
+                bulan: bulan, tahun: tahun,
+                kelas: kelas, kelasText: kelasText,
+                daysInMonth: data.daysInMonth || 31,
+                tanggalTutup: new Date().toISOString(),
+                oleh: currentUser ? (currentUser.nama || currentUser.username || '-') : '-',
+                jmlSiswa: students.length,
+                students: students
+            };
+            const list = getArsipBulananList();
+            const dup = list.findIndex(a => a.bulan === bulan && a.tahun === tahun && (a.kelas || '') === kelas);
+            if (dup >= 0) list.splice(dup, 1); // arsip baru menggantikan arsip lama utk kombinasi yang sama
+            list.unshift(rec);
+            if (!saveArsipBulananList(list)) {
+                Swal.fire('Gagal', 'Penyimpanan arsip di perangkat ini penuh. Hapus arsip lama lewat panel Arsip lalu coba lagi.', 'error');
+                return;
+            }
+            exportArsipBulananExcel(rec.id, true);
+            renderArsipBulananPanel();
+            checkBulanDitutup();
+            Swal.fire({
+                icon: 'success',
+                title: 'Bulan Ditutup!',
+                html: `<p class="text-sm text-gray-500">${NAMA_BULAN_ID[bulan]} ${tahun} (${kelasText}) tersimpan di arsip.<br><b>${students.length}</b> siswa diarsipkan &amp; file Excel diunduh.</p>`,
+                timer: 2800, showConfirmButton: false
+            });
+        }).catch(err => {
+            hideLoading();
+            Swal.fire('Error Server', err.message || String(err), 'error');
+        });
+    });
+}
+
+function toggleArsipBulananPanel() {
+    const p = document.getElementById('arsipBulananPanel');
+    if (!p) return;
+    p.classList.toggle('hidden');
+    if (!p.classList.contains('hidden')) renderArsipBulananPanel();
+}
+
+function renderArsipBulananPanel() {
+    const wrap = document.getElementById('arsipBulananList');
+    if (!wrap) return;
+    const list = getArsipBulananList();
+    if (!list.length) {
+        wrap.innerHTML = '<p class="text-xs text-gray-400 italic">Belum ada bulan yang ditutup. Klik tombol "Tutup Bulan" untuk mengarsipkan rekap bulan terpilih.</p>';
+        return;
+    }
+    wrap.innerHTML = list.map(a => `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white rounded-lg border border-gray-200 px-3 py-2">
+            <div class="min-w-0">
+                <div class="text-xs font-bold text-gray-700 truncate"><i class="fas fa-calendar-check text-amber-500 mr-1"></i> ${NAMA_BULAN_ID[a.bulan]} ${a.tahun} &mdash; ${a.kelasText}</div>
+                <div class="text-[10px] text-gray-400">${a.jmlSiswa} siswa &bull; Ditutup ${new Date(a.tanggalTutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} oleh ${a.oleh}</div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <button onclick="exportArsipBulananExcel('${a.id}')" class="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg hover:bg-emerald-700 transition"><i class="fas fa-file-excel mr-1"></i> Excel</button>
+                <button onclick="hapusArsipBulanan('${a.id}')" class="text-[10px] font-bold bg-white text-rose-600 border border-rose-200 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 transition"><i class="fas fa-trash-alt mr-1"></i> Hapus</button>
+            </div>
+        </div>`).join('');
+}
+
+function exportArsipBulananExcel(id, silent) {
+    const a = getArsipBulananList().find(x => x.id === id);
+    if (!a) { if (!silent) showAlert('error', 'Arsip tidak ditemukan.'); return; }
+    if (typeof XLSX === 'undefined') { if (!silent) showAlert('error', 'Pustaka Excel belum termuat.'); return; }
+
+    const head = ['No', 'Nama Siswa'];
+    for (let d = 1; d <= a.daysInMonth; d++) head.push(String(d));
+    head.push('H', 'S', 'I', 'A', '%');
+
+    const buildRow = (s, no) => {
+        const row = [no, s.nama];
+        const codes = String(s.codes || '');
+        for (let d = 0; d < a.daysInMonth; d++) row.push(codes.charAt(d) || '');
+        const st = s.stats || {};
+        row.push(st.h || 0, st.s || 0, st.i || 0, st.a || 0, (st.percent || 0) + '%');
+        return row;
+    };
+
+    const aoa = [
+        [`ARSIP REKAP BULANAN — ${NAMA_BULAN_ID[a.bulan]} ${a.tahun} — ${a.kelasText}`],
+        [`Ditutup: ${new Date(a.tanggalTutup).toLocaleString('id-ID')} oleh ${a.oleh} • ${a.jmlSiswa} siswa`],
+        head
+    ];
+    const merges = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: head.length - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: head.length - 1 } }
+    ];
+
+    if (!a.kelas) {
+        const groups = {};
+        a.students.forEach(s => { const k = s.kelas || 'Tanpa Kelas'; (groups[k] = groups[k] || []).push(s); });
+        Object.keys(groups).sort(compareKelasNatural).forEach(k => {
+            const rIdx = aoa.length;
+            const rowArr = new Array(head.length).fill('');
+            rowArr[0] = '>> Kelas ' + k;
+            aoa.push(rowArr);
+            merges.push({ s: { r: rIdx, c: 0 }, e: { r: rIdx, c: head.length - 1 } });
+            groups[k].forEach((s, i) => aoa.push(buildRow(s, i + 1)));
+        });
+    } else {
+        a.students.forEach((s, i) => aoa.push(buildRow(s, i + 1)));
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!merges'] = merges;
+    ws['!cols'] = head.map((h, i) => i === 0 ? { wch: 5 } : (i === 1 ? { wch: 28 } : { wch: 4 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Arsip Bulanan');
+    const fileKelas = String(a.kelasText || 'Semua_Kelas').replace(/\s+/g, '_');
+    XLSX.writeFile(wb, `Arsip_Rekap_${fileKelas}_${NAMA_BULAN_ID[a.bulan]}_${a.tahun}.xlsx`);
+    if (!silent) showAlert('success', 'File arsip Excel berhasil diunduh.');
+}
+
+function hapusArsipBulanan(id) {
+    const a = getArsipBulananList().find(x => x.id === id);
+    if (!a) return;
+    Swal.fire({
+        title: 'Hapus Arsip Ini?',
+        html: `<p class="text-sm text-gray-500">Arsip <b>${NAMA_BULAN_ID[a.bulan]} ${a.tahun} (${a.kelasText})</b> akan dihapus permanen dari perangkat ini.</p>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+    }).then(res => {
+        if (!res.isConfirmed) return;
+        saveArsipBulananList(getArsipBulananList().filter(x => x.id !== id));
+        renderArsipBulananPanel();
+        checkBulanDitutup();
+        showAlert('success', 'Arsip dihapus.');
+    });
+}
+
+function checkBulanDitutup() {
+    const badge = document.getElementById('rekapClosedBadge');
+    const bulanEl = document.getElementById('rekapBulan');
+    const tahunEl = document.getElementById('rekapTahun');
+    const kelasEl = document.getElementById('rekapKelas');
+    if (!badge || !bulanEl || !tahunEl) return;
+    const bulan = parseInt(bulanEl.value, 10);
+    const tahun = parseInt(tahunEl.value, 10);
+    const kelas = kelasEl ? (kelasEl.value || '') : '';
+    const found = getArsipBulananList().find(a => a.bulan === bulan && a.tahun === tahun && (a.kelas || '') === kelas);
+    if (found) {
+        const t = document.getElementById('rekapClosedBadgeText');
+        if (t) t.textContent = `Rekap ${NAMA_BULAN_ID[bulan]} ${tahun} (${found.kelasText}) sudah DITUTUP pada ${new Date(found.tanggalTutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} oleh ${found.oleh}.`;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
 }
 
 function exportRekapBulananExcel() {
