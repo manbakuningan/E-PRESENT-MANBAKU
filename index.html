@@ -31,15 +31,21 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="./assets/icons/icon-512.png">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.tailwindcss.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://cdn.sheetjs.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+  <script defer src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <script defer src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <script>
@@ -260,11 +266,6 @@
         border-radius: 10px;
       }
     
-      /* Mode toggle (Masuk/Pulang) tetap 2 kolom tapi teks & badge diperkecil */
-      .dh-mode-btn { padding: 9px 6px; font-size: 11px; }
-      .dh-mode-btn .dh-btn-icon { width: 22px; height: 22px; font-size: 11px; }
-      .dh-mode-btn .dh-btn-badge { font-size: 8px; padding: 1px 4px; }
-      .dh-mode-btn .dh-btn-text { display: none; } /* sembunyikan teks panjang, sisakan icon+badge */
     
       /* Tabel siswa: font kecil, padding rapat, scroll horizontal aman */
       #view-daftar-hadir-guru .overflow-y-auto { max-height: 55vh !important; }
@@ -280,8 +281,6 @@
         padding: 4px 6px;
       }
     
-      /* Header tabel Pulang: kolom jam datang/pulang cukup sempit tanpa wrap aneh */
-      #dhTheadPulang th { font-size: 9px; white-space: normal; }
     
       /* Kartu scanner: tombol kamera & input manual full width, touch-friendly */
       #dhScanCard button { min-height: 44px; }
@@ -313,9 +312,6 @@
     }
     
     @media (max-width: 380px) {
-      /* HP sangat kecil: perkecil lagi badge & font mode toggle */
-      .dh-mode-btn { padding: 7px 4px; }
-      .dh-mode-btn .dh-btn-badge { display: none; }
       #view-daftar-hadir-guru table { font-size: 10px; }
     }
   </style>
@@ -368,7 +364,7 @@
         
         <div class="w-full lg:w-5/12 relative p-10 flex flex-col justify-between text-white overflow-hidden group">
             <div class="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105" 
-                 style="background-image: url('https://images-cdn.ubuy.co.id/6939922fd2ec0c2b7d0ae164-baocicco-10x6-5ft-back-to-school-theme.jpg');"></div>
+                 style="background-image: linear-gradient(135deg, #1e293b 0%, #1e40af 55%, #0e7490 100%);"></div>
             
             <div class="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/70 to-slate-900/40"></div>
             
@@ -687,95 +683,6 @@
   <!-- Header Filter -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
 
-    <!-- ══ MODE TOGGLE ══ -->
-    <style>
-      .dh-mode-wrap {
-        position: relative;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        background: #f1f5f9;
-        border-radius: 16px;
-        padding: 5px;
-        margin-bottom: 18px;
-        gap: 0;
-        box-shadow: inset 0 2px 6px rgba(0,0,0,0.07);
-      }
-      .dh-mode-slider {
-        position: absolute;
-        top: 5px; bottom: 5px;
-        width: calc(50% - 5px);
-        border-radius: 12px;
-        transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1), background 0.32s ease, box-shadow 0.32s ease;
-        z-index: 1;
-        pointer-events: none;
-      }
-      .dh-mode-slider.masuk {
-        background: linear-gradient(135deg, #4f46e5, #6366f1);
-        box-shadow: 0 4px 16px rgba(79,70,229,0.35), 0 1px 3px rgba(0,0,0,0.12);
-        transform: translateX(0);
-      }
-      .dh-mode-slider.pulang {
-        background: linear-gradient(135deg, #ea580c, #f97316);
-        box-shadow: 0 4px 16px rgba(234,88,12,0.35), 0 1px 3px rgba(0,0,0,0.12);
-        transform: translateX(calc(100% + 5px));
-      }
-      .dh-mode-btn {
-        position: relative;
-        z-index: 2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 11px 16px;
-        border-radius: 12px;
-        border: none;
-        background: transparent;
-        font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: color 0.25s ease;
-        letter-spacing: 0.2px;
-        user-select: none;
-      }
-      .dh-mode-btn.active { color: #fff; }
-      .dh-mode-btn.inactive { color: #94a3b8; }
-      .dh-mode-btn:hover.inactive { color: #64748b; }
-      .dh-mode-btn .dh-btn-icon {
-        width: 28px; height: 28px;
-        border-radius: 8px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 13px;
-        transition: background 0.25s ease;
-        flex-shrink: 0;
-      }
-      .dh-mode-btn.active .dh-btn-icon { background: rgba(255,255,255,0.2); }
-      .dh-mode-btn.inactive .dh-btn-icon { background: #e2e8f0; }
-      .dh-mode-btn .dh-btn-badge {
-        font-size: 9px;
-        font-weight: 800;
-        padding: 2px 6px;
-        border-radius: 6px;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        transition: background 0.25s, color 0.25s;
-      }
-      .dh-mode-btn.active .dh-btn-badge { background: rgba(255,255,255,0.25); color: #fff; }
-      .dh-mode-btn.inactive .dh-btn-badge { background: #e2e8f0; color: #94a3b8; }
-    </style>
-
-    <div class="dh-mode-wrap">
-      <div class="dh-mode-slider masuk" id="dhModeSlider"></div>
-      <button id="dhModeMasukBtn" onclick="dhSetMode('masuk')" class="dh-mode-btn active">
-        <span class="dh-btn-icon"><i class="fas fa-sign-in-alt"></i></span>
-        <span class="dh-btn-text">Absen Masuk</span>
-        <span class="dh-btn-badge" id="dhBadgeMasuk">DATANG</span>
-      </button>
-      <button id="dhModePulangBtn" onclick="dhSetMode('pulang')" class="dh-mode-btn inactive">
-        <span class="dh-btn-icon"><i class="fas fa-sign-out-alt"></i></span>
-        <span class="dh-btn-text">Absen Pulang</span>
-        <span class="dh-btn-badge" id="dhBadgePulang">PULANG</span>
-      </button>
-    </div>
     <div class="flex flex-col md:flex-row gap-3 items-end">
       <div class="flex-1">
         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pilih Kelas</label>
@@ -823,13 +730,6 @@
               <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase w-8">#</th>
               <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Siswa</th>
               <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">Status</th>
-            </tr>
-            <tr class="bg-orange-50 border-b border-orange-100 hidden" id="dhTheadPulang">
-              <th class="px-3 py-3 text-center text-[10px] font-bold text-gray-400 uppercase w-8">#</th>
-              <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Siswa</th>
-              <th class="px-3 py-3 text-center text-[10px] font-bold text-orange-400 uppercase">Jam Datang</th>
-              <th class="px-3 py-3 text-center text-[10px] font-bold text-orange-400 uppercase">Jam Pulang</th>
-              <th class="px-3 py-3 text-center text-[10px] font-bold text-orange-400 uppercase">Tandai Pulang</th>
             </tr>
           </thead>
           <tbody id="dhSiswaTbody">
@@ -910,9 +810,9 @@
   <div class="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
     <div class="text-xs text-gray-500 flex items-center gap-2">
       <i class="fas fa-info-circle text-indigo-400"></i>
-      <span>Tombol ini hanya berlaku untuk absensi yang diisi <b>manual</b> (klik status per siswa / centang Tandai Pulang). Absensi hasil <b>scan QR / input NISN cepat</b> langsung tersimpan otomatis ke server.</span>
+      <span>Tombol ini hanya berlaku untuk absensi yang diisi <b>manual</b> (klik status per siswa). Absensi hasil <b>scan QR / input NISN cepat</b> langsung tersimpan otomatis ke server.</span>
     </div>
-    <button onclick="dhHandleSubmit()" id="dhSubmitBtn" disabled
+    <button onclick="submitDaftarHadir()" id="dhSubmitBtn" disabled
       style="background-color:#e5e7eb; color:#9ca3af; cursor:not-allowed;"
       class="px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0">
         <i class="fas fa-paper-plane"></i> <span id="dhSubmitLabel">Kirim Absensi</span>
@@ -950,20 +850,13 @@
                                         Memuat...
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div class="grid grid-cols-1 gap-4 mt-4">
                                     <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
                                         <div class="flex items-center gap-2 mb-2 text-slate-300">
                                             <i class="fas fa-sign-in-alt text-xs"></i>
                                             <span class="text-[10px] uppercase font-bold tracking-wider">Jam Datang</span>
                                         </div>
                                         <div id="valMasuk" class="font-mono text-2xl font-bold tracking-tight">--:--</div>
-                                    </div>
-                                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-                                        <div class="flex items-center gap-2 mb-2 text-slate-300">
-                                            <i class="fas fa-sign-out-alt text-xs"></i>
-                                            <span class="text-[10px] uppercase font-bold tracking-wider">Jam Pulang</span>
-                                        </div>
-                                        <div id="valPulang" class="font-mono text-2xl font-bold tracking-tight">--:--</div>
                                     </div>
                                 </div>
                             </div>
@@ -1501,7 +1394,6 @@
                       <th class="p-4">Siswa</th>
                       <th class="p-4 text-center">Kelas</th>
                       <th class="p-4 text-center">Jam Datang</th>
-                      <th class="p-4 text-center">Jam Pulang</th>
                       <th class="p-4 text-center">Keterangan Waktu</th>
                       <th class="p-4 text-center">Status Kehadiran</th>
                   </tr>
@@ -1782,7 +1674,6 @@
                           <th class="p-4">Nama Siswa</th>
                           <th class="p-4 text-center">Kelas</th>
                           <th class="p-4 text-center">Jam Datang</th>
-                          <th class="p-4 text-center">Jam Pulang</th>
                           
                           <th class="p-4 text-center">Keterangan Waktu</th>
                           
@@ -2918,65 +2809,13 @@ function loadAdminDashboard() {
 // ============================================================
 let dhStudents      = [];   // [{nisn, nama, kelas}] list siswa aktif
 let dhStatusMap     = {};   // {nisn: 'hadir'|'sakit'|'izin'|'alpa'}
-let dhMode          = 'masuk'; // 'masuk' | 'pulang'
-let dhPulangMap     = {}; // { nisn: { rowIndex, jamDatang, jamPulang, checked } }
 let dhLockedMap     = {}; // { nisn: status } — sudah absen, tidak bisa diubah
-
-// -- Set mode Masuk / Pulang --
-function dhSetMode(mode) {
-    dhMode = mode;
-    const btnMasuk  = document.getElementById('dhModeMasukBtn');
-    const btnPulang = document.getElementById('dhModePulangBtn');
-    const slider    = document.getElementById('dhModeSlider');
-    const hMasuk    = document.getElementById('dhTheadMasuk');
-    const hPulang   = document.getElementById('dhTheadPulang');
-    const counterLbl= document.getElementById('dhCounterLabel');
-    const submitLbl = document.getElementById('dhSubmitLabel');
-    const header    = document.getElementById('dhScanCardHeader');
-    const camBtn    = document.getElementById('dhCamBtn');
-    const title     = document.getElementById('dhScanCardTitle');
-    const sub       = document.getElementById('dhScanCardSub');
-    const pollTxt   = document.getElementById('dhPollingText');
-
-    if (mode === 'masuk') {
-        // Slider
-        if (slider) { slider.className = 'dh-mode-slider masuk'; }
-        if (btnMasuk)  { btnMasuk.className  = 'dh-mode-btn active'; }
-        if (btnPulang) { btnPulang.className = 'dh-mode-btn inactive'; }
-        hMasuk.classList.remove('hidden'); hPulang.classList.add('hidden');
-        if (counterLbl) counterLbl.textContent = 'Terisi:';
-        if (submitLbl)  submitLbl.textContent  = 'Kirim Absensi';
-        if (header) header.className = 'bg-gradient-to-r from-purple-600 to-indigo-600 p-4 text-white text-center';
-        if (camBtn) { camBtn.className = 'w-full bg-purple-600 hover:bg-purple-700 active:scale-95 text-white py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-md'; camBtn.innerHTML = '<i class="fas fa-camera text-base"></i> Buka Kamera Live'; }
-        if (title) title.textContent = 'Scan QR Siswa';
-        if (sub)   sub.textContent   = 'Scan langsung tandai Hadir';
-        if (pollTxt) pollTxt.textContent = 'Kamera aktif — menunggu QR...';
-    } else {
-        // Slider
-        if (slider) { slider.className = 'dh-mode-slider pulang'; }
-        if (btnPulang) { btnPulang.className = 'dh-mode-btn active'; }
-        if (btnMasuk)  { btnMasuk.className  = 'dh-mode-btn inactive'; }
-        hPulang.classList.remove('hidden'); hMasuk.classList.add('hidden');
-        if (counterLbl) counterLbl.textContent = 'Dipilih:';
-        if (submitLbl)  submitLbl.textContent  = 'Catat Pulang';
-        if (header) header.className = 'bg-gradient-to-r from-orange-500 to-amber-500 p-4 text-white text-center';
-        if (camBtn) { camBtn.className = 'w-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-md'; camBtn.innerHTML = '<i class="fas fa-camera text-base"></i> Buka Kamera Pulang'; }
-        if (title) title.textContent = 'Scan QR Pulang';
-        if (sub)   sub.textContent   = 'Scan langsung catat Jam Pulang';
-        if (pollTxt) pollTxt.textContent = 'Kamera aktif — scan QR untuk pulang...';
-    }
-    onDhKelasChange();
-}
 
 // -- Buka halaman --
 function loadDaftarHadirGuru() {
     dhStopPopup();
-    dhMode = 'masuk';
     setActiveMenu('Daftar Hadir');
     showView('view-daftar-hadir-guru');
-
-    // Reset mode toggle tampilan
-    dhSetMode('masuk');
 
     // Isi tanggal hari ini
     const today = new Date().toISOString().split('T')[0];
@@ -3030,35 +2869,14 @@ function onDhKelasChange() {
 
     dhStudents  = [];
     dhStatusMap = {};
-    dhPulangMap = {};
     dhLockedMap = {};
     document.getElementById('dhCounter').textContent = '0 / 0';
     document.getElementById('dhSubmittedBanner').classList.add('hidden');
     dhUpdateSubmitBtn();
 
-    const colspan = dhMode === 'pulang' ? 5 : 3;
+    const colspan = 3;
     const tbody = document.getElementById('dhSiswaTbody');
     tbody.innerHTML = `<tr><td colspan="${colspan}" class="py-8 text-center text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat siswa...</td></tr>`;
-
-    if (dhMode === 'pulang') {
-        // Mode pulang: ambil detail datang+pulang langsung
-        if (!tanggal) { tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-gray-400">Pilih tanggal.</td></tr>`; return; }
-        callGAS('getSiswaByKelas', kelas).then(result => {
-                dhStudents = result || [];
-                callGAS('getDaftarHadirDetailByKelasAndTanggal', kelas, tanggal).then(res => {
-                        dhPulangMap = {};
-                        if (res.success && res.data) {
-                            Object.entries(res.data).forEach(([nisn, d]) => {
-                                dhPulangMap[nisn] = { ...d, checked: false };
-                            });
-                        }
-                        dhRenderPulangTable();
-                    }).catch(() => dhRenderPulangTable());
-            }).catch(() => {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-400">Gagal memuat data siswa.</td></tr>`;
-            });
-        return;
-    }
 
     // Mode masuk (default)
     callGAS('getSiswaByKelas', kelas).then(result => {
@@ -3178,35 +2996,13 @@ function dhSetStatus(nisn, status) {
 
 // -- Tandai semua hadir --
 function dhTandaiSemua() {
-    if (dhMode === 'pulang') {
-        // Centang semua siswa yang sudah datang tapi belum pulang
-        let count = 0;
-        dhStudents.forEach(s => {
-            const d = dhPulangMap[s.nisn];
-            const sudahDatang = d && d.status === 'hadir' && d.jamDatang;
-            const sudahPulang = d && d.jamPulang && d.jamPulang.trim() !== '';
-            if (sudahDatang && !sudahPulang) {
-                dhPulangMap[s.nisn].checked = true;
-                count++;
-            }
-        });
-        dhRenderPulangTable();
-        if (count === 0) showAlert('error', 'Tidak ada siswa yang bisa ditandai pulang.');
-    } else {
-        // Tandai semua yang belum terkunci (belum absen)
-        dhStudents.forEach(s => { if (!dhLockedMap[s.nisn]) dhStatusMap[s.nisn] = 'hadir'; });
-        dhRenderStudentTable();
-    }
+    // Tandai semua yang belum terkunci (belum absen)
+    dhStudents.forEach(s => { if (!dhLockedMap[s.nisn]) dhStatusMap[s.nisn] = 'hadir'; });
+    dhRenderStudentTable();
 }
 
 // -- Update counter & tombol kirim --
 function dhUpdateCounter() {
-    if (dhMode === 'pulang') {
-        const checked = Object.values(dhPulangMap).filter(d => d.checked).length;
-        document.getElementById('dhCounter').textContent = checked + ' dipilih';
-        dhUpdateSubmitBtn();
-        return;
-    }
     const total   = dhStudents.length;
     const locked  = Object.keys(dhLockedMap).filter(k => dhStudents.find(s => s.nisn === k)).length;
     const filled  = Object.keys(dhStatusMap).filter(k => dhStudents.find(s => s.nisn === k) && !dhLockedMap[k]).length;
@@ -3217,12 +3013,7 @@ function dhUpdateCounter() {
 
 function dhUpdateSubmitBtn() {
     const btn = document.getElementById('dhSubmitBtn');
-    let enabled = false;
-    if (dhMode === 'pulang') {
-        enabled = Object.values(dhPulangMap).some(d => d.checked);
-    } else {
-        enabled = Object.keys(dhStatusMap).filter(k => dhStudents.find(s => s.nisn === k) && !dhLockedMap[k]).length > 0;
-    }
+    const enabled = Object.keys(dhStatusMap).filter(k => dhStudents.find(s => s.nisn === k) && !dhLockedMap[k]).length > 0;
 
     btn.disabled = !enabled;
     btn.className = 'px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0';
@@ -3238,114 +3029,6 @@ function dhUpdateSubmitBtn() {
         btn.style.cursor = 'not-allowed';
         btn.style.opacity = '1';
     }
-}
-
-// -- Render tabel pulang --
-function dhRenderPulangTable() {
-    const tbody = document.getElementById('dhSiswaTbody');
-    if (!dhStudents || dhStudents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="py-12 text-center text-gray-400"><i class="fas fa-user-slash mr-2"></i>Tidak ada siswa di kelas ini.</td></tr>';
-        return;
-    }
-    tbody.innerHTML = dhStudents.map((s, i) => {
-        const d = dhPulangMap[s.nisn];
-        const sudahDatang  = d && d.status === 'hadir' && d.jamDatang;
-        const sudahPulang  = d && d.jamPulang && d.jamPulang.trim() !== '';
-        const checked      = d && d.checked;
-        const jamDatangTxt = d && d.jamDatang ? d.jamDatang : '-';
-        const jamPulangTxt = sudahPulang ? d.jamPulang : '-';
-        const rowBg        = sudahPulang ? 'bg-green-50' : (sudahDatang ? 'bg-orange-50' : '');
-        const isSemua = document.getElementById('dhKelasSelect').value === 'SEMUA';
-        return `
-        <tr id="dhp-row-${s.nisn}" class="${rowBg} border-b border-gray-50 transition-colors duration-300">
-          <td class="px-3 py-3 text-center text-xs text-gray-400">${i+1}</td>
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-full ${sudahPulang ? 'bg-green-500' : sudahDatang ? 'bg-orange-400' : 'bg-gray-200'} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                ${s.nama.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div class="font-semibold text-sm text-gray-800">${s.nama}</div>
-                <div class="text-[10px] text-gray-400 font-mono">${s.nisn}${isSemua ? ` <span class="ml-1 bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-bold">${s.kelas}</span>` : ''}</div>
-              </div>
-            </div>
-          </td>
-          <td class="px-3 py-3 text-center text-xs font-bold ${sudahDatang ? 'text-indigo-600' : 'text-gray-300'}">${jamDatangTxt}</td>
-          <td class="px-3 py-3 text-center text-xs font-bold ${sudahPulang ? 'text-green-600' : 'text-gray-300'}">${jamPulangTxt}</td>
-          <td class="px-3 py-3 text-center">
-            ${sudahPulang
-              ? '<span class="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-1 rounded-lg"><i class="fas fa-check mr-1"></i>Sudah Pulang</span>'
-              : sudahDatang
-                ? `<label class="flex items-center justify-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" ${checked ? 'checked' : ''} onchange="dhTogglePulang('${s.nisn}', this.checked)"
-                      class="w-4 h-4 accent-orange-500 cursor-pointer">
-                    <span class="text-xs font-bold text-gray-600">Tandai Pulang</span>
-                  </label>`
-                : '<span class="text-[10px] text-gray-300 italic">Belum Absen Masuk</span>'
-            }
-          </td>
-        </tr>`;
-    }).join('');
-    dhUpdateCounter();
-}
-
-function dhTogglePulang(nisn, checked) {
-    if (dhPulangMap[nisn]) {
-        dhPulangMap[nisn].checked = checked;
-    } else {
-        dhPulangMap[nisn] = { checked };
-    }
-    dhUpdateCounter();
-}
-
-// -- Dispatch submit sesuai mode --
-function dhHandleSubmit() {
-    if (dhMode === 'pulang') {
-        submitPulang();
-    } else {
-        submitDaftarHadir();
-    }
-}
-
-// -- Kirim pulang ke server --
-function submitPulang() {
-    const kelas   = document.getElementById('dhKelasSelect').value;
-    const tanggal = document.getElementById('dhTanggal').value;
-    if (!kelas || !tanggal) { showAlert('error', 'Pilih kelas dan tanggal.'); return; }
-
-    const pulangList = Object.entries(dhPulangMap)
-        .filter(([, d]) => d.checked && d.rowIndex)
-        .map(([nisn, d]) => ({ nisn, rowIndex: d.rowIndex }));
-
-    if (pulangList.length === 0) { showAlert('error', 'Belum ada siswa yang dipilih untuk pulang.'); return; }
-
-    const kelasLabelPulang = kelas === 'SEMUA' ? 'Semua Kelas' : kelas;
-    Swal.fire({
-        title: 'Catat Pulang?',
-        html: `<p class="text-gray-500 text-sm">Kelas: <b>${kelasLabelPulang}</b> &bull; Tanggal: <b>${tanggal}</b></p>
-               <p class="mt-2 text-sm"><b>${pulangList.length}</b> siswa akan dicatat pulang sekarang.</p>`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#f97316',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: '&#10003; Ya, Catat',
-        cancelButtonText: 'Batal'
-    }).then(res => {
-        if (!res.isConfirmed) return;
-        showLoading();
-        callGAS('submitPulangGuru', pulangList, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru').then(result => {
-                hideLoading();
-                if (result.success) {
-                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: result.message, timer: 2000, showConfirmButton: false });
-                    onDhKelasChange(); // refresh
-                } else {
-                    Swal.fire('Gagal', result.message, 'error');
-                }
-            }).catch(err => {
-                hideLoading();
-                Swal.fire('Error', String(err), 'error');
-            });
-    });
 }
 
 // -- Kirim ke server --
@@ -3474,7 +3157,7 @@ function dhOpenCameraPopup() {
         return;
     }
     openInlineScanner({
-        title: dhMode === 'pulang' ? '&#128247; SCAN QR PULANG' : '&#128247; SCAN QR — DAFTAR HADIR',
+        title: '&#128247; SCAN QR — DAFTAR HADIR',
         onDetect: (text) => { dhOnScanResult(String(text).replace(/[^a-zA-Z0-9]/g,'').trim()); }
     });
 }
@@ -3553,12 +3236,6 @@ function dhOnScanResult(rawNisn) {
         return;
     }
 
-    // ── Mode Pulang ──
-    if (dhMode === 'pulang') {
-        dhOnPulangResult(nisn, siswa.nama);
-        return;
-    }
-
     // ── Mode Masuk ──
     if (dhLockedMap[nisn]) {
         dhPlayBeep('success');
@@ -3590,107 +3267,6 @@ const kelasSiswaScan = siswa.kelas || document.getElementById('dhKelasSelect').v
 dhQueueScanForBatch({ nisn: siswa.nisn, nama: siswa.nama, kelas: kelasSiswaScan, status: 'hadir' });
     const row = document.getElementById('dh-row-' + nisn);
     if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// -- Handler scan pulang (OPTIMISTIC: feedback instan, kirim ke server di background) --
-function dhOnPulangResult(nisn, nama) {
-    const notif  = document.getElementById('dhScanNotif');
-    const kelasDropdown = document.getElementById('dhKelasSelect').value;
-    const tanggal = document.getElementById('dhTanggal').value;
-
-    if (!kelasDropdown || !tanggal) {
-        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-yellow-50 text-yellow-700 border border-yellow-100';
-        notif.textContent = '⚠️ Pilih kelas dan tanggal terlebih dahulu';
-        notif.classList.remove('hidden');
-        setTimeout(() => notif.classList.add('hidden'), 2500);
-        return;
-    }
-
-    // Gunakan kelas aktual siswa jika mode Semua Kelas
-    const siswaData = dhStudents.find(s => s.nisn === nisn);
-    const kelas = (kelasDropdown === 'SEMUA' && siswaData) ? siswaData.kelas : kelasDropdown;
-
-    const d = dhPulangMap[nisn];
-
-    // 1. Cek dulu di data lokal — kalau sudah pulang, langsung kasih tahu tanpa hit server
-    if (d && d.jamPulang && d.jamPulang.trim()) {
-        dhPlayBeep('success');
-        showBigScanPopup({ type: 'success', nama: nama, mode: 'pulang', id: nisn, customMsg: 'Sudah pulang (' + d.jamPulang + ')' });
-        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-        notif.textContent = '✅ ' + (nama || nisn) + ' — sudah tercatat pulang (' + d.jamPulang + ')';
-        notif.classList.remove('hidden');
-        setTimeout(() => notif.classList.add('hidden'), 2500);
-        return;
-    }
-
-    // 2. Belum pulang di data lokal → cek juga apakah sudah datang (wajib sebelum bisa pulang)
-    const sudahDatang = d && d.status === 'hadir' && d.jamDatang;
-    if (!sudahDatang) {
-        dhPlayBeep('error');
-        showBigScanPopup({ type: 'error', nama: nama, customMsg: 'Belum absen masuk hari ini' });
-        notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-red-50 text-red-600 border border-red-100';
-        notif.textContent = '❌ ' + (nama || nisn) + ' — belum absen masuk hari ini';
-        notif.classList.remove('hidden');
-        setTimeout(() => notif.classList.add('hidden'), 3000);
-        return;
-    }
-
-    // 3. OPTIMISTIC UPDATE — langsung tampilkan sukses pakai jam lokal, tanpa menunggu server
-    const now = new Date();
-    const jamLokal = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-    dhPulangMap[nisn] = {
-        ...(dhPulangMap[nisn] || {}),
-        jamPulang: jamLokal,
-        checked: false,
-        _pending: true // tandai belum terkonfirmasi server
-    };
-    dhRenderPulangTable();
-
-    dhPlayBeep('success');
-    showBigScanPopup({ type: 'success', nama: nama, mode: 'pulang' });
-    notif.className = 'rounded-xl p-3 text-sm font-semibold text-center bg-emerald-50 text-emerald-700 border border-emerald-100';
-    notif.textContent = '✅ ' + nama + ' pulang — ' + jamLokal;
-    notif.classList.remove('hidden');
-    setTimeout(() => notif.classList.add('hidden'), 2000);
-
-    if (dhCameraPopup && !dhCameraPopup.closed) {
-        try { dhCameraPopup.postMessage({ type: 'DH_SCAN_SUCCESS', nama: nama + ' pulang' }, '*'); } catch (e) {}
-    }
-
-    // 4. Kirim ke server DI BELAKANG LAYAR — tidak memblokir scan berikutnya
-    callGASOffline('submitPulangSatu', nisn, kelas, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru')
-        .then(res => {
-            if (res.offline) {
-                // Tetap tersimpan optimis, akan disinkronkan otomatis nanti
-                if (dhPulangMap[nisn]) dhPulangMap[nisn]._pending = true;
-                return;
-            }
-            if (res.success) {
-                // Konfirmasi dari server — samakan jam persis dengan catatan server
-                if (dhPulangMap[nisn]) {
-                    dhPulangMap[nisn].jamPulang = res.jamPulang;
-                    dhPulangMap[nisn]._pending = false;
-                }
-                dhRenderPulangTable();
-            } else {
-                // Gagal karena alasan lain (bukan offline) — beri tahu & batalkan optimistic update
-                if (dhPulangMap[nisn]) {
-                    delete dhPulangMap[nisn].jamPulang;
-                    dhPulangMap[nisn]._pending = false;
-                }
-                dhRenderPulangTable();
-                showAlert('error', (nama || nisn) + ': ' + res.message);
-                if (dhCameraPopup && !dhCameraPopup.closed) {
-                    try { dhCameraPopup.postMessage({ type: 'DH_SCAN_ERROR', message: res.message }, '*'); } catch (e) {}
-                }
-            }
-        })
-        .catch(err => {
-            // Error jaringan tak terduga — callGASOffline seharusnya sudah menangani ini,
-            // tapi tetap jaga-jaga: biarkan data optimistic tersimpan agar tidak hilang
-            console.warn('[dhOnPulangResult] unexpected error:', err);
-        });
 }
 
 // -- Input NISN Manual --
@@ -3794,7 +3370,6 @@ function loadGuruDashboard() {
                 const elHero = document.getElementById('heroCard');
                 const elBadge = document.getElementById('dashStatusBadge');
                 const elValMasuk = document.getElementById('valMasuk');
-                const elValPulang = document.getElementById('valPulang');
                 const elAlert = document.getElementById('alertBelumAbsen');
 
                 // 1. MODE HARI LIBUR
@@ -3814,8 +3389,6 @@ function loadGuruDashboard() {
                                 <p class="text-[10px] mt-1 opacity-75">Tidak ada absensi hari ini</p>
                             </div>
                         `;
-                        if(elValPulang) elValPulang.parentElement.style.display = 'none';
-                        if(elValMasuk) elValMasuk.parentElement.classList.add('col-span-2');
                     }
 
                     if (elAlert) { elAlert.classList.add('hidden'); elAlert.classList.remove('flex'); }
@@ -3832,7 +3405,6 @@ function loadGuruDashboard() {
                         elBadge.innerHTML = `<i class="fas fa-circle text-[8px] mr-2"></i> BELUM ABSEN`;
                     }
                     if (elValMasuk) elValMasuk.textContent = "--:--";
-                    if (elValPulang) elValPulang.textContent = "--:--";
                     if (elAlert) { elAlert.classList.remove('hidden'); elAlert.classList.add('flex'); }
                 } else if (absensi.status === 'Alpa') {
                     if (elHero) elHero.className = "relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-700 to-red-900 p-6 text-white shadow-xl shadow-rose-200 transition-all duration-500 group";
@@ -3841,26 +3413,15 @@ function loadGuruDashboard() {
                         elBadge.innerHTML = `<i class="fas fa-times-circle mr-2"></i> ALPA HARI INI`;
                     }
                     if (elValMasuk) elValMasuk.textContent = "--:--";
-                    if (elValPulang) elValPulang.textContent = "--:--";
                     if (elAlert) { elAlert.classList.add('hidden'); elAlert.classList.remove('flex'); }
                 } else {
                     if (elAlert) { elAlert.classList.add('hidden'); elAlert.classList.remove('flex'); }
                     if (elValMasuk) elValMasuk.textContent = absensi.jamDatang || "--:--";
                     
-                    if (!absensi.jamPulang) {
-                        if (elHero) elHero.className = "relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 p-6 text-white shadow-xl shadow-emerald-200 transition-all duration-500 group";
-                        if (elBadge) {
-                            elBadge.className = "px-4 py-2 rounded-xl bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-sm";
-                            elBadge.innerHTML = `<i class="fas fa-clock animate-pulse mr-2"></i> SEDANG BERLANGSUNG`;
-                        }
-                        if (elValPulang) elValPulang.textContent = "--:--";
-                    } else {
-                        if (elHero) elHero.className = "relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-800 p-6 text-white shadow-xl shadow-indigo-200 transition-all duration-500 group";
-                        if (elBadge) {
-                            elBadge.className = "px-4 py-2 rounded-xl bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-sm";
-                            elBadge.innerHTML = `<i class="fas fa-check-circle mr-2"></i> SELESAI HARI INI`;
-                        }
-                        if (elValPulang) elValPulang.textContent = absensi.jamPulang;
+                                        if (elHero) elHero.className = "relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 p-6 text-white shadow-xl shadow-emerald-200 transition-all duration-500 group";
+                    if (elBadge) {
+                        elBadge.className = "px-4 py-2 rounded-xl bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-sm";
+                        elBadge.innerHTML = `<i class="fas fa-check-circle mr-2"></i> HADIR HARI INI`;
                     }
                 }
             } catch (err) { console.error("Error rendering dashboard:", err); }
@@ -4873,7 +4434,7 @@ function renderRekapRows(data) {
     
     // Update colspan jadi 8 karena kolom bertambah
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-gray-400">Tidak ada data ditemukan.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-gray-400">Tidak ada data ditemukan.</td></tr>';
         return;
     }
     
@@ -4919,8 +4480,7 @@ function renderRekapRows(data) {
             </td>
             
             <td class="p-4 text-center text-sm font-mono text-gray-600">${d.jamDatang}</td>
-            <td class="p-4 text-center text-sm font-mono text-gray-600">${d.jamPulang}</td>
-            
+                        
             <td class="p-4 text-center align-middle">
                <span class="${ketStyle} inline-block whitespace-nowrap">${ketIcon}${ketText}</span>
             </td>
@@ -5104,8 +4664,7 @@ function renderMonitoringRows(data, startIdx) {
             
             <td class="p-4 text-center text-xs font-mono text-gray-600">${d.jamDatang}</td>
             
-            <td class="p-4 text-center text-xs font-mono text-gray-600">${d.jamPulang}</td>
-
+            
             <td class="p-4 text-center align-middle">
                  <span class="${ketStyle} inline-block whitespace-nowrap">${ketIcon}${ketText}</span>
             </td>
@@ -7102,15 +6661,6 @@ const SAPAAN_MASUK = [
     'Cieee sudah datang!'
 ];
 
-const SAPAAN_PULANG = [
-    'Dadah, hati-hati di jalan!',
-    'Sampai jumpa besok lagi!',
-    'Yeay, waktunya pulang!',
-    'Selamat pulang, jangan jajan sembarangan!',
-    'Bye bye, sampai ketemu lagi!',
-    'Pulang dulu ya, semangat!'
-];
-
 function pilihAcak(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -7120,7 +6670,7 @@ function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg 
 
     let sub;
     if (isSuccess) {
-        sub = nama ? `Selamat ${mode === 'pulang' ? 'jalan' : 'datang'}, ${nama}!` : '';
+        sub = nama ? `Selamat datang, ${nama}!` : '';
     } else {
         sub = customMsg || (nama ? `${nama}` : 'Periksa kembali QR / NISN');
     }
@@ -7131,8 +6681,6 @@ function showBigScanPopup({ type = 'success', nama = '', mode = null, customMsg 
     if (isSuccess) {
         if (mode === 'masuk') {
             speakScan(pilihAcak(SAPAAN_MASUK));
-        } else if (mode === 'pulang') {
-            speakScan(pilihAcak(SAPAAN_PULANG));
         } else {
             speakScan('Absensi berhasil');
         }
