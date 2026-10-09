@@ -1551,23 +1551,6 @@ async function callGASRaw(functionName, args, attempt = 1) {
 async function callGAS(functionName, ...args) {
     return queuedFetch(() => callGASRaw(functionName, args));
 }
-
-// Adapter daftar siswa utk backend gs: memakai getSiswaList(filterKelas) sesuai
-// Code.gs — 'SEMUA' / '' berarti TANPA filter, "K1,K2" multi-kelas, nama kelas
-// tunggal juga bisa. Hasil selalu ARRAY siswa (nisn/kelas dibuat string bersih).
-function gasGetSiswa(kelas) {
-    const f = (!kelas || String(kelas).toUpperCase() === 'SEMUA') ? '' : String(kelas);
-    return callGAS('getSiswaList', f).then(r => {
-        let list = (r && r.success && Array.isArray(r.data)) ? r.data : (Array.isArray(r) ? r : []);
-        return list.map(s => {
-            const o = Object.assign({}, s);
-            o.nama = (s.nama != null) ? String(s.nama).trim() : '';
-            o.nisn = (s.nisn != null) ? String(s.nisn).trim() : '';
-            o.kelas = (s.kelas != null) ? String(s.kelas).trim() : '';
-            return o;
-        });
-    });
-}
 // ==========================================================================
 // OFFLINE QUEUE SYSTEM — antrian absensi saat tidak ada koneksi internet
 // ==========================================================================
@@ -2391,7 +2374,7 @@ function dhGroupStudents(list) {
 // Daftar Hadir selalu siap dibuka tanpa loading. Nama siswa selalu sama,
 // jadi cache lokal dipakai untuk render instan.
 function dhPrefetchStudents() {
-    gasGetSiswa('SEMUA').then(list => {
+    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
         if (!Array.isArray(list) || list.length === 0) return;
         const byClass = dhGroupStudents(list);
         dhSaveCache(byClass, Object.keys(byClass).sort());
@@ -2424,7 +2407,7 @@ function loadDaftarHadirGuru() {
     }
 
     // Cache belum ada (pembukaan pertama) → ambil sekali, simpan, lalu render
-    gasGetSiswa('SEMUA').then(list => {
+    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
         if (!Array.isArray(list) || list.length === 0) throw new Error('Data siswa kosong');
         const byClass = dhGroupStudents(list);
         const order = Object.keys(byClass).sort();
@@ -2460,7 +2443,7 @@ function dhBuildClasses(kelasGuru, byClass, order) {
     // Kelas yang belum ada di cache → ambil satu-satu di background
     dhClasses.forEach((c, i) => {
         if (c.students.length === 0) {
-            gasGetSiswa(c.kelas).then(list => {
+            callGAS('getSiswaByKelas', c.kelas).then(list => {
                 if (Array.isArray(list) && list.length > 0) {
                     c.students = dhGroupStudents(list)[c.kelas] || [];
                     dhRenderRows(i);
@@ -4326,9 +4309,7 @@ function processImportSiswa(data, inputElement) {
 
 // ==========================================
 // ABSENSI EKSTRAKURIKULER
-// Data utama tersimpan di Spreadsheet via backend GAS (sheet 'ekstrakurikuler' &
-// 'absensi_ekskul' — lihat EKSKUL.gs). localStorage dipakai sebagai CACHE agar
-// render tetap instan & data tetap terlihat saat koneksi terputus.
+// Data tersimpan di perangkat (localStorage) — tanpa perubahan backend.
 // Struktur EKSKUL_KEY:
 //   ekskul : [{ id, nama, pembina, hari, jamMulai, jamSelesai, anggota: [{nisn,nama,kelas}] }]
 //   absensi: [{ id, ekskulId, tanggal, data: {nisn: status}, oleh, ts }]
@@ -4366,41 +4347,6 @@ function loadEkskul() {
 
     ekskulFillSelect();
     ekskulShowTab('absensi');
-
-    // Tarik data terbaru dari Spreadsheet di background (render tetap instan dari cache)
-    ekskulSyncDariServer();
-}
-
-// Sinkron ekskul + absensi dari backend GAS (fungsi getEkskulList di EKSKUL.gs).
-// Server = acuan; sesi/ekskul lokal yang BELUM ada di server (misal antrian
-// offline yang belum terkirim) tetap dipertahankan agar tidak hilang.
-function ekskulSyncDariServer() {
-    callGAS('getEkskulList').then(r => {
-        if (!r || !r.success || !r.data) return;
-        const srv = r.data;
-        const local = ekskulLoadDB();
-
-        const srvEk = {};
-        (srv.ekskul || []).forEach(e => { srvEk[e.id] = true; });
-        const srvKey = {};
-        (srv.absensi || []).forEach(a => { srvKey[a.ekskulId + '|' + a.tanggal] = true; });
-
-        const mergedEkskul = (srv.ekskul || []).concat((local.ekskul || []).filter(e => !srvEk[e.id]));
-        const mergedAbs = (srv.absensi || []).concat((local.absensi || []).filter(a => !srvKey[a.ekskulId + '|' + a.tanggal]));
-
-        ekskulDB = { ekskul: mergedEkskul, absensi: mergedAbs };
-        ekskulSaveDB();
-
-        // Render ulang hanya jika halaman Ekskul sedang terbuka
-        // (navigasi aplikasi memakai .active + style.display, bukan class hidden)
-        const v = document.getElementById('view-ekskul');
-        if (v && v.classList.contains('active') && v.style.display !== 'none') {
-            ekskulFillSelect();
-            const pK = document.getElementById('ekskulPanelKelola');
-            const onKelola = pK && !pK.classList.contains('hidden');
-            ekskulShowTab(onKelola ? 'kelola' : 'absensi');
-        }
-    }).catch(() => {});
 }
 
 // Guru hanya melihat ekskul yang dibinanya; admin melihat semua
@@ -4583,23 +4529,17 @@ function ekskulKirim() {
         cancelButtonText: 'Batal'
     }).then(res => {
         if (!res.isConfirmed) return;
-        const oleh = currentUser ? (currentUser.nama || currentUser.username || '-') : '-';
-        const token = currentUser ? currentUser.token : null;
-
-        // Simpan ke Spreadsheet via saveEkskulAbsensi (EKSKUL.gs) — sesi sama = perbarui.
-        // callGASOffline: jika koneksi terputus, masuk antrian offline & terkirim otomatis.
-        callGASOffline('saveEkskulAbsensi', token, e.id, tgl, data, oleh).then(r => {
-            if (r && r.success === false) {
-                Swal.fire('Gagal', r.message || 'Gagal menyimpan absensi ekskul.', 'error');
-                return;
-            }
-            const sudah = ekskulDB.absensi.find(a => a.ekskulId === e.id && a.tanggal === tgl);
-            const rec = (r && r.data) ? r.data : { id: e.id + '|' + tgl, ekskulId: e.id, tanggal: tgl, data: data, oleh: oleh, ts: Date.now() };
-            if (sudah) Object.assign(sudah, rec); else ekskulDB.absensi.unshift(rec);
-            if (!ekskulSaveDB()) { Swal.fire('Gagal', 'Penyimpanan lokal perangkat penuh.', 'error'); return; }
-            Swal.fire({ icon: 'success', title: 'Absensi Ekskul Tersimpan!', text: `${e.nama} • ${tgl}`, timer: 2200, showConfirmButton: false });
-            ekskulRenderAbsensi();
-        });
+        const sudah = ekskulDB.absensi.find(a => a.ekskulId === e.id && a.tanggal === tgl);
+        if (sudah) {
+            sudah.data = data;
+            sudah.oleh = currentUser ? (currentUser.nama || currentUser.username || '-') : '-';
+            sudah.ts = Date.now();
+        } else {
+            ekskulDB.absensi.unshift({ id: 'ea_' + Date.now(), ekskulId: e.id, tanggal: tgl, data: data, oleh: currentUser ? (currentUser.nama || currentUser.username || '-') : '-', ts: Date.now() });
+        }
+        if (!ekskulSaveDB()) { Swal.fire('Gagal', 'Penyimpanan lokal perangkat penuh.', 'error'); return; }
+        Swal.fire({ icon: 'success', title: 'Absensi Ekskul Tersimpan!', text: `${e.nama} • ${tgl}`, timer: 2200, showConfirmButton: false });
+        ekskulRenderAbsensi();
     });
 }
 
@@ -4691,7 +4631,7 @@ function ekskulHapus(id) {
     if (!e) return;
     Swal.fire({
         title: 'Hapus Ekskul?',
-        html: `<p class="text-sm text-gray-500"><b>${e.nama}</b> beserta seluruh riwayat absensinya akan dihapus permanen dari Spreadsheet.</p>`,
+        html: `<p class="text-sm text-gray-500"><b>${e.nama}</b> beserta seluruh riwayat absensinya akan dihapus permanen dari perangkat ini.</p>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#e11d48',
@@ -4700,22 +4640,13 @@ function ekskulHapus(id) {
         cancelButtonText: 'Batal'
     }).then(res => {
         if (!res.isConfirmed) return;
-        showLoading();
-        const token = currentUser ? currentUser.token : null;
-        callGAS('deleteEkskul', token, id).then(r => {
-            hideLoading();
-            if (!r || !r.success) { showAlert('error', (r && r.message) || 'Gagal menghapus ekskul di server.'); return; }
-            ekskulDB.ekskul = ekskulDB.ekskul.filter(x => x.id !== id);
-            ekskulDB.absensi = ekskulDB.absensi.filter(a => a.ekskulId !== id);
-            ekskulSaveDB();
-            if (ekskulCur.id === id) ekskulCur.id = null;
-            ekskulRenderKelola();
-            ekskulFillSelect();
-            showAlert('success', r.message || 'Ekskul dihapus.');
-        }).catch(err => {
-            hideLoading();
-            showAlert('error', 'Gagal terhubung ke server: ' + (err.message || err));
-        });
+        ekskulDB.ekskul = ekskulDB.ekskul.filter(x => x.id !== id);
+        ekskulDB.absensi = ekskulDB.absensi.filter(a => a.ekskulId !== id);
+        ekskulSaveDB();
+        if (ekskulCur.id === id) ekskulCur.id = null;
+        ekskulRenderKelola();
+        ekskulFillSelect();
+        showAlert('success', 'Ekskul dihapus.');
     });
 }
 
@@ -4806,33 +4737,21 @@ function ekskulFormModal(editId) {
         }).then(res => {
             if (!res.isConfirmed || !res.value) return;
             const d = res.value;
-            const token = currentUser ? currentUser.token : null;
-            const payload = Object.assign({ id: edit ? edit.id : '' }, d);
-            showLoading();
-            // Simpan ke Spreadsheet via saveEkskul (EKSKUL.gs) — hanya admin
-            callGAS('saveEkskul', token, payload).then(r => {
-                hideLoading();
-                if (!r || !r.success) { showAlert('error', (r && r.message) || 'Gagal menyimpan ekskul ke server.'); return; }
-                const saved = Object.assign({}, payload, r.data || {});
-                if (edit) {
-                    Object.assign(edit, saved);
-                } else {
-                    ekskulDB.ekskul.push(saved);
-                }
-                if (!ekskulSaveDB()) { showAlert('error', 'Tersimpan di server, namun penyimpanan lokal perangkat penuh.'); }
-                ekskulFillSelect();
-                ekskulRenderKelola();
-                showAlert('success', r.message || (edit ? 'Perubahan ekskul tersimpan.' : 'Ekskul baru ditambahkan.'));
-            }).catch(err => {
-                hideLoading();
-                showAlert('error', 'Gagal terhubung ke server: ' + (err.message || err));
-            });
+            if (edit) {
+                Object.assign(edit, d);
+            } else {
+                ekskulDB.ekskul.push(Object.assign({ id: 'ek_' + Date.now() }, d));
+            }
+            if (!ekskulSaveDB()) { Swal.fire('Gagal', 'Penyimpanan lokal perangkat penuh.', 'error'); return; }
+            ekskulFillSelect();
+            ekskulRenderKelola();
+            showAlert('success', edit ? 'Perubahan ekskul tersimpan.' : 'Ekskul baru ditambahkan.');
         });
     };
 
     if (flat.length) { buka(flat); return; }
     showLoading();
-    gasGetSiswa('SEMUA').then(list => {
+    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
         hideLoading();
         buka(Array.isArray(list) ? list : []);
     }).catch(() => { hideLoading(); buka([]); });
@@ -5551,7 +5470,7 @@ function loadSiswaUntukPromosi() {
     document.getElementById('container-promo-siswa').classList.remove('hidden');
     document.getElementById('promo-placeholder').classList.add('hidden');
 
-    gasGetSiswa(asal).then(siswaList => {
+    callGAS('getSiswaByKelas', asal).then(siswaList => {
         hideLoading();
         renderTablePromosi(siswaList, tujuan);
     }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
