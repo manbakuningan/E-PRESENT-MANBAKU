@@ -32,25 +32,67 @@ th{background:#f9fafb;font-size:11px;text-transform:uppercase;color:var(--mu);po
 .tabs{display:flex;gap:6px;margin:16px 0}.tabs .btn{flex:1}
 #login input{width:100%;margin-bottom:12px}
 .err{background:#fef2f2;color:#b91c1c;padding:8px 10px;border-radius:8px;margin-top:10px;font-size:13px}
-/* app */
-header{background:var(--p);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
-header b{font-size:16px}header .sp{flex:1}
-nav{display:flex;gap:4px;flex-wrap:wrap}
-nav button{background:transparent;color:#c7d2fe;border:0;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:600}
-nav button.on{background:#4f46e5;color:#fff}
-main{padding:16px;max-width:1100px;margin:auto}
+/* layout: sidebar */
+#app{display:flex;min-height:100vh}
+#side{position:fixed;inset:0 auto 0 0;width:236px;background:var(--p);color:#fff;display:flex;flex-direction:column;z-index:30;transition:transform .25s ease}
+.brand{padding:18px 18px 12px;display:flex;flex-direction:column}
+.brand b{font-size:18px;letter-spacing:.5px}.brand small{color:#a5b4fc}
+#nav{flex:1;overflow-y:auto;padding:6px 10px;display:flex;flex-direction:column;gap:2px}
+#nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;color:#c7d2fe;border:0;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600;transition:background .15s,color .15s}
+#nav button span{width:22px;text-align:center}
+#nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+#nav button.on{background:var(--pl);color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.usr{padding:12px 14px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.usr b{display:block;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.usr small{display:block;color:#a5b4fc;font-size:10px;text-transform:uppercase}
+.usr .btn{background:rgba(255,255,255,.12);color:#fff;border:0}
+#content{flex:1;margin-left:236px;min-width:0}
+#top{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd);padding:12px 18px;display:flex;align-items:center;gap:10px}
+#top b{font-size:16px}#top .sp{flex:1}
+.ham{display:none;border:0;background:transparent;font-size:22px;cursor:pointer;padding:0 4px}
+#ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:25}
+main{padding:16px 18px 40px;max-width:1100px;margin:auto}
+#view>*{animation:fi .25s ease both}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#view>h2{display:none}
+@media(max-width:820px){#side{transform:translateX(-100%)}#side.open{transform:none;box-shadow:0 0 30px rgba(0,0,0,.4)}#content{margin-left:0}.ham{display:block}#ov.on{display:block}main{padding:12px 10px 40px}#top{padding:10px 12px}}
+button{transition:transform .1s,opacity .15s}button:active{transform:scale(.97)}
+/* login: lihat password */
+.pw{position:relative;margin-bottom:12px}.pw input{margin:0!important;padding-right:44px}
+.eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--mu);cursor:pointer;padding:6px 8px;line-height:0}
+.eye:hover{color:var(--pl)}
+/* daftar hadir: akordeon per kelas, tabel muat tanpa scroll samping */
+.acc{background:#fff;border:1px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.ah{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;user-select:none;transition:background .15s}
+.ah:hover{background:#f9fafb}
+.ah small{color:var(--mu);margin-left:auto;white-space:nowrap}
+.chev{font-size:10px;color:var(--mu);transition:transform .2s}.acc.open .chev{transform:rotate(90deg)}
+.ab{display:none;border-top:1px solid var(--bd)}.acc.open .ab{display:block;animation:fi .2s ease}
+.dht{table-layout:fixed;width:100%}
+.dht th,.dht td{padding:5px 7px;white-space:normal;word-break:break-word;font-size:12px}
+.dht select{width:100%;font-size:12px;padding:5px 3px}
+.dht .lk select{opacity:1;color:inherit}
+/* cetak */
+#pr{display:none}
+@media print{
+ @page{size:A4 landscape;margin:7mm}
+ body{background:#fff}
+ body>*{display:none!important}
+ body>#pr{display:block!important;color:#000}
+ #pr h3{text-align:center;margin:0 0 2px;font-size:14px}
+ #pr .pm{text-align:center;font-size:10px;margin-bottom:6px}
+ #pr table{width:100%;border-collapse:collapse}
+ #pr th,#pr td{border:.6px solid #777;padding:1px 0;font-size:7px;text-align:center;white-space:nowrap}
+ #pr td.n{text-align:left;padding:1px 3px;font-size:8px;position:static;background:none}
+ #pr th{background:#4338ca!important;color:#fff;position:static}
+ #pr thead{display:table-header-group}#pr tr{page-break-inside:avoid}
+ #pr *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ #pr .pf{font-size:8px;margin-top:4px;font-style:italic}
+}
 h2{margin:0 0 14px;font-size:18px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
-.stat{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:12px}
-.stat small{color:var(--mu);font-weight:700;text-transform:uppercase;font-size:10px}
-.stat div{font-size:24px;font-weight:800}
-.bars{display:flex;gap:14px;align-items:flex-end;height:200px;padding-top:10px}
-.bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:12px;font-weight:700}
-.bar i{display:block;width:100%;max-width:60px;border-radius:6px 6px 0 0;min-height:2px}
 .st{border-radius:8px;font-weight:700;padding:6px 8px;border:1px solid #d1d5db}
 .st.hadir{background:#d1fae5;color:#047857}.st.izin{background:#dbeafe;color:#1d4ed8}
 .st.sakit{background:#fef9c3;color:#a16207}.st.bolos{background:#ffedd5;color:#c2410c}.st.alpa{background:#fee2e2;color:#b91c1c}
-.ch{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--p);color:#fff;padding:10px 14px;margin:-16px -16px 8px;border-radius:12px 12px 0 0}
 .rk td,.rk th{padding:4px 5px;text-align:center;font-size:11px}
 .rk td.n{text-align:left;position:sticky;left:0;background:#fff}
 .cH{color:#16a34a;font-weight:700}.cS{background:#fef9c3}.cI{background:#dbeafe}.cA{background:#fee2e2;color:#b91c1c;font-weight:700}.cL{background:#fef2f2;color:#fca5a5}
@@ -81,7 +123,7 @@ dialog label{margin-top:10px}dialog input,dialog select,dialog textarea{width:10
     <div id="fS"><label>NISN</label><input id="nisn" autocomplete="off" autocapitalize="none" placeholder="Masukkan NISN"></div>
     <div id="fA" class="hidden">
       <label>Username</label><input id="usr" autocapitalize="none" placeholder="Username">
-      <label>Password</label><input id="pwd" type="password" placeholder="••••••••">
+      <label>Password</label><div class="pw"><input id="pwd" type="password" placeholder="••••••••" autocomplete="current-password"><button type="button" class="eye" onclick="togglePwd(this)" aria-label="Lihat password"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
     </div>
     <button class="btn" style="width:100%;padding:11px">MASUK</button>
     <div id="lerr" class="err hidden"></div>
@@ -89,13 +131,22 @@ dialog label{margin-top:10px}dialog input,dialog select,dialog textarea{width:10
 </div>
 
 <div id="app" class="hidden">
-  <header><b>E-PRESENT</b><nav id="nav"></nav><span class="sp"></span><span id="offl" class="hidden">⚠ Offline</span><button class="btn g s hidden" id="inst" onclick="pwaInstall()">⬇ Pasang</button><span id="who"></span><button class="btn g s" onclick="logout()">Keluar</button></header>
-  <main id="view"></main>
+  <aside id="side">
+    <div class="brand"><b>E-PRESENT</b><small>Manba'ul Huda</small></div>
+    <nav id="nav"></nav>
+    <div class="usr"><div><b id="uNm"></b><small id="uRl"></small></div><button class="btn s" onclick="logout()">Keluar</button></div>
+  </aside>
+  <div id="ov" onclick="side(false)"></div>
+  <div id="content">
+    <div id="top"><button class="ham" onclick="side(true)" aria-label="Menu">☰</button><b id="ttl"></b><span class="sp"></span><span id="offl" class="hidden">⚠ Offline</span></div>
+    <main id="view"></main>
+  </div>
 </div>
 
 <div id="toast"></div>
 <div id="offb" class="hidden"></div>
 <div id="load" class="hidden"><i></i></div>
+<div id="pr"></div>
 <dialog id="dlg"></dialog>
 
 <script>
@@ -112,13 +163,17 @@ let user = null, kelasList = [], siswaCache = null, siswa = [];
 async function api(fn, ...args) {
   for (let i = 1; i <= 3; i++) {
     try {
-      const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args }) });
+      const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args, token: user && user.token }) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
-      if (j.error) throw new Error(j.error);
+      if (j.error) {
+        const er = new Error(j.error); er.final = true;          // error dari server: jangan diulang
+        if (/Sesi berakhir/.test(j.error) && user) { toast(j.error, true); setTimeout(logout, 1200); }
+        throw er;
+      }
       return j.result;
     } catch (e) {
-      if (i === 3) throw e;
+      if (i === 3 || e.final) throw e;
       await new Promise(r => setTimeout(r, i * 1500));
     }
   }
@@ -156,6 +211,13 @@ const myKelas = () => (user.role === 'guru' && user.kelas) ? String(user.kelas).
 const opt = (arr, sel, first) => (first !== undefined ? `<option value="">${first}</option>` : '') + arr.map(k => `<option ${k === sel ? 'selected' : ''}>${esc(k)}</option>`).join('');
 
 // ======================= LOGIN / SESI =======================
+const EYE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYEOFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+function togglePwd(b) {
+  const i = $('#pwd'), show = i.type === 'password';
+  i.type = show ? 'text' : 'password'; b.innerHTML = show ? EYEOFF : EYE;
+  b.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Lihat password');
+}
 function loginTab(t) {
   const s = t === 'siswa';
   $('#fS').classList.toggle('hidden', !s); $('#fA').classList.toggle('hidden', s);
@@ -190,52 +252,42 @@ async function doLogin(e) {
 }
 function logout() { store.del(SESSION_KEY); location.reload(); }
 
-// ======================= NAVIGASI =======================
+// ======================= NAVIGASI (sidebar) =======================
 const MENU = {
-  admin:     [['Dashboard', vDash], ['Daftar Hadir', vHadir], ['Ekstrakurikuler', vEkskul], ['Data Siswa', vSiswa], ['Rekap Bulanan', vRekap], ['Hari Libur', vLibur], ['Manajemen Kelas', vKelasMgr], ['Kenaikan Kelas', vNaik]],
-  guru:      [['Dashboard', vDash], ['Daftar Hadir', vHadir], ['Ekstrakurikuler', vEkskul], ['Rekap Bulanan', vRekap]],
-  pimpinan:  [['Dashboard', vDash], ['Rekap Bulanan', vRekap]],
-  siswa:     [['Dashboard', vSiswaDash]]
+  admin:    [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Data Siswa', vSiswa, '🎓'], ['Rekap Bulanan', vRekap, '📅'], ['Hari Libur', vLibur, '🏖️'], ['Manajemen Kelas', vKelasMgr, '🏫'], ['Kenaikan Kelas', vNaik, '⬆️']],
+  guru:     [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Rekap Bulanan', vRekap, '📅']],
+  pimpinan: [['Rekap Bulanan', vRekap, '📅']],
+  siswa:    [['Absensi Saya', vSiswaDash, '✅']]
 };
+const side = on => { $('#side').classList.toggle('open', on); $('#ov').classList.toggle('on', on); };
 function start(u) {
   user = u;
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
-  $('#who').textContent = (u.nama || u.username || '') + ' · ' + String(u.role).toUpperCase();
+  $('#uNm').textContent = u.nama || u.username || ''; $('#uRl').textContent = u.role;
   const m = MENU[u.role] || MENU.siswa;
-  $('#nav').innerHTML = m.map((x, i) => `<button onclick="go(${i})">${x[0]}</button>`).join('');
+  $('#nav').innerHTML = m.map((x, i) => `<button onclick="go(${i})"><span>${x[2]}</span>${x[0]}</button>`).join('');
   go(0);
 }
 function go(i) {
   const m = MENU[user.role] || MENU.siswa;
   document.querySelectorAll('#nav button').forEach((b, j) => b.classList.toggle('on', i === j));
+  $('#ttl').textContent = m[i][0]; side(false);
   $('#view').innerHTML = '<div class="card mu">Memuat...</div>';
-  Promise.resolve(m[i][1]()).catch(fail);
+  Promise.resolve(m[i][1]()).catch(e => {
+    fail(e);
+    $('#view').innerHTML = `<div class="card"><div class="err">Gagal memuat: ${esc(e.message || e)}</div><button class="btn" style="margin-top:10px" onclick="go(${i})">Coba lagi</button></div>`;
+  });
 }
 
-// ======================= DASHBOARD =======================
-async function vDash() {
-  const k = myKelas().join(',') || undefined;
-  const r = await api('getMonitoringRealtime', k);
-  const d = (r && r.success) ? r.data : [];
-  const c = s => d.filter(x => x.status === s).length;
-  const items = [['Hadir', c('Hadir'), '#10B981'], ['Sakit', c('Sakit'), '#EAB308'], ['Izin', c('Izin'), '#3B82F6'], ['Alpa', c('Alpa'), '#EF4444'], ['Belum Absen', c('Belum Absen'), '#9CA3AF']];
-  const max = Math.max(1, ...items.map(x => x[1]));
-  $('#view').innerHTML = `<h2>Dashboard ${user.role === 'guru' && k ? '(' + esc(k) + ')' : ''}</h2>
-    <div class="stats"><div class="stat"><small>Total Siswa</small><div>${d.length}</div></div>
-    ${items.slice(0, 4).map(x => `<div class="stat"><small>${x[0]}</small><div style="color:${x[2]}">${x[1]}</div></div>`).join('')}</div>
-    <div class="card"><b>Statistik Kehadiran Hari Ini</b>
-    <div class="bars">${items.map(x => `<div class="bar">${x[1]}<i style="height:${x[1] / max * 85}%;background:${x[2]}"></i><span class="mu">${x[0]}</span></div>`).join('')}</div></div>
-    <button class="btn g" onclick="go(0)">Refresh</button>`;
-}
+// ======================= HALAMAN SISWA =======================
 async function vSiswaDash() {
   const r = await api('getAbsensiToday', user.nisn);
   const a = r && r.success ? r.data : null;
-  const status = r.isLibur ? 'HARI LIBUR — ' + esc(r.keteranganLibur) : !a ? 'BELUM ABSEN' : a.status === 'Alpa' ? 'ALPA HARI INI' : 'HADIR HARI INI';
-  $('#view').innerHTML = `<h2>Hai, ${esc((user.nama || '').split(' ')[0])}</h2>
+  const status = r.isLibur ? 'HARI LIBUR — ' + esc(r.keteranganLibur) : !a ? 'BELUM ABSEN' : a.status === 'Hadir' ? 'HADIR HARI INI' : a.status.toUpperCase() + ' HARI INI';
+  $('#view').innerHTML = `<div style="font-size:18px;font-weight:700;margin-bottom:12px">Hai, ${esc((user.nama || '').split(' ')[0])}</div>
     <div class="card"><b>${esc(user.nama)}</b><div class="mu">NISN ${esc(user.nisn)} · Kelas ${esc(user.kelas)}</div></div>
     <div class="card"><div class="mu">${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
     <div style="font-size:20px;font-weight:800;margin:6px 0">${status}</div>
-    <div>Jam datang: <b>${esc(a && a.jamDatang || '--:--')}</b></div>
     ${!a && !r.isLibur ? '<div class="err">Anda belum tercatat absen hari ini. Hubungi guru kelas.</div>' : ''}</div>`;
 }
 
@@ -275,10 +327,11 @@ async function vHadir() {
   const all = await getSiswa();
   const mine = myKelas(), by = {};
   all.forEach(s => { const k = s.kelas || 'Tanpa Kelas'; (by[k] = by[k] || []).push(s); });
-  dh.kelas = (mine.length ? mine : Object.keys(by)).sort(natural).map(k => ({ k, list: (by[k] || []).sort((a, b) => a.nama.localeCompare(b.nama)), saved: {}, lock: {} }));
-  $('#view').innerHTML = `<h2>Daftar Hadir</h2><div class="card row"><div><label>Tanggal</label><input type="date" id="dhT" value="${dh.tgl}" onchange="dhLoad()"></div>
-    <div class="mu">Ubah status = langsung tersimpan &amp; terkunci 🔒 (klik untuk mengubah).</div></div><div id="dhC"></div>`;
-  dhDraw(); dhLoad();   // tampil instan dari cache, status server menyusul
+  const keys = (mine.length ? mine : Object.keys(by)).sort(natural);   // guru multi-kelas: semua kelas miliknya
+  dh.kelas = keys.map(k => ({ k, list: (by[k] || []).sort((a, b) => a.nama.localeCompare(b.nama)), saved: {}, lock: {}, open: false }));
+  $('#view').innerHTML = `<div class="card row"><div><label>Tanggal</label><input type="date" id="dhT" value="${dh.tgl}" onchange="dhLoad()"></div>
+    <div class="mu" style="flex:1;min-width:200px">Pilih kelas untuk membuka daftar siswa. Ubah status = langsung tersimpan &amp; terkunci 🔒 (ketuk untuk mengubah).</div></div><div id="dhC"></div>`;
+  dhDraw(); dhLoad();   // tampil instan, status server menyusul
 }
 async function dhLoad() {
   dh.tgl = $('#dhT').value;
@@ -291,19 +344,32 @@ async function dhLoad() {
   }));
   if ($('#dhC')) dhDraw();
 }
+const dhN = c => c.list.filter(s => c.saved[s.nisn]).length;
+function dhCnt(ci) { const c = dh.kelas[ci], e = $('#ak' + ci); if (e) e.textContent = dhN(c) + '/' + c.list.length + ' terisi'; }
 function dhCell(ci, si) {
   const c = dh.kelas[ci], s = c.list[si], v = c.saved[s.nisn] || '';
-  if (c.lock[s.nisn]) return `<span class="lk" onclick="dhUnlock(${ci},${si})" title="Terkunci — klik untuk mengubah"><select disabled class="st ${v}"><option>${cap(v)}</option></select> 🔒</span>`;
-  return `<select class="st ${v}" onchange="dhSet(${ci},${si},this)"><option value="">Pilih Status</option>${STATUS.map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${cap(x)}</option>`).join('')}</select>`;
+  if (c.lock[s.nisn]) return `<div class="lk" onclick="dhUnlock(${ci},${si})" title="Terkunci — ketuk untuk mengubah"><select disabled class="st ${v}"><option>${cap(v)} 🔒</option></select></div>`;
+  return `<select class="st ${v}" onchange="dhSet(${ci},${si},this)"><option value="">Pilih</option>${STATUS.map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${cap(x)}</option>`).join('')}</select>`;
+}
+function dhBody(ci) {
+  const c = dh.kelas[ci];
+  return `<table class="dht"><colgroup><col style="width:30px"><col><col style="width:104px"></colgroup>
+    <thead><tr><th>No</th><th>Nama</th><th>Status</th></tr></thead><tbody>
+    ${c.list.map((s, si) => `<tr><td>${si + 1}</td><td>${esc(s.nama)}</td><td id="c${ci}_${si}">${dhCell(ci, si)}</td></tr>`).join('') || '<tr><td colspan="3" class="mu ctr">Tidak ada siswa.</td></tr>'}</tbody></table>`;
 }
 function dhDraw() {
-  $('#dhC').innerHTML = dh.kelas.map((c, ci) => `<div class="card"><div class="ch"><b>${esc(c.k)} <small>(${c.list.length} siswa)</small></b>
-    <button class="btn g s" onclick="dhAll(${ci})">✓ Tandai Semua Hadir</button></div>
-    <div class="tw" style="max-height:60vh"><table><thead><tr><th>No</th><th>Nama</th><th>Status</th></tr></thead><tbody>
-    ${c.list.map((s, si) => `<tr><td>${si + 1}</td><td>${esc(s.nama)}</td><td id="c${ci}_${si}">${dhCell(ci, si)}</td></tr>`).join('') || '<tr><td colspan="3" class="mu ctr">Tidak ada siswa.</td></tr>'}
-    </tbody></table></div></div>`).join('') || '<div class="card mu">Tidak ada kelas.</div>';
+  $('#dhC').innerHTML = dh.kelas.map((c, ci) => `<div class="acc ${c.open ? 'open' : ''}" id="ac${ci}">
+    <div class="ah" onclick="dhTog(${ci})"><span class="chev">▶</span><b>${esc(c.k)}</b><small id="ak${ci}"></small>
+    <button class="btn g s" onclick="event.stopPropagation();dhAll(${ci})">✓ Semua Hadir</button></div>
+    <div class="ab" id="ab${ci}">${c.open ? dhBody(ci) : ''}</div></div>`).join('') || '<div class="card mu">Tidak ada kelas.</div>';
+  dh.kelas.forEach((c, ci) => dhCnt(ci));
 }
-const dhRef = (ci, si) => { const e = $('#c' + ci + '_' + si); if (e) e.innerHTML = dhCell(ci, si); };
+function dhTog(ci) {
+  const c = dh.kelas[ci]; c.open = !c.open;
+  $('#ac' + ci).classList.toggle('open', c.open);
+  if (c.open) $('#ab' + ci).innerHTML = dhBody(ci);
+}
+const dhRef = (ci, si) => { const e = $('#c' + ci + '_' + si); if (e) e.innerHTML = dhCell(ci, si); dhCnt(ci); };
 function dhClosed(kelas) {
   const b = +dh.tgl.slice(5, 7) - 1, t = +dh.tgl.slice(0, 4);
   if (tutupList().some(a => a.bulan === b && a.tahun === t && (!a.kelas || a.kelas === kelas))) { toast('Bulan ini sudah ditutup (diarsipkan).', true); return true; }
@@ -311,7 +377,7 @@ function dhClosed(kelas) {
 }
 async function dhSet(ci, si, el) {
   const c = dh.kelas[ci], s = c.list[si], v = el.value;
-  if (!v) { delete c.saved[s.nisn]; el.className = 'st'; return; }
+  if (!v) { delete c.saved[s.nisn]; el.className = 'st'; dhCnt(ci); return; }
   if (dhClosed(c.k)) { el.value = c.saved[s.nisn] || ''; return; }
   el.className = 'st ' + v; el.disabled = true;
   try {
@@ -331,7 +397,8 @@ async function dhAll(ci) {
   const c = dh.kelas[ci];
   if (dhClosed(c.k)) return;
   const t = c.list.filter(s => !c.lock[s.nisn]);
-  if (!t.length || !confirm(`Tandai ${t.length} siswa ${c.k} HADIR?`)) return;
+  if (!t.length) return toast('Semua siswa sudah terisi & terkunci.');
+  if (!confirm(`Tandai ${t.length} siswa ${c.k} HADIR?`)) return;
   busy(true);
   try {
     const r = await apiW('submitDaftarHadirGuru', t.map(s => ({ nisn: s.nisn, nama: s.nama, kelas: c.k, status: 'hadir' })), dh.tgl, oleh());
@@ -349,30 +416,22 @@ async function vSiswa() {
     <div><label>Cari</label><input id="sQ" placeholder="Nama / NISN" oninput="sq=this.value.toLowerCase();sDraw()" value="${esc(sq)}"></div>
     <div><label>Kelas</label><select id="sK" onchange="sk=this.value;sDraw()">${opt(kelasList.slice().sort(natural), sk, 'Semua Kelas')}</select></div>
     <button class="btn" onclick="sForm()">+ Tambah</button></div>
-    <div class="card tw"><table><thead><tr><th>No</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>Aksi</th></tr></thead><tbody id="sB"></tbody></table></div>`;
+    <div class="card tw"><table><thead><tr><th>No</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>L/P</th><th>Aksi</th></tr></thead><tbody id="sB"></tbody></table></div>`;
   sDraw();
 }
 function sDraw() {
   siswa = siswaCache.filter(s => (!sk || s.kelas === sk) && (!sq || (s.nama + ' ' + s.nisn).toLowerCase().includes(sq)));
-  $('#sB').innerHTML = siswa.map((s, i) => `<tr><td>${i + 1}</td><td>${esc(s.nama)}</td><td>${esc(s.nisn)}</td><td>${esc(s.kelas)}</td>
-    <td><button class="btn g s" onclick="sView(${i})">Detail</button> <button class="btn g s" onclick="sForm(${i})">Edit</button> <button class="btn r s" onclick="sDel(${i})">Hapus</button></td></tr>`).join('')
-    || '<tr><td colspan="5" class="mu ctr">Data tidak ditemukan.</td></tr>';
-}
-function sView(i) {
-  const s = siswa[i], r = (l, v) => `<tr><td class="mu">${l}</td><td style="white-space:normal">${esc(v || '-')}</td></tr>`;
-  $('#dlg').innerHTML = `<h2>${esc(s.nama)}</h2><table>${r('NISN', s.nisn)}${r('Kelas', s.kelas)}${r('Jenis Kelamin', s.jenisKelamin)}${r('Tanggal Lahir', s.tanggalLahir)}${r('Agama', s.agama)}${r('Ayah', s.namaAyah)}${r('Ibu', s.namaIbu)}${r('No. HP', s.noHp)}${r('Alamat', s.alamat)}</table>
-    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn g" onclick="$('#dlg').close()">Tutup</button></div>`;
-  $('#dlg').showModal();
+  $('#sB').innerHTML = siswa.map((s, i) => `<tr><td>${i + 1}</td><td>${esc(s.nama)}</td><td>${esc(s.nisn)}</td><td>${esc(s.kelas)}</td><td>${s.jenisKelamin === 'Perempuan' ? 'P' : s.jenisKelamin ? 'L' : '-'}</td>
+    <td><button class="btn g s" onclick="sForm(${i})">Edit</button> <button class="btn r s" onclick="sDel(${i})">Hapus</button></td></tr>`).join('')
+    || '<tr><td colspan="6" class="mu ctr">Data tidak ditemukan.</td></tr>';
 }
 function sForm(i) {
   const s = i === undefined ? {} : siswa[i], e = i !== undefined;
-  const f = (n, l, t = 'text') => `<label>${l}</label><input name="${n}" type="${t}" value="${esc(s[n] || '')}">`;
   $('#dlg').innerHTML = `<form onsubmit="sSave(event,${e})"><h2>${e ? 'Edit' : 'Tambah'} Siswa</h2>
-    ${f('nama', 'Nama Lengkap')}${f('nisn', 'NISN')}
-    <label>Kelas</label><input name="kelas" list="kl" value="${esc(s.kelas || '')}"><datalist id="kl">${kelasList.map(k => `<option>${esc(k)}</option>`).join('')}</datalist>
+    <label>Nama Lengkap</label><input name="nama" required value="${esc(s.nama || '')}">
+    <label>NISN</label><input name="nisn" required value="${esc(s.nisn || '')}">
+    <label>Kelas</label><input name="kelas" required list="kl" value="${esc(s.kelas || '')}"><datalist id="kl">${kelasList.map(k => `<option>${esc(k)}</option>`).join('')}</datalist>
     <label>Jenis Kelamin</label><select name="jenisKelamin"><option ${s.jenisKelamin === 'Perempuan' ? '' : 'selected'}>Laki-laki</option><option ${s.jenisKelamin === 'Perempuan' ? 'selected' : ''}>Perempuan</option></select>
-    ${f('tanggalLahir', 'Tanggal Lahir', 'date')}${f('agama', 'Agama')}${f('namaAyah', 'Nama Ayah')}${f('namaIbu', 'Nama Ibu')}${f('noHp', 'No. HP', 'tel')}
-    <label>Alamat</label><textarea name="alamat" rows="2">${esc(s.alamat || '')}</textarea>
     <input type="hidden" name="old" value="${esc(s.nisn || '')}">
     <div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn g" onclick="$('#dlg').close()">Batal</button><button class="btn">Simpan</button></div></form>`;
   $('#dlg').showModal();
@@ -382,7 +441,7 @@ async function sSave(ev, isEdit) {
   ev.preventDefault();
   const fd = Object.fromEntries(new FormData(ev.target));
   const old = fd.old; delete fd.old;
-  fd.nisn = "'" + fd.nisn; fd.noHp = "'" + (fd.noHp || '');
+  fd.nisn = "'" + fd.nisn;
   busy(true);
   try {
     const r = isEdit ? await api('updateSiswa', user.token, old, fd) : await api('addSiswa', user.token, fd);
@@ -404,38 +463,53 @@ async function sDel(i) {
 }
 
 // ======================= REKAP BULANAN =======================
+let rLast = null;
 async function vRekap() {
-  await getKelas();
+  await getKelas(); rLast = null;
   const mine = myKelas(), now = new Date(), yr = now.getFullYear();
   const ks = mine.length ? mine : kelasList.slice().sort(natural);
-  $('#view').innerHTML = `<h2>Rekap Bulanan</h2><div class="card row">
+  $('#view').innerHTML = `<div class="card row">
     <div><label>Kelas</label><select id="rK">${opt(ks, ks[0], mine.length ? undefined : 'Semua Kelas')}</select></div>
     <div><label>Bulan</label><select id="rB">${BULAN.map((b, i) => `<option value="${i}" ${i === now.getMonth() ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
     <div><label>Tahun</label><select id="rT">${[0, 1, 2, 3, 4].map(i => `<option>${yr - i}</option>`).join('')}</select></div>
-    <button class="btn" onclick="rLoad()">Tampilkan</button>${user.role === 'admin' ? '<button class="btn g" onclick="tutupBulan()">🔒 Tutup Bulan</button><button class="btn g" onclick="arsipPanel()">Arsip</button>' : ''}</div>
-    <div id="rBd" class="err hidden" style="background:#fffbeb;color:#b45309;margin-bottom:12px"></div><div id="rAr" class="card hidden"></div>
+    <button class="btn" onclick="rLoad()">Tampilkan</button><button class="btn g" onclick="rPrint()">🖨 Cetak PDF</button>
+    ${user.role === 'admin' ? '<button class="btn g" onclick="tutupBulan()">🔒 Tutup Bulan</button><button class="btn g" onclick="arsipPanel()">Arsip</button>' : ''}</div>
+    <div id="rBd" class="err hidden" style="background:#fffbeb;color:#b45309;margin:0 0 12px"></div><div id="rAr" class="card hidden"></div>
     <div class="card tw" id="rO"><span class="mu">Pilih filter lalu klik Tampilkan.</span></div>
     <div class="mu">H: Hadir · S: Sakit · I: Izin · A: Alpa · L: Libur. Persentase = Hadir ÷ Hari Efektif × 100%.</div>`;
+  if (mine.length) rLoad();   // guru: langsung tampil kelas pertamanya
+}
+function rTable(d, kelas) {
+  const days = Array.from({ length: d.daysInMonth }, (_, i) => i + 1), cols = 2 + d.daysInMonth + 5;
+  const row = (s, n) => `<tr><td>${n}</td><td class="n">${esc(s.nama)}</td>${s.dailyCodes.map(x => `<td class="c${x.code}">${x.code}</td>`).join('')}
+    <td class="cH">${s.stats.h}</td><td>${s.stats.s}</td><td>${s.stats.i}</td><td class="cA">${s.stats.a}</td><td><b>${s.stats.percent}%</b></td></tr>`;
+  let body = '';
+  if (kelas) body = d.students.map((s, i) => row(s, i + 1)).join('');
+  else {
+    const g = {};
+    d.students.forEach(s => (g[s.kelas || 'Tanpa Kelas'] = g[s.kelas || 'Tanpa Kelas'] || []).push(s));
+    Object.keys(g).sort(natural).forEach(k => { body += `<tr><td colspan="${cols}" style="background:var(--pl);color:#fff;text-align:left;padding:5px 8px"><b>Kelas ${esc(k)}</b> (${g[k].length})</td></tr>` + g[k].map((s, i) => row(s, i + 1)).join(''); });
+  }
+  return `<table class="rk"><thead><tr><th>No</th><th>Nama</th>${days.map(x => `<th>${x}</th>`).join('')}<th>H</th><th>S</th><th>I</th><th>A</th><th>%</th></tr></thead><tbody>${body || `<tr><td colspan="${cols}">Tidak ada data.</td></tr>`}</tbody></table>`;
 }
 async function rLoad() {
   rBadge(); busy(true);
   try {
-    const r = await api('getMonthlyReportData', +$('#rB').value, +$('#rT').value, $('#rK').value);
+    const k = $('#rK').value, b = +$('#rB').value, t = +$('#rT').value;
+    const r = await api('getMonthlyReportData', b, t, k);
     busy(false);
-    if (!r.success) return ($('#rO').textContent = r.message);
-    const d = r.data, days = Array.from({ length: d.daysInMonth }, (_, i) => i + 1);
-    const row = (s, n) => `<tr><td>${n}</td><td class="n">${esc(s.nama)}</td>${s.dailyCodes.map(x => `<td class="c${x.code}">${x.code}</td>`).join('')}
-      <td class="cH">${s.stats.h}</td><td>${s.stats.s}</td><td>${s.stats.i}</td><td class="cA">${s.stats.a}</td><td><b>${s.stats.percent}%</b></td></tr>`;
-    const cols = 2 + d.daysInMonth + 5;
-    let body = '';
-    if ($('#rK').value) body = d.students.map((s, i) => row(s, i + 1)).join('');
-    else {
-      const g = {};
-      d.students.forEach(s => (g[s.kelas || 'Tanpa Kelas'] = g[s.kelas || 'Tanpa Kelas'] || []).push(s));
-      Object.keys(g).sort(natural).forEach(k => { body += `<tr><td colspan="${cols}" style="background:var(--pl);color:#fff;text-align:left"><b>Kelas ${esc(k)}</b> (${g[k].length})</td></tr>` + g[k].map((s, i) => row(s, i + 1)).join(''); });
-    }
-    $('#rO').innerHTML = `<table class="rk"><thead><tr><th>No</th><th>Nama</th>${days.map(x => `<th>${x}</th>`).join('')}<th>H</th><th>S</th><th>I</th><th>A</th><th>%</th></tr></thead><tbody>${body || `<tr><td colspan="${cols}">Tidak ada data.</td></tr>`}</tbody></table>`;
+    if (!r.success) { rLast = null; return ($('#rO').textContent = r.message); }
+    rLast = { d: r.data, k, b, t };
+    $('#rO').innerHTML = rTable(r.data, k);
   } catch (e) { fail(e); }
+}
+// Cetak PDF: memakai dialog cetak browser (A4 landscape) → pilih "Simpan sebagai PDF" / printer
+function rPrint() {
+  if (!rLast) return toast('Klik Tampilkan dulu sebelum mencetak.', true);
+  const { d, k, b, t } = rLast;
+  $('#pr').innerHTML = `<h3>REKAPITULASI ABSENSI BULANAN SISWA</h3><div class="pm">Kelas: <b>${esc(k || 'Semua Kelas')}</b> &nbsp;|&nbsp; Periode: <b>${BULAN[b]} ${t}</b></div>${rTable(d, k)}
+    <div class="pf">H: Hadir · S: Sakit · I: Izin · A: Alpa · L: Libur &nbsp;|&nbsp; Dicetak: ${new Date().toLocaleString('id-ID')}</div>`;
+  setTimeout(() => window.print(), 80);
 }
 
 // ======================= HARI LIBUR (admin) =======================
@@ -618,7 +692,7 @@ async function ekKirim() {
   try {
     const r = await apiW('saveEkskulAbsensi', user.token, e.id, ekTgl, { ...ekSt }, oleh()); busy(false);
     if (!r || r.success === false) return toast((r && r.message) || 'Gagal menyimpan.', true);
-    const rec = (r && r.data) || { id: e.id + '|' + ekTgl, ekskulId: e.id, tanggal: ekTgl, data: { ...ekSt }, oleh: oleh(), ts: Date.now() };
+    const rec = (r && r.data) || { id: e.id + '|' + ekTgl, ekskulId: e.id, tanggal: ekTgl, data: { ...ekSt }, oleh: oleh() };
     const ex = ek.absensi.find(a => a.ekskulId === e.id && a.tanggal === ekTgl);
     if (ex) Object.assign(ex, rec); else ek.absensi.unshift(rec);
     store.set(EK, ek); toast(r.offline ? '📥 Tersimpan offline — terkirim saat online' : 'Absensi ekskul tersimpan'); ekAbs();
@@ -674,26 +748,13 @@ async function ekHapus(id) {
   } catch (e) { fail(e); }
 }
 
-// ======================= PWA & STATUS KONEKSI =======================
-let instEv = null;
-(function pwa() {
-  const icon = n => { const c = document.createElement('canvas'); c.width = c.height = n; const x = c.getContext('2d'); x.fillStyle = '#1a1967'; x.fillRect(0, 0, n, n); x.fillStyle = '#fff'; x.font = 'bold ' + n * .6 + 'px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('✓', n / 2, n * .54); return c.toDataURL('image/png'); };
-  try {
-    const i192 = icon(192), i512 = icon(512), base = location.href.split(/[?#]/)[0];
-    document.head.insertAdjacentHTML('beforeend', `<link rel="apple-touch-icon" href="${i192}"><link rel="icon" type="image/png" href="${i192}">`);
-    const man = { name: 'E-PRESENT MANBAKU', short_name: 'E-PRESENT', description: "Sistem Absensi Digital Madrasah Manba'ul Huda", start_url: base, scope: base.replace(/[^/]*$/, ''), display: 'standalone', background_color: '#1a1967', theme_color: '#1a1967', lang: 'id', icons: [{ src: i192, sizes: '192x192', type: 'image/png', purpose: 'any' }, { src: i512, sizes: '512x512', type: 'image/png', purpose: 'any' }] };
-    const l = document.createElement('link'); l.rel = 'manifest'; l.href = URL.createObjectURL(new Blob([JSON.stringify(man)], { type: 'application/manifest+json' })); document.head.appendChild(l);
-  } catch (e) {}
-  // sw.js bersifat opsional: bila ada di folder yang sama, mode offline penuh aktif; bila tidak ada, diabaikan.
-  if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('./sw.js').catch(() => {});
-  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instEv = e; $('#inst').classList.remove('hidden'); });
-  window.addEventListener('appinstalled', () => { $('#inst').classList.add('hidden'); toast('E-PRESENT berhasil dipasang'); });
+// ======================= STATUS KONEKSI =======================
+(function net() {
   window.addEventListener('online', () => { $('#offl').classList.add('hidden'); toast('Koneksi internet kembali'); syncQ(); });
   window.addEventListener('offline', () => $('#offl').classList.remove('hidden'));
   if (!navigator.onLine) $('#offl').classList.remove('hidden');
   qBadge(); setTimeout(syncQ, 1500);
 })();
-async function pwaInstall() { if (!instEv) return; instEv.prompt(); await instEv.userChoice; instEv = null; $('#inst').classList.add('hidden'); }
 
 // ======================= INIT =======================
 const saved = store.get(SESSION_KEY);
