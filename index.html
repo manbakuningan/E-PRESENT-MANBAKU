@@ -81,7 +81,7 @@ h2{margin:0 0 14px;font-size:18px}
 .st.sakit{background:#fef9c3;color:#a16207}.st.bolos{background:#ffedd5;color:#c2410c}.st.alpa{background:#fee2e2;color:#b91c1c}
 .rk td,.rk th{padding:4px 5px;text-align:center;font-size:11px}
 .rk td.n{text-align:left;position:sticky;left:0;background:#fff}
-.cH{color:#16a34a;font-weight:700}.cB{background:#ffedd5;color:#c2410c;font-weight:700}.cS{background:#fef9c3}.cI{background:#dbeafe}.cA{background:#fee2e2;color:#b91c1c;font-weight:700}.cL{background:#fef2f2;color:#fca5a5}
+.cH{color:#16a34a;font-weight:700}.rk td.cH{font-size:17px;line-height:1}.cB{background:#ffedd5;color:#c2410c;font-weight:700}.cS{background:#fef9c3}.cI{background:#dbeafe}.cA{background:#fee2e2;color:#b91c1c;font-weight:700}.cL{background:#fef2f2;color:#fca5a5}
 dialog{border:0;border-radius:14px;padding:20px;width:min(560px,94vw)}
 dialog::backdrop{background:rgba(0,0,0,.5)}
 dialog label{margin-top:10px}dialog input,dialog select,dialog textarea{width:100%}
@@ -448,12 +448,12 @@ async function vRekap() {
     <button class="btn" onclick="rLoad()">Tampilkan</button><button class="btn g" onclick="rPdf()">⬇ Unduh PDF</button>
     ${user.role === 'admin' ? '<button class="btn r" onclick="hapusBulan()">🗑 Hapus Data Bulan</button>' : ''}</div>
     <div class="card tw" id="rO"><span class="mu">Pilih filter lalu klik Tampilkan.</span></div>
-    <div class="mu">H: Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa · L: Libur. Persentase = Hadir ÷ Hari Efektif × 100%.</div>`;
+    <div class="mu">• : Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa · L: Libur. Persentase = Hadir ÷ Hari Efektif × 100%.</div>`;
   if (mine.length) rLoad();   // guru: langsung tampil kelas pertamanya
 }
 function rTable(d, kelas) {
   const days = Array.from({ length: d.daysInMonth }, (_, i) => i + 1), cols = 2 + d.daysInMonth + 6;
-  const row = (s, n) => `<tr><td>${n}</td><td class="n">${esc(s.nama)}</td>${s.dailyCodes.map(x => `<td class="c${x.code}">${x.code}</td>`).join('')}
+  const row = (s, n) => `<tr><td>${n}</td><td class="n">${esc(s.nama)}</td>${s.dailyCodes.map(x => `<td class="c${x.code}">${x.code === 'H' ? '•' : x.code}</td>`).join('')}
     <td class="cH">${s.stats.h}</td><td>${s.stats.s}</td><td>${s.stats.i}</td><td class="cB">${s.stats.b}</td><td class="cA">${s.stats.a}</td><td><b>${s.stats.percent}%</b></td></tr>`;
   let body = '';
   if (kelas) body = d.students.map((s, i) => row(s, i + 1)).join('');
@@ -507,10 +507,11 @@ function rPdf() {
     didParseCell(h) {
       const c = h.cell.raw;
       if (h.section !== 'body' || typeof c !== 'string' || h.column.index < 2 || h.column.index >= 2 + nd) return;
+      if (c === 'H') { h.cell.text = ['•']; h.cell.styles.fontSize = 11; }
       if (warna[c]) { h.cell.styles.textColor = warna[c]; h.cell.styles.fontStyle = 'bold'; }
       if (latar[c]) h.cell.styles.fillColor = latar[c];
     },
-    didDrawPage(h) { doc.setFontSize(7); doc.setTextColor(90); doc.text('H: Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa · L: Libur   |   Diunduh: ' + new Date().toLocaleString('id-ID') + '   |   Hal. ' + h.pageNumber, 7, 205); doc.setTextColor(0); }
+    didDrawPage(h) { doc.setFontSize(7); doc.setTextColor(90); doc.text('• = Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa · L: Libur   |   Diunduh: ' + new Date().toLocaleString('id-ID') + '   |   Hal. ' + h.pageNumber, 7, 205); doc.setTextColor(0); }
   });
   doc.save('Rekap_Absensi_' + (k || 'Semua_Kelas').replace(/\s+/g, '_') + '_' + BULAN[b] + '_' + t + '.pdf');
   toast('PDF diunduh');
@@ -692,15 +693,24 @@ function ekKelola() {
     ${ek.ekskul.map(e => `<div class="card row" style="justify-content:space-between"><div><b>${esc(e.nama)}</b> <small class="mu">${e.anggota.length} anggota</small><div class="mu">Pembina: ${esc(e.pembina)} · ${esc(e.hari)} ${esc(e.jamMulai)}–${esc(e.jamSelesai)}</div></div>
     <div><button class="btn g s" onclick="ekForm('${esc(e.id)}')">Edit</button> <button class="btn r s" onclick="ekHapus('${esc(e.id)}')">Hapus</button></div></div>`).join('') || '<div class="card mu">Belum ada ekskul.</div>'}`;
 }
+const pbOpt = (gurus, sel) => {
+  const names = [...new Set(gurus.map(g => g.nama))].sort((a, b) => a.localeCompare(b));
+  if (sel && !names.includes(sel)) names.unshift(sel);   // pembina lama yang akunnya sudah tidak ada tetap tampil
+  return names.map(n => `<option value="${esc(n)}" ${n === sel ? 'selected' : ''}>${esc(n)}</option>`).join('');
+};
 async function ekForm(id) {
   busy(true);
-  try { await getSiswa(); } catch (e) { busy(false); return fail(e); }
+  let gurus = [];
+  try {
+    await getSiswa();
+    try { const ur = await api('getUsers'); gurus = ((ur && ur.data) || []).filter(u => u.role === 'guru'); } catch (x) {}
+  } catch (e) { busy(false); return fail(e); }
   busy(false);
   const e = id ? ek.ekskul.find(x => x.id === id) : null, on = new Set((e ? e.anggota : []).map(a => a.nisn)), by = {};
   siswaCache.forEach(s => (by[s.kelas || 'Tanpa Kelas'] = by[s.kelas || 'Tanpa Kelas'] || []).push(s));
   $('#dlg').innerHTML = `<form onsubmit="ekSave(event,'${e ? esc(e.id) : ''}')"><h2>${e ? 'Edit' : 'Tambah'} Ekskul</h2>
     <label>Nama Ekskul</label><input name="nama" required value="${esc(e && e.nama)}">
-    <label>Guru Pembina (sesuai nama akun guru)</label><input name="pembina" required value="${esc(e && e.pembina)}">
+    <label>Guru Pembina</label><select name="pembina" required><option value="">-- Pilih Guru --</option>${pbOpt(gurus, e && e.pembina)}</select>
     <div class="row"><div style="flex:1"><label>Hari</label><select name="hari">${opt(HARI, e && e.hari)}</select></div>
     <div style="flex:1"><label>Mulai</label><input type="time" name="jamMulai" value="${esc(e ? e.jamMulai : '15:30')}"></div>
     <div style="flex:1"><label>Selesai</label><input type="time" name="jamSelesai" value="${esc(e ? e.jamSelesai : '17:00')}"></div></div>
