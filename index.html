@@ -244,11 +244,13 @@
       #view-daftar-hadir-guru th, #view-daftar-hadir-guru td { padding: 6px 8px !important; }
 
       /* Dropdown status: rapi & touch-friendly */
-      #view-daftar-hadir-guru select.dh-select {
+      #view-daftar-hadir-guru select.dh-select, #view-ekskul select.dh-select {
         font-size: 11px;
         min-height: 34px;
-        min-width: 110px;
+        min-width: 96px;
       }
+      /* Nama panjang terpotong rapi (truncate), kolom status tetap terlihat tanpa scroll */
+      #view-daftar-hadir-guru table, #view-ekskul table { table-layout: fixed; width: 100%; }
 
       /* Bar kirim: sticky di bawah agar mudah dijangkau jempol */
       #view-daftar-hadir-guru .dh-submit-bar {
@@ -268,7 +270,7 @@
     }
 
     @media (max-width: 380px) {
-      #view-daftar-hadir-guru table { font-size: 10px; }
+      #view-daftar-hadir-guru table, #view-ekskul table { font-size: 10px; }
     }
   </style>
 </head>
@@ -387,7 +389,7 @@
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
                                 <i class="far fa-id-card text-lg"></i>
                             </div>
-                            <input type="number" id="nisn" class="block w-full pl-12 pr-4 py-4 bg-slate-50 border-slate-200 border rounded-xl text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-slate-400" placeholder="Masukkan Nomor Induk Siswa">
+                            <input type="text" autocomplete="off" id="nisn" class="block w-full pl-12 pr-4 py-4 bg-slate-50 border-slate-200 border rounded-xl text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-slate-400" placeholder="Masukkan NISN (angka / huruf)">
                         </div>
                     </div>
                     
@@ -676,7 +678,7 @@
   @keyframes dhFlash { 0%,30%{background:#d1fae5} 100%{background:transparent} }
 
   /* Dropdown status kehadiran — pilihan hanya terlihat saat diklik */
-  #view-daftar-hadir-guru select.dh-select {
+  select.dh-select {
     appearance: none; -webkit-appearance: none; -moz-appearance: none;
     font-size: 12px; font-weight: 700;
     padding: 7px 26px 7px 12px;
@@ -692,10 +694,67 @@
     background-size: 10px 6px;
     transition: box-shadow .15s ease, transform .15s ease;
   }
-  #view-daftar-hadir-guru select.dh-select:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
-  #view-daftar-hadir-guru select.dh-select:focus { ring-width: 2px; box-shadow: 0 0 0 2px #a5b4fc; }
-  #view-daftar-hadir-guru select.dh-select:disabled { cursor: not-allowed; opacity: 0.92; box-shadow: none; }
+  select.dh-select:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+  select.dh-select:focus { box-shadow: 0 0 0 2px #a5b4fc; }
+  select.dh-select:disabled { cursor: not-allowed; opacity: 0.92; box-shadow: none; }
 </style>
+
+<div id="view-ekskul" class="view-section animate-fade-in hidden">
+
+  <!-- Tab switch -->
+  <div class="flex gap-2 mb-4">
+    <button id="ekskulTabBtnAbsensi" onclick="ekskulShowTab('absensi')" class="flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-sm"><i class="fas fa-clipboard-check mr-1"></i> Absensi Ekskul</button>
+    <button id="ekskulTabBtnKelola" onclick="ekskulShowTab('kelola')" class="hidden flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs font-bold transition bg-white text-gray-600 border border-gray-200 shadow-sm"><i class="fas fa-sliders-h mr-1"></i> Kelola Ekskul</button>
+  </div>
+
+  <!-- ===== TAB: ABSENSI ===== -->
+  <div id="ekskulPanelAbsensi">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+      <div class="flex flex-col md:flex-row gap-3 md:items-end">
+        <div class="flex-1">
+          <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pilih Ekstrakurikuler</label>
+          <select id="ekskulSelect" onchange="ekskulOnSelectChange()" class="w-full md:w-64 bg-gray-50 border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-400 outline-none transition cursor-pointer"></select>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tanggal Latihan</label>
+          <input type="date" id="ekskulTanggal" onchange="ekskulRenderAbsensi()" class="w-full md:w-48 bg-gray-50 border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-400 outline-none transition">
+        </div>
+      </div>
+      <div id="ekskulInfoJadwal" class="mt-3 hidden text-[11px] text-gray-500 bg-indigo-50/60 border border-indigo-100 rounded-xl px-3 py-2"></div>
+    </div>
+
+    <div id="ekskulAbsensiWrap">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-sm text-gray-400 font-semibold">
+        <i class="fas fa-medal mr-2 text-gray-300"></i>Belum ada ekskul terdaftar.
+      </div>
+    </div>
+
+    <div class="dh-submit-bar mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="text-xs text-gray-500 flex items-center gap-2">
+        <i class="fas fa-info-circle text-indigo-400"></i>
+        <span>Terisi: <b id="ekskulCounter" class="text-blue-600">0 / 0</b> &bull; Pilih status di dropdown lalu kirim.</span>
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button onclick="ekskulTandaiSemua()" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition flex-shrink-0"><i class="fas fa-check-double mr-1"></i> Tandai Semua Hadir</button>
+        <button onclick="ekskulKirim()" id="ekskulKirimBtn" class="px-6 py-3 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center gap-2 flex-1 sm:flex-none justify-center"><i class="fas fa-paper-plane"></i> <span>Kirim Absensi</span></button>
+      </div>
+    </div>
+
+    <div id="ekskulRiwayatWrap" class="mt-5"></div>
+  </div>
+
+  <!-- ===== TAB: KELOLA (admin) ===== -->
+  <div id="ekskulPanelKelola" class="hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 flex items-center justify-between gap-3">
+      <div>
+        <h3 class="font-bold text-sm text-gray-800">Kelola Ekstrakurikuler</h3>
+        <p class="text-[11px] text-gray-400">Atur daftar ekskul, guru pembina, jadwal hari &amp; jam, dan anggotanya.</p>
+      </div>
+      <button onclick="ekskulFormModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex-shrink-0"><i class="fas fa-plus mr-1"></i> Tambah Ekskul</button>
+    </div>
+    <div id="ekskulKelolaList" class="space-y-3"></div>
+  </div>
+</div>
 
 
 <div id="view-siswa-dashboard" class="view-section animate-fade-in h-full">
@@ -1492,6 +1551,23 @@ async function callGASRaw(functionName, args, attempt = 1) {
 async function callGAS(functionName, ...args) {
     return queuedFetch(() => callGASRaw(functionName, args));
 }
+
+// Adapter daftar siswa utk backend gs: memakai getSiswaList(filterKelas) sesuai
+// Code.gs — 'SEMUA' / '' berarti TANPA filter, "K1,K2" multi-kelas, nama kelas
+// tunggal juga bisa. Hasil selalu ARRAY siswa (nisn/kelas dibuat string bersih).
+function gasGetSiswa(kelas) {
+    const f = (!kelas || String(kelas).toUpperCase() === 'SEMUA') ? '' : String(kelas);
+    return callGAS('getSiswaList', f).then(r => {
+        let list = (r && r.success && Array.isArray(r.data)) ? r.data : (Array.isArray(r) ? r : []);
+        return list.map(s => {
+            const o = Object.assign({}, s);
+            o.nama = (s.nama != null) ? String(s.nama).trim() : '';
+            o.nisn = (s.nisn != null) ? String(s.nisn).trim() : '';
+            o.kelas = (s.kelas != null) ? String(s.kelas).trim() : '';
+            return o;
+        });
+    });
+}
 // ==========================================================================
 // OFFLINE QUEUE SYSTEM — antrian absensi saat tidak ada koneksi internet
 // ==========================================================================
@@ -2006,6 +2082,7 @@ function initDashboard() {
     if (currentUser.role === 'admin') {
         menuHTML += createItem('Dashboard', 'fa-home', 'loadAdminDashboard()', true);
         menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
+        menuHTML += createItem('Ekstrakurikuler', 'fa-medal', 'loadEkskul()');
         menuHTML += createItem('Data Siswa', 'fa-user-graduate', 'loadDataSiswa()');
         menuHTML += createItem('Rekap Bulanan', 'fa-calendar-alt', 'loadMenuRekapBulanan()');
         menuHTML += createItem('Kelola Absen', 'fa-calendar-times', 'loadKelolaAbsen()');
@@ -2017,6 +2094,7 @@ function initDashboard() {
      else if (currentUser.role === 'guru') {
         menuHTML += createItem('Dashboard', 'fa-home', 'loadGuruDashboard()', true);
         menuHTML += createItem('Daftar Hadir', 'fa-clipboard-check', 'loadDaftarHadirGuru()');
+        menuHTML += createItem('Ekstrakurikuler', 'fa-medal', 'loadEkskul()');
         menuHTML += createItem('Rekap Bulanan', 'fa-calendar-alt', 'loadMenuRekapBulanan()');
         loadGuruDashboard();
     }
@@ -2313,7 +2391,7 @@ function dhGroupStudents(list) {
 // Daftar Hadir selalu siap dibuka tanpa loading. Nama siswa selalu sama,
 // jadi cache lokal dipakai untuk render instan.
 function dhPrefetchStudents() {
-    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
+    gasGetSiswa('SEMUA').then(list => {
         if (!Array.isArray(list) || list.length === 0) return;
         const byClass = dhGroupStudents(list);
         dhSaveCache(byClass, Object.keys(byClass).sort());
@@ -2346,7 +2424,7 @@ function loadDaftarHadirGuru() {
     }
 
     // Cache belum ada (pembukaan pertama) → ambil sekali, simpan, lalu render
-    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
+    gasGetSiswa('SEMUA').then(list => {
         if (!Array.isArray(list) || list.length === 0) throw new Error('Data siswa kosong');
         const byClass = dhGroupStudents(list);
         const order = Object.keys(byClass).sort();
@@ -2382,7 +2460,7 @@ function dhBuildClasses(kelasGuru, byClass, order) {
     // Kelas yang belum ada di cache → ambil satu-satu di background
     dhClasses.forEach((c, i) => {
         if (c.students.length === 0) {
-            callGAS('getSiswaByKelas', c.kelas).then(list => {
+            gasGetSiswa(c.kelas).then(list => {
                 if (Array.isArray(list) && list.length > 0) {
                     c.students = dhGroupStudents(list)[c.kelas] || [];
                     dhRenderRows(i);
@@ -2413,6 +2491,7 @@ function dhCardHTML(c, i) {
       </div>
       <div class="overflow-y-auto" style="max-height:60vh;">
         <table class="w-full text-sm">
+          <colgroup><col style="width:11%"><col style="width:56%"><col style="width:33%"></colgroup>
           <thead class="sticky top-0 z-10">
             <tr class="bg-gray-50 border-b border-gray-100">
               <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase w-10">No</th>
@@ -2459,8 +2538,8 @@ function dhRenderRows(i) {
         return `
         <tr id="dh-row-${i}-${s.nisn}" class="${cfg ? cfg.rowBg : ''} border-b border-gray-50 transition-colors duration-500">
           <td class="px-3 py-2 text-center text-xs text-gray-400">${r + 1}</td>
-          <td class="px-4 py-2">
-            <div class="font-semibold text-[13px] text-gray-800 truncate" title="${s.nisn}">${s.nama}</div>
+          <td class="px-2.5 py-2">
+            <div class="font-semibold text-[11px] text-gray-800 truncate" title="${s.nisn}">${s.nama}</div>
           </td>
           <td class="px-3 py-2 text-center">${statusCell}</td>
         </tr>`;
@@ -3909,7 +3988,7 @@ function loadQRCodeSiswa(nisnParam, namaParam, kelasParam) {
                         </div>
                         <div>
                             <label class="${labelClass}">NISN</label>
-                            <input type="number" name="nisn" value="${s?.nisn || ''}" required ${isEdit ? 'readonly class="' + inputClass + ' opacity-60 cursor-not-allowed"' : `class="${inputClass}"`} placeholder="Nomor Induk">
+                            <input type="text" name="nisn" value="${s?.nisn || ''}" required ${isEdit ? 'readonly class="' + inputClass + ' opacity-60 cursor-not-allowed"' : `class="${inputClass}"`} placeholder="Nomor Induk">
                         </div>
                         
                         <div class="relative group">
@@ -4244,6 +4323,520 @@ function processImportSiswa(data, inputElement) {
 // ==========================================
 // LOGIKA REKAP BULANAN
 // ==========================================
+
+// ==========================================
+// ABSENSI EKSTRAKURIKULER
+// Data utama tersimpan di Spreadsheet via backend GAS (sheet 'ekstrakurikuler' &
+// 'absensi_ekskul' — lihat EKSKUL.gs). localStorage dipakai sebagai CACHE agar
+// render tetap instan & data tetap terlihat saat koneksi terputus.
+// Struktur EKSKUL_KEY:
+//   ekskul : [{ id, nama, pembina, hari, jamMulai, jamSelesai, anggota: [{nisn,nama,kelas}] }]
+//   absensi: [{ id, ekskulId, tanggal, data: {nisn: status}, oleh, ts }]
+// ==========================================
+const EKSKUL_KEY = 'ep_ekskul_v1';
+const EKSKUL_HARI = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+let ekskulDB = { ekskul: [], absensi: [] };
+let ekskulCur = { id: null, status: {} };
+let ekskulFlatSumber = [];
+
+function ekskulLoadDB() {
+    try {
+        const d = JSON.parse(localStorage.getItem(EKSKUL_KEY) || 'null');
+        if (d && Array.isArray(d.ekskul) && Array.isArray(d.absensi)) return d;
+    } catch (e) {}
+    return { ekskul: [], absensi: [] };
+}
+
+function ekskulSaveDB() {
+    try { localStorage.setItem(EKSKUL_KEY, JSON.stringify(ekskulDB)); return true; }
+    catch (e) { return false; }
+}
+
+function loadEkskul() {
+    setActiveMenu('Ekstrakurikuler');
+    showView('view-ekskul');
+    ekskulDB = ekskulLoadDB();
+
+    const tglEl = document.getElementById('ekskulTanggal');
+    if (tglEl && !tglEl.value) tglEl.value = new Date().toISOString().split('T')[0];
+
+    const isAdmin = currentUser && currentUser.role === 'admin';
+    const bKelola = document.getElementById('ekskulTabBtnKelola');
+    if (bKelola) bKelola.classList.toggle('hidden', !isAdmin);
+
+    ekskulFillSelect();
+    ekskulShowTab('absensi');
+
+    // Tarik data terbaru dari Spreadsheet di background (render tetap instan dari cache)
+    ekskulSyncDariServer();
+}
+
+// Sinkron ekskul + absensi dari backend GAS (fungsi getEkskulList di EKSKUL.gs).
+// Server = acuan; sesi/ekskul lokal yang BELUM ada di server (misal antrian
+// offline yang belum terkirim) tetap dipertahankan agar tidak hilang.
+function ekskulSyncDariServer() {
+    callGAS('getEkskulList').then(r => {
+        if (!r || !r.success || !r.data) return;
+        const srv = r.data;
+        const local = ekskulLoadDB();
+
+        const srvEk = {};
+        (srv.ekskul || []).forEach(e => { srvEk[e.id] = true; });
+        const srvKey = {};
+        (srv.absensi || []).forEach(a => { srvKey[a.ekskulId + '|' + a.tanggal] = true; });
+
+        const mergedEkskul = (srv.ekskul || []).concat((local.ekskul || []).filter(e => !srvEk[e.id]));
+        const mergedAbs = (srv.absensi || []).concat((local.absensi || []).filter(a => !srvKey[a.ekskulId + '|' + a.tanggal]));
+
+        ekskulDB = { ekskul: mergedEkskul, absensi: mergedAbs };
+        ekskulSaveDB();
+
+        // Render ulang hanya jika halaman Ekskul sedang terbuka
+        // (navigasi aplikasi memakai .active + style.display, bukan class hidden)
+        const v = document.getElementById('view-ekskul');
+        if (v && v.classList.contains('active') && v.style.display !== 'none') {
+            ekskulFillSelect();
+            const pK = document.getElementById('ekskulPanelKelola');
+            const onKelola = pK && !pK.classList.contains('hidden');
+            ekskulShowTab(onKelola ? 'kelola' : 'absensi');
+        }
+    }).catch(() => {});
+}
+
+// Guru hanya melihat ekskul yang dibinanya; admin melihat semua
+function ekskulVisibleList() {
+    if (currentUser && currentUser.role === 'guru') {
+        const nm = String(currentUser.nama || '').toLowerCase().trim();
+        if (nm) return ekskulDB.ekskul.filter(e => String(e.pembina || '').toLowerCase().includes(nm));
+    }
+    return ekskulDB.ekskul;
+}
+
+function ekskulFillSelect() {
+    const sel = document.getElementById('ekskulSelect');
+    if (!sel) return;
+    const list = ekskulVisibleList();
+    const prev = ekskulCur.id;
+    if (!list.length) {
+        sel.innerHTML = '<option value="">- Belum ada ekskul -</option>';
+        ekskulCur.id = null;
+        return;
+    }
+    sel.innerHTML = list.map(e => `<option value="${e.id}">${e.nama} (${e.hari}, ${e.jamMulai || '?'}-${e.jamSelesai || '?'})</option>`).join('');
+    ekskulCur.id = list.some(e => e.id === prev) ? prev : list[0].id;
+    sel.value = ekskulCur.id;
+}
+
+function ekskulShowTab(t) {
+    const pA = document.getElementById('ekskulPanelAbsensi');
+    const pK = document.getElementById('ekskulPanelKelola');
+    const bA = document.getElementById('ekskulTabBtnAbsensi');
+    const bK = document.getElementById('ekskulTabBtnKelola');
+    const kelolaAda = !!(pK && bK && !bK.classList.contains('hidden'));
+    const onA = (t === 'absensi') || !kelolaAda;
+    if (pA) pA.classList.toggle('hidden', !onA);
+    if (pK) pK.classList.toggle('hidden', onA);
+    const clsOn  = 'flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-sm';
+    const clsOff = 'flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs font-bold transition bg-white text-gray-600 border border-gray-200 shadow-sm';
+    if (bA) bA.className = onA ? clsOn : clsOff;
+    // Jangan sentuh tombol Kelola saat tersembunyi (guru) agar class 'hidden' tidak hilang
+    if (bK && kelolaAda) bK.className = onA ? clsOff : clsOn;
+    if (onA) ekskulRenderAbsensi();
+    else ekskulRenderKelola();
+}
+
+function ekskulOnSelectChange() {
+    ekskulCur.id = document.getElementById('ekskulSelect').value || null;
+    ekskulCur.status = {};
+    ekskulRenderAbsensi();
+}
+
+function ekskulGetCur() { return ekskulDB.ekskul.find(e => e.id === ekskulCur.id) || null; }
+
+// -- Render halaman absensi ekskul terpilih --
+function ekskulRenderAbsensi() {
+    const wrap = document.getElementById('ekskulAbsensiWrap');
+    const info = document.getElementById('ekskulInfoJadwal');
+    const riw  = document.getElementById('ekskulRiwayatWrap');
+    if (!wrap) return;
+    const e = ekskulGetCur();
+    if (!e) {
+        const adaEkskul = ekskulDB.ekskul.length > 0;
+        const pesan = adaEkskul
+            ? '<i class="fas fa-lock mr-2"></i>Anda bukan pembina ekskul yang terdaftar. Hubungi admin.'
+            : '<i class="fas fa-medal mr-2"></i>Belum ada ekskul terdaftar.' + ((currentUser && currentUser.role === 'admin') ? ' Buka tab "Kelola Ekskul" untuk menambahkan.' : '');
+        wrap.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-sm ${adaEkskul ? 'text-amber-500' : 'text-gray-400'} font-semibold">${pesan}</div>`;
+        if (info) info.classList.add('hidden');
+        if (riw) riw.innerHTML = '';
+        const c = document.getElementById('ekskulCounter');
+        if (c) c.textContent = '0 / 0';
+        return;
+    }
+
+    if (info) {
+        info.classList.remove('hidden');
+        info.innerHTML = `<i class="fas fa-chalkboard-teacher text-indigo-400 mr-1"></i> Pembina: <b>${e.pembina || '-'}</b> &nbsp;&bull;&nbsp; <i class="far fa-calendar-alt text-indigo-400 mr-1"></i> Setiap <b>${e.hari}</b> &nbsp;&bull;&nbsp; <i class="far fa-clock text-indigo-400 mr-1"></i> <b>${e.jamMulai || '?'} - ${e.jamSelesai || '?'}</b> &nbsp;&bull;&nbsp; <i class="fas fa-users text-indigo-400 mr-1"></i> <b>${e.anggota.length}</b> anggota`;
+    }
+
+    const tgl = document.getElementById('ekskulTanggal').value;
+    const rec = ekskulDB.absensi.find(a => a.ekskulId === e.id && a.tanggal === tgl);
+    ekskulCur.status = rec ? Object.assign({}, rec.data) : {};
+
+    wrap.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="overflow-y-auto" style="max-height:60vh;">
+        <table class="w-full text-sm">
+          <colgroup><col style="width:11%"><col style="width:56%"><col style="width:33%"></colgroup>
+          <thead class="sticky top-0 z-10">
+            <tr class="bg-gray-50 border-b border-gray-100">
+              <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase w-10">No</th>
+              <th class="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase">Nama Lengkap</th>
+              <th class="px-3 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase w-36">Status</th>
+            </tr>
+          </thead>
+          <tbody id="ekskulTbody"></tbody>
+        </table>
+      </div>
+    </div>`;
+    ekskulRenderRowsAbsensi();
+
+    if (riw) ekskulRenderRiwayat(e);
+    ekskulUpdateCounter();
+}
+
+// -- Baris anggota: No | Nama Lengkap | dropdown status (5 status, gaya sama dgn Daftar Hadir) --
+function ekskulRenderRowsAbsensi() {
+    const e = ekskulGetCur();
+    const tbody = document.getElementById('ekskulTbody');
+    if (!e || !tbody) return;
+    if (!e.anggota.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-400 text-sm">Belum ada anggota pada ekskul ini.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = e.anggota.map((s, r) => {
+        const st = String(ekskulCur.status[s.nisn] || '').toLowerCase();
+        const cfg = DH_STATUS_CFG[st] || null;
+        const selClass = cfg ? (cfg.chipBg + ' ' + cfg.text) : 'bg-gray-100 text-gray-500';
+        const opts = ['<option value=""' + (st ? '' : ' selected') + ' class="text-gray-500">Pilih Status</option>']
+            .concat(DH_STATUSES.map(v => `<option value="${v}"${st === v ? ' selected' : ''}>${DH_STATUS_CFG[v].label}</option>`))
+            .join('');
+        return `
+        <tr id="ekskul-row-${s.nisn}" class="${cfg ? cfg.rowBg : ''} border-b border-gray-50 transition-colors duration-500">
+          <td class="px-3 py-2 text-center text-xs text-gray-400">${r + 1}</td>
+          <td class="px-2.5 py-2">
+            <div class="font-semibold text-[11px] text-gray-800 truncate" title="${s.kelas || ''}">${s.nama}</div>
+          </td>
+          <td class="px-3 py-2 text-center">
+            <select class="dh-select ${selClass}" onchange="ekskulSetStatus('${s.nisn}',this.value)" title="Klik untuk memilih status">${opts}</select>
+          </td>
+        </tr>`;
+    }).join('');
+}
+
+function ekskulSetStatus(nisn, status) {
+    if (!status) delete ekskulCur.status[nisn];
+    else ekskulCur.status[nisn] = status;
+    ekskulRenderRowsAbsensi();
+    ekskulUpdateCounter();
+}
+
+function ekskulTandaiSemua() {
+    const e = ekskulGetCur();
+    if (!e) return;
+    e.anggota.forEach(s => { ekskulCur.status[s.nisn] = 'hadir'; });
+    ekskulRenderRowsAbsensi();
+    ekskulUpdateCounter();
+}
+
+function ekskulUpdateCounter() {
+    const e = ekskulGetCur();
+    const el = document.getElementById('ekskulCounter');
+    if (!e || !el) return;
+    el.textContent = Object.keys(ekskulCur.status).length + ' / ' + e.anggota.length;
+}
+
+// -- Kirim/Update absensi sesi ekskul (tanggal sama = perbarui) --
+function ekskulKirim() {
+    const e = ekskulGetCur();
+    if (!e) return;
+    const tgl = document.getElementById('ekskulTanggal').value;
+    if (!tgl) { showAlert('error', 'Pilih tanggal terlebih dahulu.'); return; }
+    const entries = Object.entries(ekskulCur.status);
+    if (!entries.length) { showAlert('error', 'Belum ada anggota yang diisi statusnya.'); return; }
+
+    const data = {};
+    entries.forEach(([nisn, st]) => { data[nisn] = st; });
+    const hadir = entries.filter(([, st]) => st === 'hadir').length;
+
+    Swal.fire({
+        title: 'Kirim Absensi Ekskul?',
+        html: `<p class="text-sm text-gray-500"><b>${e.nama}</b> &bull; ${tgl}</p>
+               <div class="flex justify-center gap-4 mt-3 text-sm">
+                 <span class="text-emerald-600 font-bold">${hadir} Hadir</span>
+                 <span class="text-gray-500 font-bold">${entries.length - hadir} Lainnya</span>
+               </div>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4f46e5',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '&#10003; Ya, Kirim',
+        cancelButtonText: 'Batal'
+    }).then(res => {
+        if (!res.isConfirmed) return;
+        const oleh = currentUser ? (currentUser.nama || currentUser.username || '-') : '-';
+        const token = currentUser ? currentUser.token : null;
+
+        // Simpan ke Spreadsheet via saveEkskulAbsensi (EKSKUL.gs) — sesi sama = perbarui.
+        // callGASOffline: jika koneksi terputus, masuk antrian offline & terkirim otomatis.
+        callGASOffline('saveEkskulAbsensi', token, e.id, tgl, data, oleh).then(r => {
+            if (r && r.success === false) {
+                Swal.fire('Gagal', r.message || 'Gagal menyimpan absensi ekskul.', 'error');
+                return;
+            }
+            const sudah = ekskulDB.absensi.find(a => a.ekskulId === e.id && a.tanggal === tgl);
+            const rec = (r && r.data) ? r.data : { id: e.id + '|' + tgl, ekskulId: e.id, tanggal: tgl, data: data, oleh: oleh, ts: Date.now() };
+            if (sudah) Object.assign(sudah, rec); else ekskulDB.absensi.unshift(rec);
+            if (!ekskulSaveDB()) { Swal.fire('Gagal', 'Penyimpanan lokal perangkat penuh.', 'error'); return; }
+            Swal.fire({ icon: 'success', title: 'Absensi Ekskul Tersimpan!', text: `${e.nama} • ${tgl}`, timer: 2200, showConfirmButton: false });
+            ekskulRenderAbsensi();
+        });
+    });
+}
+
+// -- Riwayat sesi terakhir + export Excel --
+function ekskulRenderRiwayat(e) {
+    const riw = document.getElementById('ekskulRiwayatWrap');
+    if (!riw) return;
+    const list = ekskulDB.absensi.filter(a => a.ekskulId === e.id).slice(0, 8);
+    if (!list.length) { riw.innerHTML = ''; return; }
+    riw.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
+          <h4 class="text-xs font-bold text-gray-600 uppercase tracking-wider"><i class="fas fa-history text-indigo-400 mr-1"></i> Riwayat Absensi Terakhir</h4>
+          <button onclick="ekskulExportRiwayat('${e.id}')" class="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg hover:bg-emerald-700 transition"><i class="fas fa-file-excel mr-1"></i> Export Excel</button>
+        </div>
+        <div class="divide-y divide-gray-50">
+          ${list.map(a => {
+              const tot = Object.keys(a.data).length;
+              const h = Object.values(a.data).filter(v => v === 'hadir').length;
+              return `<div class="px-4 py-2.5 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-gray-700">${new Date(a.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                  <div class="text-[10px] text-gray-400">${tot} diisi &bull; ${h} hadir &bull; oleh ${a.oleh}</div>
+                </div>
+                <button onclick="ekskulBukaTanggal('${a.tanggal}')" class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1.5 rounded-lg hover:bg-indigo-100 transition flex-shrink-0"><i class="fas fa-eye mr-1"></i> Buka</button>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+}
+
+function ekskulBukaTanggal(t) {
+    const el = document.getElementById('ekskulTanggal');
+    if (el) { el.value = t; ekskulRenderAbsensi(); }
+}
+
+function ekskulExportRiwayat(ekskulId) {
+    const e = ekskulDB.ekskul.find(x => x.id === ekskulId);
+    if (!e) return;
+    const list = ekskulDB.absensi.filter(a => a.ekskulId === ekskulId);
+    if (!list.length) { showAlert('error', 'Belum ada riwayat absensi.'); return; }
+    if (typeof XLSX === 'undefined') { showAlert('error', 'Pustaka Excel belum termuat.'); return; }
+    const aoa = [['Tanggal', 'NISN', 'Nama Lengkap', 'Status', 'Dicatat Oleh']];
+    list.forEach(a => {
+        e.anggota.forEach(s => {
+            const st = a.data[s.nisn];
+            if (st) aoa.push([a.tanggal, s.nisn, s.nama, DH_STATUS_CFG[st] ? DH_STATUS_CFG[st].label : st, a.oleh]);
+        });
+    });
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 10 }, { wch: 20 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Absensi Ekskul');
+    XLSX.writeFile(wb, `Absensi_Ekskul_${String(e.nama).replace(/\s+/g, '_')}.xlsx`);
+}
+
+// ---- KELOLA EKSKUL (admin) ----
+function ekskulRenderKelola() {
+    const wrap = document.getElementById('ekskulKelolaList');
+    if (!wrap) return;
+    ekskulDB = ekskulLoadDB();
+    if (!ekskulDB.ekskul.length) {
+        wrap.innerHTML = '<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-sm text-gray-400 font-semibold"><i class="fas fa-medal mr-2 text-gray-300"></i>Belum ada ekskul. Klik "Tambah Ekskul" untuk membuat.</div>';
+        return;
+    }
+    wrap.innerHTML = ekskulDB.ekskul.map(e => `
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0"><i class="fas fa-medal text-sm"></i></span>
+            <h4 class="font-bold text-sm text-gray-800">${e.nama}</h4>
+            <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">${e.anggota.length} anggota</span>
+          </div>
+          <div class="text-[11px] text-gray-500 mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+            <span><i class="fas fa-chalkboard-teacher text-indigo-400 mr-1"></i>Pembina: <b>${e.pembina || '-'}</b></span>
+            <span><i class="far fa-calendar-alt text-indigo-400 mr-1"></i><b>${e.hari}</b></span>
+            <span><i class="far fa-clock text-indigo-400 mr-1"></i><b>${e.jamMulai || '?'} - ${e.jamSelesai || '?'}</b></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button onclick="ekskulFormModal('${e.id}')" class="text-[10px] font-bold bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-lg hover:bg-amber-200 transition"><i class="fas fa-pen mr-1"></i> Edit</button>
+          <button onclick="ekskulHapus('${e.id}')" class="text-[10px] font-bold bg-white text-rose-600 border border-rose-200 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 transition"><i class="fas fa-trash-alt mr-1"></i> Hapus</button>
+        </div>
+      </div>`).join('');
+}
+
+function ekskulHapus(id) {
+    const e = ekskulDB.ekskul.find(x => x.id === id);
+    if (!e) return;
+    Swal.fire({
+        title: 'Hapus Ekskul?',
+        html: `<p class="text-sm text-gray-500"><b>${e.nama}</b> beserta seluruh riwayat absensinya akan dihapus permanen dari Spreadsheet.</p>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+    }).then(res => {
+        if (!res.isConfirmed) return;
+        showLoading();
+        const token = currentUser ? currentUser.token : null;
+        callGAS('deleteEkskul', token, id).then(r => {
+            hideLoading();
+            if (!r || !r.success) { showAlert('error', (r && r.message) || 'Gagal menghapus ekskul di server.'); return; }
+            ekskulDB.ekskul = ekskulDB.ekskul.filter(x => x.id !== id);
+            ekskulDB.absensi = ekskulDB.absensi.filter(a => a.ekskulId !== id);
+            ekskulSaveDB();
+            if (ekskulCur.id === id) ekskulCur.id = null;
+            ekskulRenderKelola();
+            ekskulFillSelect();
+            showAlert('success', r.message || 'Ekskul dihapus.');
+        }).catch(err => {
+            hideLoading();
+            showAlert('error', 'Gagal terhubung ke server: ' + (err.message || err));
+        });
+    });
+}
+
+// -- Modal tambah/edit ekskul: nama, pembina, hari, jam, pilih anggota (cari + per kelas) --
+function ekskulFormModal(editId) {
+    const edit = editId ? ekskulDB.ekskul.find(x => x.id === editId) : null;
+
+    const cache = dhGetCache();
+    let flat = [];
+    if (cache && cache.byClass) {
+        Object.keys(cache.byClass).forEach(k => (cache.byClass[k] || []).forEach(s => flat.push(s)));
+    }
+
+    const buildModalHTML = (siswaList) => {
+        const byClass = {};
+        siswaList.forEach(s => { const k = s.kelas || 'Tanpa Kelas'; (byClass[k] = byClass[k] || []).push(s); });
+        const keys = Object.keys(byClass).sort(compareKelasNatural);
+        const checked = new Set((edit ? edit.anggota : []).map(a => a.nisn));
+        return `
+        <div class="text-left" style="max-height:70vh; overflow-y:auto; padding-right:4px;">
+            <input type="text" id="ek-f-nama" class="swal2-input" style="margin:0 0 8px;" placeholder="Nama Ekskul (misal: Pramuka)" value="${edit ? edit.nama : ''}">
+            <input type="text" id="ek-f-pembina" class="swal2-input" style="margin:0 0 8px;" placeholder="Guru Pembina (sesuai nama akun guru)" value="${edit ? edit.pembina : ''}">
+            <div class="flex gap-2 mb-2">
+                <select id="ek-f-hari" class="swal2-input" style="margin:0; flex:1; min-width:0;">${EKSKUL_HARI.map(h => `<option ${edit && edit.hari === h ? 'selected' : ''}>${h}</option>`).join('')}</select>
+                <input type="time" id="ek-f-mulai" class="swal2-input" style="margin:0; flex:1; min-width:0;" value="${edit ? edit.jamMulai : '15:30'}">
+                <input type="time" id="ek-f-selesai" class="swal2-input" style="margin:0; flex:1; min-width:0;" value="${edit ? edit.jamSelesai : '17:00'}">
+            </div>
+            <input type="text" id="ek-f-cari" class="swal2-input" style="margin:0 0 6px;" placeholder="Cari nama siswa...">
+            <p class="text-[10px] text-gray-500 mb-1 font-bold">ANGGOTA (<span id="ek-f-jml">${checked.size}</span> dipilih)</p>
+            <div id="ek-f-list" style="max-height:32vh; overflow-y:auto;" class="border border-gray-200 rounded-lg p-2">
+                ${keys.length ? keys.map(k => `
+                    <p class="text-[10px] font-bold text-indigo-600 mt-1 mb-0.5">${k}</p>
+                    ${byClass[k].map(s => `
+                        <label class="flex items-center gap-2 py-0.5 text-xs text-gray-700 cursor-pointer ek-f-item" data-nama="${String(s.nama).toLowerCase()}">
+                            <input type="checkbox" class="ek-f-ck w-3.5 h-3.5" value="${s.nisn}" ${checked.has(s.nisn) ? 'checked' : ''}>
+                            <span class="truncate">${s.nama}</span>
+                            <span class="text-[9px] text-gray-400 ml-auto font-mono">${s.nisn}</span>
+                        </label>`).join('')}
+                `).join('') : '<p class="text-xs text-gray-400 italic py-2">Daftar siswa belum termuat — buka halaman Daftar Hadir sekali lalu coba lagi.</p>'}
+            </div>
+        </div>`;
+    };
+
+    const pasangEvent = () => {
+        const cari = document.getElementById('ek-f-cari');
+        if (cari) cari.addEventListener('input', () => {
+            const q = cari.value.toLowerCase().trim();
+            document.querySelectorAll('.ek-f-item').forEach(l => {
+                l.style.display = (!q || (l.dataset.nama || '').includes(q)) ? '' : 'none';
+            });
+        });
+        const list = document.getElementById('ek-f-list');
+        if (list) list.addEventListener('change', () => {
+            document.getElementById('ek-f-jml').textContent = document.querySelectorAll('.ek-f-ck:checked').length;
+        });
+    };
+
+    const ambilData = () => {
+        const nama = document.getElementById('ek-f-nama').value.trim();
+        const pembina = document.getElementById('ek-f-pembina').value.trim();
+        const hari = document.getElementById('ek-f-hari').value;
+        const jamMulai = document.getElementById('ek-f-mulai').value || '15:30';
+        const jamSelesai = document.getElementById('ek-f-selesai').value || '17:00';
+        const anggota = Array.from(document.querySelectorAll('.ek-f-ck:checked')).map(ck => {
+            const nisn = ck.value;
+            const s = ekskulFlatSumber.find(x => x.nisn === nisn) || {};
+            return { nisn: nisn, nama: s.nama || nisn, kelas: s.kelas || '' };
+        });
+        if (!nama) { Swal.showValidationMessage('Nama ekskul wajib diisi'); return null; }
+        if (!pembina) { Swal.showValidationMessage('Guru pembina wajib diisi'); return null; }
+        if (!anggota.length) { Swal.showValidationMessage('Pilih minimal satu anggota'); return null; }
+        return { nama, pembina, hari, jamMulai, jamSelesai, anggota };
+    };
+
+    const buka = (siswaList) => {
+        ekskulFlatSumber = siswaList;
+        Swal.fire({
+            title: edit ? 'Edit Ekskul' : 'Tambah Ekskul',
+            html: buildModalHTML(siswaList),
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: edit ? 'Simpan Perubahan' : 'Tambah Ekskul',
+            cancelButtonText: 'Batal',
+            width: 520,
+            didOpen: pasangEvent,
+            preConfirm: ambilData
+        }).then(res => {
+            if (!res.isConfirmed || !res.value) return;
+            const d = res.value;
+            const token = currentUser ? currentUser.token : null;
+            const payload = Object.assign({ id: edit ? edit.id : '' }, d);
+            showLoading();
+            // Simpan ke Spreadsheet via saveEkskul (EKSKUL.gs) — hanya admin
+            callGAS('saveEkskul', token, payload).then(r => {
+                hideLoading();
+                if (!r || !r.success) { showAlert('error', (r && r.message) || 'Gagal menyimpan ekskul ke server.'); return; }
+                const saved = Object.assign({}, payload, r.data || {});
+                if (edit) {
+                    Object.assign(edit, saved);
+                } else {
+                    ekskulDB.ekskul.push(saved);
+                }
+                if (!ekskulSaveDB()) { showAlert('error', 'Tersimpan di server, namun penyimpanan lokal perangkat penuh.'); }
+                ekskulFillSelect();
+                ekskulRenderKelola();
+                showAlert('success', r.message || (edit ? 'Perubahan ekskul tersimpan.' : 'Ekskul baru ditambahkan.'));
+            }).catch(err => {
+                hideLoading();
+                showAlert('error', 'Gagal terhubung ke server: ' + (err.message || err));
+            });
+        });
+    };
+
+    if (flat.length) { buka(flat); return; }
+    showLoading();
+    gasGetSiswa('SEMUA').then(list => {
+        hideLoading();
+        buka(Array.isArray(list) ? list : []);
+    }).catch(() => { hideLoading(); buka([]); });
+}
 
 function loadMenuRekapBulanan() {
     stopAndBack(false);
@@ -4958,7 +5551,7 @@ function loadSiswaUntukPromosi() {
     document.getElementById('container-promo-siswa').classList.remove('hidden');
     document.getElementById('promo-placeholder').classList.add('hidden');
 
-    callGAS('getSiswaByKelas', asal).then(siswaList => {
+    gasGetSiswa(asal).then(siswaList => {
         hideLoading();
         renderTablePromosi(siswaList, tujuan);
     }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
