@@ -262,10 +262,8 @@
         z-index: 20;
         box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
       }
-      #view-daftar-hadir-guru .dh-submit-bar button#dhSubmitBtn {
-        width: 100%;
-        justify-content: center;
-        min-height: 48px;
+      #view-daftar-hadir-guru .dh-submit-bar > div:last-child {
+        align-self: flex-end;
       }
     }
 
@@ -660,17 +658,13 @@
     </div>
   </div>
 
-  <!-- Bar Kirim -->
+  <!-- Info auto-kirim: tidak ada tombol kirim -->
   <div class="dh-submit-bar mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
     <div class="text-xs text-gray-500 flex items-center gap-2">
-      <i class="fas fa-info-circle text-indigo-400"></i>
-      <span>Pilih status di dropdown per siswa: <b>Hadir / Izin / Sakit / Bolos / Alpa</b>, lalu kirim. Siswa yang sudah absen tetap tampil dengan status terisi (terkunci).</span>
+      <i class="fas fa-bolt text-indigo-400"></i>
+      <span><b>Ubah status = langsung tersimpan &amp; terkirim</b> (tanpa tombol kirim). Status terkirim tampil terkunci <i class="fas fa-lock text-[9px]"></i> — klik untuk mengubahnya.</span>
     </div>
-    <button onclick="submitDaftarHadir()" id="dhSubmitBtn" disabled
-      style="background-color:#e5e7eb; color:#9ca3af; cursor:not-allowed;"
-      class="px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0">
-        <i class="fas fa-paper-plane"></i> <span id="dhSubmitLabel">Kirim Absensi</span>
-  </button>
+    <div class="text-xs font-bold text-emerald-600 flex items-center gap-1.5 flex-shrink-0" id="dhSyncInfo"><i class="fas fa-circle-check"></i> Tersinkron otomatis</div>
   </div>
 </div>
 <style>
@@ -697,6 +691,17 @@
   select.dh-select:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
   select.dh-select:focus { box-shadow: 0 0 0 2px #a5b4fc; }
   select.dh-select:disabled { cursor: not-allowed; opacity: 0.92; box-shadow: none; }
+
+  /* Baris terkirim terkunci: klik untuk membuka kunci (mengoreksi status) */
+  .dh-locked-wrap { position: relative; display: inline-block; cursor: pointer; }
+  .dh-locked-wrap .dh-lock-ic {
+    position: absolute; top: -4px; right: -5px;
+    font-size: 8px; color: #64748b;
+    background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 50%;
+    width: 14px; height: 14px; line-height: 12px; text-align: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .dh-locked-wrap:hover .dh-lock-ic { color: #4f46e5; background: #e0e7ff; border-color: #c7d2fe; }
 </style>
 
 <div id="view-ekskul" class="view-section animate-fade-in hidden">
@@ -2576,9 +2581,11 @@ function dhRenderRows(i) {
 
         let statusCell;
         if (locked) {
-            // Sudah absen hari ini → tetap tampil, status terisi & terkunci (tanpa jam)
-            statusCell = `<select disabled class="dh-select ${selClass}" title="Sudah tercatat &mdash; tidak dapat diubah">` +
-                         `<option selected>${cfg ? cfg.label : st}</option></select>`;
+            // Sudah terkirim → tampil terkunci; klik statusnya untuk membuka kunci (mengubah = kirim ulang/update)
+            statusCell = `<div class="dh-locked-wrap" onclick="dhBukaKunci(${i},'${s.nisn}')" title="Sudah terkirim &amp; terkunci &mdash; klik untuk mengubah">` +
+                         `<select disabled class="dh-select ${selClass}">` +
+                         `<option selected>${cfg ? cfg.label : st}</option></select>` +
+                         `<i class="fas fa-lock dh-lock-ic"></i></div>`;
         } else {
             // Dropdown status: pilihan baru terlihat saat diklik
             const opts = ['<option value=""' + (stKey ? '' : ' selected') + ' class="text-gray-500">Pilih Status</option>']
@@ -2600,31 +2607,138 @@ function dhRenderRows(i) {
     dhUpdateClassCount(i);
 }
 
-// -- Set status satu siswa (klik ulang = batalkan) --
+// -- Set status satu siswa: perubahan LANGSUNG dikirim ke server (ubah status = kirim absensi) --
+const dhDebounceTimers = {};
+
 function dhSetStatus(i, nisn, status) {
     const c = dhClasses[i];
-    if (!c || c.locked[nisn]) return; // yang sudah absen tidak bisa diubah
+    if (!c || c.locked[nisn]) return; // terkunci sampai dibuka lewat dhBukaKunci
     if (!status) delete c.status[nisn];
     else c.status[nisn] = status;
 
     dhRenderRows(i);
     dhUpdateCounter();
-    if (status) {
-        const row = document.getElementById(`dh-row-${i}-${nisn}`);
-        if (row) {
-            row.classList.add('dh-row-flash');
-            setTimeout(() => row.classList.remove('dh-row-flash'), 800);
-        }
+    if (!status) return; // pembatalan pilihan: hanya lokal, tidak mengirim
+
+    const row = document.getElementById(`dh-row-${i}-${nisn}`);
+    if (row) {
+        row.classList.add('dh-row-flash');
+        setTimeout(() => row.classList.remove('dh-row-flash'), 800);
     }
+
+    // Debounce ringan: perubahan cepat pada siswa yang sama digabung jadi 1 pengiriman
+    clearTimeout(dhDebounceTimers[nisn]);
+    dhDebounceTimers[nisn] = setTimeout(() => dhKirimSatu(i, nisn), 500);
 }
 
-// -- Tandai semua siswa di kelas ini hadir (yang sudah absen dilewati) --
+// -- Kirim absensi SATU siswa segera --
+function dhKirimSatu(i, nisn) {
+    const c = dhClasses[i];
+    if (!c) return;
+    const st = c.status[nisn];
+    if (!st || c.locked[nisn]) return;
+    if (!dhGuardBulanDitutup(c.kelas)) return;
+    const s = c.students.find(x => x.nisn === nisn);
+    if (!s) return;
+    const tanggal = document.getElementById('dhTanggal').value;
+    const oleh = currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru';
+    setDhSync('simpan', 'Menyimpan ' + String(s.nama).split(' ')[0] + '...');
+    callGASOffline('submitDaftarHadirGuru', [{ nisn: s.nisn, nama: s.nama, kelas: c.kelas, status: st }], tanggal, oleh).then(result => {
+        if (result && result.success && !result.offline) {
+            delete c.status[nisn];
+            c.locked[nisn] = { status: st, jamDatang: '', hasJamDatang: false }; // terkunci setelah terkirim
+            dhRenderRows(i);
+            dhUpdateCounter();
+            setDhSync('ok', 'Tersinkron otomatis');
+        } else if (result && result.offline) {
+            setDhSync('queue', 'Tersimpan offline &mdash; terkirim saat online');
+        } else {
+            setDhSync('err', (result && result.message) || 'Gagal menyimpan');
+            showAlert('error', (result && result.message) || 'Gagal menyimpan absensi.');
+        }
+    }).catch(err => setDhSync('err', String(err)));
+}
+
+// -- Buka kunci baris yang sudah terkirim agar bisa dikoreksi (perubahan berikutnya = update) --
+function dhBukaKunci(i, nisn) {
+    const c = dhClasses[i];
+    if (!c || !c.locked[nisn]) return;
+    const info = c.locked[nisn];
+    const label = (DH_STATUS_CFG[info.status] || {}).label || info.status;
+    Swal.fire({
+        title: 'Ubah Status Ini?',
+        html: `<p class="text-sm text-gray-500">Status siswa ini sudah terkirim &amp; terkunci (<b>${label}</b>).<br>Buka kunci untuk mengubah &mdash; perubahan langsung tersimpan dan memperbarui data lama.</p>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4f46e5',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Buka Kunci',
+        cancelButtonText: 'Batal'
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        c.status[nisn] = info.status;
+        delete c.locked[nisn];
+        dhRenderRows(i);
+        dhUpdateCounter();
+    });
+}
+
+// -- Indikator status sinkronisasi (bar bawah daftar hadir) --
+function setDhSync(mode, text) {
+    const el = document.getElementById('dhSyncInfo');
+    if (!el) return;
+    const cfg = {
+        ok:     { ic: 'fa-circle-check', cls: 'text-emerald-600' },
+        simpan: { ic: 'fa-circle-notch fa-spin', cls: 'text-blue-600' },
+        queue:  { ic: 'fa-cloud-arrow-down', cls: 'text-amber-600' },
+        err:    { ic: 'fa-circle-exclamation', cls: 'text-rose-600' }
+    };
+    const c = cfg[mode] || cfg.ok;
+    el.className = 'text-xs font-bold flex items-center gap-1.5 flex-shrink-0 ' + c.cls;
+    el.innerHTML = `<i class="fas ${c.ic}"></i> ${text}`;
+}
+
+// -- Guard: bulan pada tanggal tsb sudah DITUTUP (diarsipkan) -> tolak pengisian baru --
+function dhGuardBulanDitutup(kelas) {
+    const tanggal = document.getElementById('dhTanggal') ? document.getElementById('dhTanggal').value : '';
+    if (!tanggal || tanggal.length < 7) return true;
+    const bulan = parseInt(tanggal.slice(5, 7), 10) - 1;
+    const tahun = parseInt(tanggal.slice(0, 4), 10);
+    if (isNaN(bulan) || isNaN(tahun)) return true;
+    const k = String(kelas || '');
+    const ditutup = getArsipBulananList().some(a => a.bulan === bulan && a.tahun === tahun && ((a.kelas || '') === '' || (a.kelas || '') === k));
+    if (ditutup) {
+        Swal.fire('Bulan Sudah Ditutup', 'Bulan ini sudah diarsipkan lewat Tutup Bulan dan datanya sudah dihapus dari rekap utama. Tidak bisa mengisi absensi baru untuk tanggal tersebut.', 'warning');
+        return false;
+    }
+    return true;
+}
+
+// -- Tandai semua siswa di kelas ini HADIR + langsung kirim sekaligus (1 panggilan API) --
 function dhTandaiSemua(i) {
     const c = dhClasses[i];
     if (!c) return;
-    c.students.forEach(s => { if (!c.locked[s.nisn]) c.status[s.nisn] = 'hadir'; });
-    dhRenderRows(i);
-    dhUpdateCounter();
+    if (!dhGuardBulanDitutup(c.kelas)) return;
+    const targets = c.students.filter(s => !c.locked[s.nisn]);
+    if (!targets.length) return;
+    const tanggal = document.getElementById('dhTanggal').value;
+    if (!tanggal) { showAlert('error', 'Pilih tanggal terlebih dahulu.'); return; }
+    const oleh = currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru';
+    const dataList = targets.map(s => ({ nisn: s.nisn, nama: s.nama, kelas: c.kelas, status: 'hadir' }));
+    setDhSync('simpan', 'Menyimpan ' + targets.length + ' siswa...');
+    callGASOffline('submitDaftarHadirGuru', dataList, tanggal, oleh).then(result => {
+        if (result && result.success && !result.offline) {
+            targets.forEach(s => { delete c.status[s.nisn]; c.locked[s.nisn] = { status: 'hadir', jamDatang: '', hasJamDatang: false }; });
+            dhRenderRows(i);
+            dhUpdateCounter();
+            setDhSync('ok', 'Tersinkron otomatis');
+        } else if (result && result.offline) {
+            setDhSync('queue', targets.length + ' data tersimpan offline');
+        } else {
+            setDhSync('err', (result && result.message) || 'Gagal menyimpan');
+            Swal.fire('Gagal', (result && result.message) || 'Terjadi kesalahan.', 'error');
+        }
+    }).catch(err => setDhSync('err', String(err)));
 }
 
 function dhUpdateClassCount(i) {
@@ -2643,24 +2757,6 @@ function dhUpdateCounter() {
     }));
     const el = document.getElementById('dhCounter');
     if (el) el.textContent = filled + ' / ' + total + (baru ? ' (' + baru + ' baru)' : '');
-    dhUpdateSubmitBtn();
-}
-
-function dhUpdateSubmitBtn() {
-    const btn = document.getElementById('dhSubmitBtn');
-    if (!btn) return;
-    const enabled = dhClasses.some(c => c.students.some(s => !c.locked[s.nisn] && c.status[s.nisn]));
-    btn.disabled = !enabled;
-    btn.className = 'px-6 py-3 rounded-xl font-bold text-sm transition flex items-center gap-2 w-full sm:w-auto justify-center flex-shrink-0';
-    if (enabled) {
-        btn.style.backgroundColor = '#16a34a';
-        btn.style.color = '#ffffff';
-        btn.style.cursor = 'pointer';
-    } else {
-        btn.style.backgroundColor = '#e5e7eb';
-        btn.style.color = '#9ca3af';
-        btn.style.cursor = 'not-allowed';
-    }
 }
 
 // -- Ambil status absensi (siapa yang sudah absen) untuk semua kelas di background --
@@ -2701,67 +2797,7 @@ function dhRenderAllCards() {
     dhClasses.forEach((c, i) => dhRenderRows(i));
 }
 
-// -- Kirim semua status yang baru diisi (bisa lintas kelas sekaligus) --
-function submitDaftarHadir() {
-    const tanggal = document.getElementById('dhTanggal').value;
-    if (!tanggal) { showAlert('error', 'Pilih tanggal terlebih dahulu.'); return; }
-
-    const dataList = [];
-    dhClasses.forEach(c => c.students.forEach(s => {
-        if (c.status[s.nisn] && !c.locked[s.nisn]) {
-            dataList.push({ nisn: s.nisn, nama: s.nama, kelas: c.kelas, status: c.status[s.nisn] });
-        }
-    }));
-    if (dataList.length === 0) { showAlert('error', 'Belum ada siswa yang diisi statusnya.'); return; }
-
-    const hadir = dataList.filter(d => d.status === 'hadir').length;
-    const lain  = dataList.length - hadir;
-    const nKelas = new Set(dataList.map(d => d.kelas)).size;
-
-    Swal.fire({
-        title: 'Kirim Absensi?',
-        html: `<p class="text-gray-500 text-sm">${nKelas} kelas &bull; Tanggal: <b>${tanggal}</b></p>
-               <div class="flex justify-center gap-4 mt-3 text-sm">
-                 <span class="text-emerald-600 font-bold">${hadir} Hadir</span>
-                 <span class="text-yellow-600 font-bold">${lain} Lainnya</span>
-               </div>`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#4f46e5',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: '&#10003; Ya, Kirim',
-        cancelButtonText: 'Batal'
-    }).then(res => {
-        if (!res.isConfirmed) return;
-        showLoading();
-        callGASOffline('submitDaftarHadirGuru', dataList, tanggal, currentUser ? (currentUser.nama || currentUser.username || 'Guru') : 'Guru').then(result => {
-                hideLoading();
-                if (result && result.offline) {
-                    // Tersimpan di antrian offline — akan tersinkron otomatis saat online
-                    dhClasses.forEach(c => { c.status = {}; });
-                    dhRenderAllCards();
-                    dhUpdateCounter();
-                    return;
-                }
-                if (result && result.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Absensi Tersimpan!',
-                        text: result.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    dhClasses.forEach(c => { c.status = {}; });
-                    dhFetchAllStatuses(); // segarkan status terkunci dari server
-                } else {
-                    Swal.fire('Gagal', (result && result.message) || 'Terjadi kesalahan.', 'error');
-                }
-            }).catch(err => {
-                hideLoading();
-                Swal.fire('Error Server', err.message || String(err), 'error');
-            });
-    });
-}
+// (Tombol "Kirim Absensi" dihapus — perubahan status langsung tersimpan via dhKirimSatu/dhTandaiSemua)
 
 
 function loadGuruDashboard() {
@@ -5082,8 +5118,11 @@ function compareKelasNatural(a, b) {
 
 // ==========================================
 // TUTUP BULAN (ARSIP) — REKAP BULANAN
-// Menutup & mengunci rekap bulan terpilih: disimpan ke arsip lokal,
-// otomatis mengunduh file Excel arsip, dan menandai bulan sebagai ditutup.
+// Menutup & mengunci rekap bulan terpilih:
+//   1. Snapshot rekap diambil untuk backup lokal + file Excel otomatis
+//   2. SERVER: seluruh baris absensi bulan tsb disalin ke sheet "arsip_absensi"
+//      lalu DIHAPUS dari sheet "absensi" (arsipkanAbsensiBulanan di Code.gs)
+//   3. Bulan ditandai ditutup; absensi tanggal di bulan tsb tidak bisa diisi lagi
 // ==========================================
 const ARSIP_BULANAN_KEY = 'ep_arsip_bulanan_v1';
 const NAMA_BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -5110,7 +5149,7 @@ function tutupBulanArsip() {
 
     Swal.fire({
         title: 'Tutup Bulan Ini?',
-        html: `<p class="text-sm text-gray-500">Rekap <b>${NAMA_BULAN_ID[bulan]} ${tahun}</b> (${kelasText}) akan diarsipkan &amp; ditandai sebagai bulan yang sudah ditutup.<br>File Excel arsip akan otomatis diunduh.</p>`,
+        html: `<p class="text-sm text-gray-500">Rekap <b>${NAMA_BULAN_ID[bulan]} ${tahun}</b> (${kelasText}) akan <b>diarsipkan</b> (Excel otomatis terunduh + backup sheet "arsip_absensi") lalu <b>data absensinya dihapus dari Spreadsheet</b> — rekap utama kosong &amp; terkunci.<br>Bulan yang sudah ditutup tidak bisa diisi absensi lagi.</p>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#f59e0b',
@@ -5120,9 +5159,11 @@ function tutupBulanArsip() {
     }).then(res => {
         if (!res.isConfirmed) return;
         showLoading();
+        const token = currentUser ? currentUser.token : null;
+        // 1) Ambil snapshot rekap utk backup lokal + Excel (harus SEBELUM data dihapus)
         callGAS('getMonthlyReportData', bulan, tahun, kelas).then(r => {
-            hideLoading();
             if (!r || !r.success) {
+                hideLoading();
                 Swal.fire('Gagal', (r && r.message) || 'Tidak dapat mengambil data rekap bulan ini.', 'error');
                 return;
             }
@@ -5133,32 +5174,44 @@ function tutupBulanArsip() {
                 codes: (s.dailyCodes || []).map(d => d.code).join(''),
                 stats: s.stats || { h: 0, s: 0, i: 0, a: 0, percent: 0 }
             }));
-            const rec = {
-                id: 'ab_' + Date.now(),
-                bulan: bulan, tahun: tahun,
-                kelas: kelas, kelasText: kelasText,
-                daysInMonth: data.daysInMonth || 31,
-                tanggalTutup: new Date().toISOString(),
-                oleh: currentUser ? (currentUser.nama || currentUser.username || '-') : '-',
-                jmlSiswa: students.length,
-                students: students
-            };
-            const list = getArsipBulananList();
-            const dup = list.findIndex(a => a.bulan === bulan && a.tahun === tahun && (a.kelas || '') === kelas);
-            if (dup >= 0) list.splice(dup, 1); // arsip baru menggantikan arsip lama utk kombinasi yang sama
-            list.unshift(rec);
-            if (!saveArsipBulananList(list)) {
-                Swal.fire('Gagal', 'Penyimpanan arsip di perangkat ini penuh. Hapus arsip lama lewat panel Arsip lalu coba lagi.', 'error');
-                return;
-            }
-            exportArsipBulananExcel(rec.id, true);
-            renderArsipBulananPanel();
-            checkBulanDitutup();
-            Swal.fire({
-                icon: 'success',
-                title: 'Bulan Ditutup!',
-                html: `<p class="text-sm text-gray-500">${NAMA_BULAN_ID[bulan]} ${tahun} (${kelasText}) tersimpan di arsip.<br><b>${students.length}</b> siswa diarsipkan &amp; file Excel diunduh.</p>`,
-                timer: 2800, showConfirmButton: false
+            // 2) SERVER: backup ke sheet "arsip_absensi" lalu hapus dari sheet "absensi"
+            callGAS('arsipkanAbsensiBulanan', token, bulan, tahun, kelas).then(ar => {
+                hideLoading();
+                if (!ar || !ar.success) {
+                    Swal.fire('Gagal', (ar && ar.message) || 'Server tidak dapat mengarsipkan data. Bulan belum ditutup — tidak ada yang dihapus.', 'error');
+                    return;
+                }
+                const rec = {
+                    id: 'ab_' + Date.now(),
+                    bulan: bulan, tahun: tahun,
+                    kelas: kelas, kelasText: kelasText,
+                    daysInMonth: data.daysInMonth || 31,
+                    tanggalTutup: new Date().toISOString(),
+                    oleh: currentUser ? (currentUser.nama || currentUser.username || '-') : '-',
+                    jmlSiswa: students.length,
+                    students: students,
+                    serverDeleted: ar.deleted || 0
+                };
+                const list = getArsipBulananList();
+                const dup = list.findIndex(a => a.bulan === bulan && a.tahun === tahun && (a.kelas || '') === kelas);
+                if (dup >= 0) list.splice(dup, 1); // arsip baru menggantikan arsip lama utk kombinasi yang sama
+                list.unshift(rec);
+                if (!saveArsipBulananList(list)) {
+                    Swal.fire('Gagal', 'Penyimpanan arsip di perangkat ini penuh. Hapus arsip lama lewat panel Arsip lalu coba lagi.', 'error');
+                    return;
+                }
+                exportArsipBulananExcel(rec.id, true);
+                renderArsipBulananPanel();
+                checkBulanDitutup();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Bulan Ditutup!',
+                    html: `<p class="text-sm text-gray-500">${NAMA_BULAN_ID[bulan]} ${tahun} (${kelasText}) sudah diarsipkan &amp; dikunci.<br><b>${students.length}</b> siswa diarsipkan &bull; <b>${ar.deleted || 0}</b> baris absensi <b>dihapus dari Spreadsheet</b> (backup: sheet "arsip_absensi" + file Excel).</p>`,
+                    timer: 4200, showConfirmButton: false
+                });
+            }).catch(err => {
+                hideLoading();
+                Swal.fire('Error Server', err.message || String(err), 'error');
             });
         }).catch(err => {
             hideLoading();
@@ -5187,6 +5240,7 @@ function renderArsipBulananPanel() {
             <div class="min-w-0">
                 <div class="text-xs font-bold text-gray-700 truncate"><i class="fas fa-calendar-check text-amber-500 mr-1"></i> ${NAMA_BULAN_ID[a.bulan]} ${a.tahun} &mdash; ${a.kelasText}</div>
                 <div class="text-[10px] text-gray-400">${a.jmlSiswa} siswa &bull; Ditutup ${new Date(a.tanggalTutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} oleh ${a.oleh}</div>
+                ${(a.serverDeleted != null) ? `<div class="text-[9px] font-bold text-emerald-700 bg-emerald-100 rounded px-1.5 py-0.5 mt-0.5 w-max">${a.serverDeleted} baris absensi dihapus dari Spreadsheet</div>` : ''}
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
                 <button onclick="exportArsipBulananExcel('${a.id}')" class="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg hover:bg-emerald-700 transition"><i class="fas fa-file-excel mr-1"></i> Excel</button>
