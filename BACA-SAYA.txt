@@ -1,0 +1,167 @@
+================================================================
+ E-PRESENT MANBAKU v4 — PANDUAN PEMASANGAN
+ Sistem Absensi Digital Madrasah Muallimin Muallimat Manba'ul Huda
+================================================================
+
+ISI PAKET
+---------
+1. index.html     -> Aplikasi frontend lengkap (1 file mandiri)
+2. sw.js          -> Service Worker PWA (v4.0.0)
+3. manifest.json  -> Manifest PWA
+4. Code.gs        -> Backend Google Apps Script
+5. BACA-SAYA.txt  -> File ini
+
+INILAH "VERSI BARU TOTAL" SESUAI PERMINTAAN
+-------------------------------------------
+FITUR YANG DIHAPUS (sudah tidak ada sama sekali):
+[x] Pengaturan Jam + Jadwal Jam (tidak ada lagi jam datang/pulang)
+[x] Scan Absensi / QR Code (SEMUA absensi dilakukan manual)
+[x] Absensi Guru (hanya absensi SISWA)
+[x] Kartu Pelajar digital + QR
+[x] Ekstrakurikuler/hari libur/tutup bulan/laporan khusus (dipangkas
+    demi kesederhanaan)
+
+FITUR YANG TERSEDIA (semua tetap berfungsi):
+[x] Login 4 role: ADMIN, WALI KELAS, GURU ESKUL, SISWA
+[x] Data siswa HANYA 3 kolom: NISN, NAMA LENGKAP, KELAS
+    (+ cari, filter kelas, tambah/ubah/hapus, import massal tempel)
+[x] Absensi manual: TAB ABSENSI hanya berisi TANGGAL, NISN, STATUS
+    (H=Hadir, I=Izin, S=Sakit, A=Alpa) + tombol "Semua Hadir"
+[x] Rekap bulanan per kelas + persentase kehadiran
+[x] Ekspor rekap ke Excel (.xlsx) dan PDF (dimuat hanya saat dipakai)
+[x] Siswa: lihat absensi pribadi + rekap bulanan + persentase
+[x] Manajemen pengguna oleh admin (termasuk "Buat Akun Semua
+    Siswa" massal dengan username & password = NISN)
+[x] PWA: pasang ke layar utama, bisa terbuka offline (app shell)
+[x] Sangat cepat & ringan: 1 file, TANPA framework/library saat
+    dibuka (dulu memuat 8 CDN lebih dari 2 MB)
+
+CATATAN PENTING: DATABASE BARU
+------------------------------
+Aplikasi ini TIDAK membaca sheet lama. Buat Spreadsheet BARU
+sebagai database (lihat langkah 1 di bawah) dan biarkan database
+lama terpisah / dihapus sesuai rencana Anda.
+
+================================================================
+ LANGKAH 1 — BUAT BACKEND (Google Apps Script + Google Sheet)
+================================================================
+1. Buka https://sheets.google.com -> buat Spreadsheet BARU
+   (beri nama misalnya "DB E-PRESENT v4").
+2. Di spreadsheet: Extensions > Apps Script.
+3. Hapus isi Code.gs di editor, tempel seluruh isi file "Code.gs"
+   dari paket ini. Simpan (Ctrl+S).
+4. Di editor Apps Script, jalankan fungsi "setup" satu kali:
+   - pilih fungsi: setup > tekan Run
+   - izinkan akses (Authorize) saat pertama kali diminta.
+   Fungsi ini otomatis membuat sheet SISWA, USERS, ABSENSI beserta
+   akun admin default.
+5. Deploy > New deployment:
+   - ikon roda gigi "Select type" > pilih "Web app"
+   - Description: v4
+   - Execute as: Me
+   - Who has access: Anyone   <-- WAJIB "Anyone"
+   - Deploy > salin URL Web App (berakhiran /exec).
+
+Login default setelah setup():  admin / admin123
+-> SEGERA ganti password setelah login pertama (tab Akun)!
+
+================================================================
+ LANGKAH 2 — PASANG FRONTEND
+================================================================
+1. Buka file index.html dengan teks editor, cari baris:
+      var API_URL = 'https://script.google.com/macros/s/...';
+   - Jika Anda menempel Code.gs ke project Apps Script LAMA
+     (deployment yang sama seperti sebelumnya), URL yang tertulis
+     sudah benar dan tidak perlu diubah.
+   - Jika Anda membuat project BARU (langkah 1 di atas), GANTI
+     nilai tersebut dengan URL /exec milik Anda.
+2. Unggah 3 file ke hosting statis Anda (GitHub Pages / Netlify /
+   cPanel / dll.), menggantikan file lama dengan nama yang sama:
+   - index.html
+   - sw.js
+   - manifest.json
+3. Pastikan folder assets/icons/ tetap berisi ikon lama:
+   icon-192.png, icon-512.png, icon-192-maskable.png,
+   icon-512-maskable.png, apple-touch-icon.png, favicon-32.png,
+   favicon.ico (tidak ada file ikon baru yang dibutuhkan).
+4. Selesai. Pengguna tinggal membuka situs; service worker baru
+   aktif otomatis dan cache lama dibersihkan.
+   (Bila masih melihat tampilan lama: tutup semua tab aplikasi,
+   lalu buka ulang.)
+
+================================================================
+ LANGKAH 3 — ALUR PEMAKAIAN AWAL (UNTUK ADMIN)
+================================================================
+1. Login sebagai admin (admin / admin123), ganti password.
+2. Tab "Siswa" > tambahkan siswa satu per satu, ATAU tombol
+   "Import" untuk tempel data massal dengan format:
+       NISN, Nama Lengkap, Kelas
+   (satu siswa per baris; pemisah koma/titik-koma/tab).
+3. Tab "Pengguna":
+   - Tambah akun Wali Kelas (isi kolom "Kelas Binaan", boleh
+     lebih dari satu dipisah koma, mis. "7A, 7B").
+   - Tambah akun Guru Eskul.
+   - Tombol "Buat Akun Semua Siswa": membuat akun semua siswa
+     sekaligus (username & password = NISN masing-masing).
+     Siswa dapat mengganti passwordnya sendiri di tab Akun.
+4. Selesai. Wali kelas/guru mengisi absensi setiap hari di tab
+   "Absensi": pilih tanggal + kelas > ketuk H/I/S/A per siswa
+   (atau "Semua Hadir" lalu koreksi yang berbeda) > Simpan.
+5. Tab "Rekap": pilih bulan + kelas > Ekspor Excel / PDF.
+
+HAK AKSES KEEMPAT ROLE
+----------------------+-------------+------------+------------+---------
+ AKSI                  | ADMIN       | WALI KELAS | GURU ESKUL | SISWA
+----------------------+-------------+------------+------------+---------
+ Data siswa            | semua       | kelasnya   | lihat semua| dirinya
+ Tambah/ubah/hapus     | ya          | kelasnya   | tidak      | tidak
+ Input absensi         | semua kelas | kelasnya   | semua kelas| tidak
+ Rekap + ekspor        | semua       | kelasnya   | semua      | dirinya
+ Kelola pengguna       | ya          | tidak      | tidak      | tidak
+ Ganti password sendiri| ya          | ya         | ya         | ya
+
+Catatan: Guru Eskul dapat mengisi absensi semua kelas karena
+kegiatan ekstrakurikuler bersifat lintas kelas. Bila ingin
+membatasi Guru Eskul menjadi hanya LIHAT (tanpa input), cukup
+tambahkan baris berikut di awal fungsi A.absensiSave pada
+Code.gs:
+    if (user.ROLE === 'GURU ESKUL') return fail_('FORBIDDEN', 'Guru Eskul hanya dapat melihat absensi.');
+
+STRUKTUR DATABASE (Google Sheet)
+--------------------------------
+Sheet SISWA   : NISN | NAMA | KELAS
+Sheet USERS   : USERNAME | PASSWORD_HASH | NAMA | ROLE | KELAS | NISN
+Sheet ABSENSI : TANGGAL | NISN | STATUS
+(TANGGAL format YYYY-MM-DD; STATUS salah satu dari H/I/S/A.
+Semua kolom sudah diatur sebagai teks agar NISN berawalan nol
+aman. Password tersimpan sebagai hash, bukan teks asli.)
+
+PEMELIHARAAN & TIPS
+-------------------
+- Mengubah backend: edit Code.gs di Apps Script lalu
+  Deploy > Manage deployments > ikon pensil > Version: New version
+  > Deploy (URL tetap sama).
+- Mengubah frontend: unggah index.html baru. Naikkan SW_VERSION
+  di sw.js (mis. v4.0.1) bila ingin memaksa pembaruan ke semua
+  pengguna.
+- Awal tahun ajaran: buat database baru lagi, atau hapus isi
+  sheet ABSENSI (data siswa & pengguna bisa dipertahankan).
+- Zona waktu server ditetapkan "Asia/Jakarta" di konstanta TZ
+  pada Code.gs (ganti Asia/Makassar / Asia/Jayapura bila perlu).
+- Sesi login berlaku 7 hari; setelah itu diminta login ulang.
+
+PEMECAHAN MASALAH
+-----------------
+- "Username atau password salah" padahal benar:
+  pastikan menjalankan setup() dan deployment "Anyone".
+- Gagal login sama sekali / terus memuat:
+  periksa API_URL di index.html (harus persis URL /exec) dan
+  pastikan Web App di-deploy ulang setelah mengubah Code.gs.
+- Ekspor Excel/PDF gagal saat offline pertama kali: normal —
+  library ekspor perlu internet SEKALI untuk di-cache; setelah
+  itu ekspor berjalan offline.
+- Tampilan masih lama setelah update: tutup semua tab aplikasi
+  lalu buka ulang (service worker memperbarui diri), atau
+  longgarkan cache situs.
+- PWA tidak bisa dipasang: pastikan manifest.json terunggah dan
+  dibuka lewat https:// (bukan http:// atau file://).
