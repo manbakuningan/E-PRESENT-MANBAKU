@@ -389,7 +389,7 @@
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
                                 <i class="far fa-id-card text-lg"></i>
                             </div>
-                            <input type="text" autocomplete="off" id="nisn" class="block w-full pl-12 pr-4 py-4 bg-slate-50 border-slate-200 border rounded-xl text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-slate-400" placeholder="Masukkan NISN (angka / huruf)">
+                            <input type="text" autocomplete="off" autocapitalize="none" spellcheck="false" id="nisn" class="block w-full pl-12 pr-4 py-4 bg-slate-50 border-slate-200 border rounded-xl text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-slate-400" placeholder="Masukkan NISN (angka / huruf)">
                         </div>
                     </div>
                     
@@ -400,7 +400,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
                                     <i class="far fa-user text-lg"></i>
                                 </div>
-                                <input type="text" id="username" class="block w-full pl-12 pr-4 py-4 bg-slate-50 border-slate-200 border rounded-xl text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-slate-400" placeholder="Username akun">
+                                <input type="text" id="username" autocapitalize="none" spellcheck="false" class="block w-full pl-12 pr-4 py-4 bg-slate-50 border-slate-200 border rounded-xl text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-slate-400" placeholder="Username akun">
                             </div>
                         </div>
                         
@@ -1551,6 +1551,23 @@ async function callGASRaw(functionName, args, attempt = 1) {
 async function callGAS(functionName, ...args) {
     return queuedFetch(() => callGASRaw(functionName, args));
 }
+
+// Adapter daftar siswa utk backend gs: memakai getSiswaList(filterKelas) sesuai
+// Code.gs — 'SEMUA' / '' berarti TANPA filter, "K1,K2" multi-kelas, nama kelas
+// tunggal juga bisa. Hasil selalu ARRAY siswa (nisn/kelas dibuat string bersih).
+function gasGetSiswa(kelas) {
+    const f = (!kelas || String(kelas).toUpperCase() === 'SEMUA') ? '' : String(kelas);
+    return callGAS('getSiswaList', f).then(r => {
+        let list = (r && r.success && Array.isArray(r.data)) ? r.data : (Array.isArray(r) ? r : []);
+        return list.map(s => {
+            const o = Object.assign({}, s);
+            o.nama = (s.nama != null) ? String(s.nama).trim() : '';
+            o.nisn = (s.nisn != null) ? String(s.nisn).trim() : '';
+            o.kelas = (s.kelas != null) ? String(s.kelas).trim() : '';
+            return o;
+        });
+    });
+}
 // ==========================================================================
 // OFFLINE QUEUE SYSTEM — antrian absensi saat tidak ada koneksi internet
 // ==========================================================================
@@ -1968,21 +1985,73 @@ function processTableData(type) {
         if (tab === 'admin') {
             document.getElementById('formAdminLogin').classList.remove('hidden');
             document.getElementById('formSiswaLogin').classList.add('hidden');
+            // Kosongkan isian form yang disembunyikan agar nilai sisa tidak ikut terkirim
+            document.getElementById('nisn').value = '';
         } else {
             document.getElementById('formAdminLogin').classList.add('hidden');
             document.getElementById('formSiswaLogin').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
         }
     }
 
     function handleLogin(event) {
         event.preventDefault();
         showLoading();
-        
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const nisn = document.getElementById('nisn').value;
 
-        callGAS('login', username, password, nisn).then(onLoginSuccess).catch(onLoginFailure);
+        // PERBAIKAN: kirim HANYA kredensial sesuai tab yang aktif.
+        // Sebelumnya ketiga isian (username, password, NISN) dikirim sekaligus,
+        // sehingga sisa ketikan NISN di form tersembunyi membuat backend mengira
+        // ini login SISWA -> muncul "NISN tidak ditemukan" padahal login admin/guru.
+        const siswaAktif = !document.getElementById('formSiswaLogin').classList.contains('hidden');
+
+        if (siswaAktif) {
+            loginDenganVarianNisn(String(document.getElementById('nisn').value || '').trim());
+        } else {
+            loginDenganVarianUsername(String(document.getElementById('username').value || '').trim(),
+                                      String(document.getElementById('password').value || ''));
+        }
+    }
+
+    // Login siswa dengan percobaan ulang otomatis memakai varian NISN
+    // (huruf besar / huruf kecil) bila server menjawab "NISN tidak ditemukan".
+    // Mengatasi spasi sisa ketikan & perbedaan huruf besar-kecil dengan data Spreadsheet.
+    function loginDenganVarianNisn(nisn, kandidat) {
+        const daftar = kandidat || [nisn, nisn.toUpperCase(), nisn.toLowerCase()]
+            .filter((v, i, a) => v && a.indexOf(v) === i);
+        const coba = daftar[0];
+        if (!coba) {
+            hideLoading();
+            showAlert('error', 'Masukkan NISN terlebih dahulu.');
+            return;
+        }
+        callGAS('login', '', '', coba).then(result => {
+            if (result && !result.success && /nisn/i.test(String(result.message || '')) && daftar.length > 1) {
+                loginDenganVarianNisn(nisn, daftar.slice(1));
+                return;
+            }
+            onLoginSuccess(result);
+        }).catch(onLoginFailure);
+    }
+
+    // Login admin/guru dengan satu percobaan ulang username huruf kecil
+    // bila server menjawab username/password salah (mengatasi kapital otomatis HP).
+    function loginDenganVarianUsername(username, password, kandidat) {
+        const daftar = kandidat || [username, username.toLowerCase()]
+            .filter((v, i, a) => v && a.indexOf(v) === i);
+        const coba = daftar[0];
+        if (!coba) {
+            hideLoading();
+            showAlert('error', 'Masukkan username dan password terlebih dahulu.');
+            return;
+        }
+        callGAS('login', coba, password, '').then(result => {
+            if (result && !result.success && /username atau password/i.test(String(result.message || '')) && daftar.length > 1) {
+                loginDenganVarianUsername(username, password, daftar.slice(1));
+                return;
+            }
+            onLoginSuccess(result);
+        }).catch(onLoginFailure);
     }
 
     function onLoginSuccess(result) {
@@ -2006,7 +2075,7 @@ function processTableData(type) {
             const errorDiv = document.getElementById('loginError');
             document.getElementById('errorText').textContent = result.message;
             errorDiv.classList.remove('hidden');
-            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+            setTimeout(() => errorDiv.classList.add('hidden'), 8000);
         }
     }
 
@@ -2374,7 +2443,7 @@ function dhGroupStudents(list) {
 // Daftar Hadir selalu siap dibuka tanpa loading. Nama siswa selalu sama,
 // jadi cache lokal dipakai untuk render instan.
 function dhPrefetchStudents() {
-    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
+    gasGetSiswa('SEMUA').then(list => {
         if (!Array.isArray(list) || list.length === 0) return;
         const byClass = dhGroupStudents(list);
         dhSaveCache(byClass, Object.keys(byClass).sort());
@@ -2407,7 +2476,7 @@ function loadDaftarHadirGuru() {
     }
 
     // Cache belum ada (pembukaan pertama) → ambil sekali, simpan, lalu render
-    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
+    gasGetSiswa('SEMUA').then(list => {
         if (!Array.isArray(list) || list.length === 0) throw new Error('Data siswa kosong');
         const byClass = dhGroupStudents(list);
         const order = Object.keys(byClass).sort();
@@ -2443,7 +2512,7 @@ function dhBuildClasses(kelasGuru, byClass, order) {
     // Kelas yang belum ada di cache → ambil satu-satu di background
     dhClasses.forEach((c, i) => {
         if (c.students.length === 0) {
-            callGAS('getSiswaByKelas', c.kelas).then(list => {
+            gasGetSiswa(c.kelas).then(list => {
                 if (Array.isArray(list) && list.length > 0) {
                     c.students = dhGroupStudents(list)[c.kelas] || [];
                     dhRenderRows(i);
@@ -4309,7 +4378,9 @@ function processImportSiswa(data, inputElement) {
 
 // ==========================================
 // ABSENSI EKSTRAKURIKULER
-// Data tersimpan di perangkat (localStorage) — tanpa perubahan backend.
+// Data utama tersimpan di Spreadsheet via backend GAS (sheet 'ekstrakurikuler' &
+// 'absensi_ekskul' — lihat EKSKUL.gs). localStorage dipakai sebagai CACHE agar
+// render tetap instan & data tetap terlihat saat koneksi terputus.
 // Struktur EKSKUL_KEY:
 //   ekskul : [{ id, nama, pembina, hari, jamMulai, jamSelesai, anggota: [{nisn,nama,kelas}] }]
 //   absensi: [{ id, ekskulId, tanggal, data: {nisn: status}, oleh, ts }]
@@ -4347,6 +4418,41 @@ function loadEkskul() {
 
     ekskulFillSelect();
     ekskulShowTab('absensi');
+
+    // Tarik data terbaru dari Spreadsheet di background (render tetap instan dari cache)
+    ekskulSyncDariServer();
+}
+
+// Sinkron ekskul + absensi dari backend GAS (fungsi getEkskulList di EKSKUL.gs).
+// Server = acuan; sesi/ekskul lokal yang BELUM ada di server (misal antrian
+// offline yang belum terkirim) tetap dipertahankan agar tidak hilang.
+function ekskulSyncDariServer() {
+    callGAS('getEkskulList').then(r => {
+        if (!r || !r.success || !r.data) return;
+        const srv = r.data;
+        const local = ekskulLoadDB();
+
+        const srvEk = {};
+        (srv.ekskul || []).forEach(e => { srvEk[e.id] = true; });
+        const srvKey = {};
+        (srv.absensi || []).forEach(a => { srvKey[a.ekskulId + '|' + a.tanggal] = true; });
+
+        const mergedEkskul = (srv.ekskul || []).concat((local.ekskul || []).filter(e => !srvEk[e.id]));
+        const mergedAbs = (srv.absensi || []).concat((local.absensi || []).filter(a => !srvKey[a.ekskulId + '|' + a.tanggal]));
+
+        ekskulDB = { ekskul: mergedEkskul, absensi: mergedAbs };
+        ekskulSaveDB();
+
+        // Render ulang hanya jika halaman Ekskul sedang terbuka
+        // (navigasi aplikasi memakai .active + style.display, bukan class hidden)
+        const v = document.getElementById('view-ekskul');
+        if (v && v.classList.contains('active') && v.style.display !== 'none') {
+            ekskulFillSelect();
+            const pK = document.getElementById('ekskulPanelKelola');
+            const onKelola = pK && !pK.classList.contains('hidden');
+            ekskulShowTab(onKelola ? 'kelola' : 'absensi');
+        }
+    }).catch(() => {});
 }
 
 // Guru hanya melihat ekskul yang dibinanya; admin melihat semua
@@ -4529,17 +4635,23 @@ function ekskulKirim() {
         cancelButtonText: 'Batal'
     }).then(res => {
         if (!res.isConfirmed) return;
-        const sudah = ekskulDB.absensi.find(a => a.ekskulId === e.id && a.tanggal === tgl);
-        if (sudah) {
-            sudah.data = data;
-            sudah.oleh = currentUser ? (currentUser.nama || currentUser.username || '-') : '-';
-            sudah.ts = Date.now();
-        } else {
-            ekskulDB.absensi.unshift({ id: 'ea_' + Date.now(), ekskulId: e.id, tanggal: tgl, data: data, oleh: currentUser ? (currentUser.nama || currentUser.username || '-') : '-', ts: Date.now() });
-        }
-        if (!ekskulSaveDB()) { Swal.fire('Gagal', 'Penyimpanan lokal perangkat penuh.', 'error'); return; }
-        Swal.fire({ icon: 'success', title: 'Absensi Ekskul Tersimpan!', text: `${e.nama} • ${tgl}`, timer: 2200, showConfirmButton: false });
-        ekskulRenderAbsensi();
+        const oleh = currentUser ? (currentUser.nama || currentUser.username || '-') : '-';
+        const token = currentUser ? currentUser.token : null;
+
+        // Simpan ke Spreadsheet via saveEkskulAbsensi (EKSKUL.gs) — sesi sama = perbarui.
+        // callGASOffline: jika koneksi terputus, masuk antrian offline & terkirim otomatis.
+        callGASOffline('saveEkskulAbsensi', token, e.id, tgl, data, oleh).then(r => {
+            if (r && r.success === false) {
+                Swal.fire('Gagal', r.message || 'Gagal menyimpan absensi ekskul.', 'error');
+                return;
+            }
+            const sudah = ekskulDB.absensi.find(a => a.ekskulId === e.id && a.tanggal === tgl);
+            const rec = (r && r.data) ? r.data : { id: e.id + '|' + tgl, ekskulId: e.id, tanggal: tgl, data: data, oleh: oleh, ts: Date.now() };
+            if (sudah) Object.assign(sudah, rec); else ekskulDB.absensi.unshift(rec);
+            if (!ekskulSaveDB()) { Swal.fire('Gagal', 'Penyimpanan lokal perangkat penuh.', 'error'); return; }
+            Swal.fire({ icon: 'success', title: 'Absensi Ekskul Tersimpan!', text: `${e.nama} • ${tgl}`, timer: 2200, showConfirmButton: false });
+            ekskulRenderAbsensi();
+        });
     });
 }
 
@@ -4631,7 +4743,7 @@ function ekskulHapus(id) {
     if (!e) return;
     Swal.fire({
         title: 'Hapus Ekskul?',
-        html: `<p class="text-sm text-gray-500"><b>${e.nama}</b> beserta seluruh riwayat absensinya akan dihapus permanen dari perangkat ini.</p>`,
+        html: `<p class="text-sm text-gray-500"><b>${e.nama}</b> beserta seluruh riwayat absensinya akan dihapus permanen dari Spreadsheet.</p>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#e11d48',
@@ -4640,13 +4752,22 @@ function ekskulHapus(id) {
         cancelButtonText: 'Batal'
     }).then(res => {
         if (!res.isConfirmed) return;
-        ekskulDB.ekskul = ekskulDB.ekskul.filter(x => x.id !== id);
-        ekskulDB.absensi = ekskulDB.absensi.filter(a => a.ekskulId !== id);
-        ekskulSaveDB();
-        if (ekskulCur.id === id) ekskulCur.id = null;
-        ekskulRenderKelola();
-        ekskulFillSelect();
-        showAlert('success', 'Ekskul dihapus.');
+        showLoading();
+        const token = currentUser ? currentUser.token : null;
+        callGAS('deleteEkskul', token, id).then(r => {
+            hideLoading();
+            if (!r || !r.success) { showAlert('error', (r && r.message) || 'Gagal menghapus ekskul di server.'); return; }
+            ekskulDB.ekskul = ekskulDB.ekskul.filter(x => x.id !== id);
+            ekskulDB.absensi = ekskulDB.absensi.filter(a => a.ekskulId !== id);
+            ekskulSaveDB();
+            if (ekskulCur.id === id) ekskulCur.id = null;
+            ekskulRenderKelola();
+            ekskulFillSelect();
+            showAlert('success', r.message || 'Ekskul dihapus.');
+        }).catch(err => {
+            hideLoading();
+            showAlert('error', 'Gagal terhubung ke server: ' + (err.message || err));
+        });
     });
 }
 
@@ -4737,21 +4858,33 @@ function ekskulFormModal(editId) {
         }).then(res => {
             if (!res.isConfirmed || !res.value) return;
             const d = res.value;
-            if (edit) {
-                Object.assign(edit, d);
-            } else {
-                ekskulDB.ekskul.push(Object.assign({ id: 'ek_' + Date.now() }, d));
-            }
-            if (!ekskulSaveDB()) { Swal.fire('Gagal', 'Penyimpanan lokal perangkat penuh.', 'error'); return; }
-            ekskulFillSelect();
-            ekskulRenderKelola();
-            showAlert('success', edit ? 'Perubahan ekskul tersimpan.' : 'Ekskul baru ditambahkan.');
+            const token = currentUser ? currentUser.token : null;
+            const payload = Object.assign({ id: edit ? edit.id : '' }, d);
+            showLoading();
+            // Simpan ke Spreadsheet via saveEkskul (EKSKUL.gs) — hanya admin
+            callGAS('saveEkskul', token, payload).then(r => {
+                hideLoading();
+                if (!r || !r.success) { showAlert('error', (r && r.message) || 'Gagal menyimpan ekskul ke server.'); return; }
+                const saved = Object.assign({}, payload, r.data || {});
+                if (edit) {
+                    Object.assign(edit, saved);
+                } else {
+                    ekskulDB.ekskul.push(saved);
+                }
+                if (!ekskulSaveDB()) { showAlert('error', 'Tersimpan di server, namun penyimpanan lokal perangkat penuh.'); }
+                ekskulFillSelect();
+                ekskulRenderKelola();
+                showAlert('success', r.message || (edit ? 'Perubahan ekskul tersimpan.' : 'Ekskul baru ditambahkan.'));
+            }).catch(err => {
+                hideLoading();
+                showAlert('error', 'Gagal terhubung ke server: ' + (err.message || err));
+            });
         });
     };
 
     if (flat.length) { buka(flat); return; }
     showLoading();
-    callGAS('getSiswaByKelas', 'SEMUA').then(list => {
+    gasGetSiswa('SEMUA').then(list => {
         hideLoading();
         buka(Array.isArray(list) ? list : []);
     }).catch(() => { hideLoading(); buka([]); });
@@ -5470,7 +5603,7 @@ function loadSiswaUntukPromosi() {
     document.getElementById('container-promo-siswa').classList.remove('hidden');
     document.getElementById('promo-placeholder').classList.add('hidden');
 
-    callGAS('getSiswaByKelas', asal).then(siswaList => {
+    gasGetSiswa(asal).then(siswaList => {
         hideLoading();
         renderTablePromosi(siswaList, tujuan);
     }).catch(err => showAlert('error', 'Gagal koneksi: ' + (err.message || err)));
