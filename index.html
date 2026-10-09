@@ -72,30 +72,16 @@ button{transition:transform .1s,opacity .15s}button:active{transform:scale(.97)}
 .dht th,.dht td{padding:5px 7px;white-space:normal;word-break:break-word;font-size:12px}
 .dht select{width:100%;font-size:12px;padding:5px 3px}
 .dht .lk select{opacity:1;color:inherit}
-/* cetak */
-#pr{display:none}
-@media print{
- @page{size:A4 landscape;margin:7mm}
- body{background:#fff}
- body>*{display:none!important}
- body>#pr{display:block!important;color:#000}
- #pr h3{text-align:center;margin:0 0 2px;font-size:14px}
- #pr .pm{text-align:center;font-size:10px;margin-bottom:6px}
- #pr table{width:100%;border-collapse:collapse}
- #pr th,#pr td{border:.6px solid #777;padding:1px 0;font-size:7px;text-align:center;white-space:nowrap}
- #pr td.n{text-align:left;padding:1px 3px;font-size:8px;position:static;background:none}
- #pr th{background:#4338ca!important;color:#fff;position:static}
- #pr thead{display:table-header-group}#pr tr{page-break-inside:avoid}
- #pr *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
- #pr .pf{font-size:8px;margin-top:4px;font-style:italic}
-}
 h2{margin:0 0 14px;font-size:18px}
+.bdg{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;text-transform:uppercase}
+.bdg.admin{background:#ede9fe;color:#6d28d9}.bdg.guru{background:#d1fae5;color:#047857}.bdg.pimpinan{background:#dbeafe;color:#1d4ed8}
+.ukb{max-height:26vh;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:2px 10px}
 .st{border-radius:8px;font-weight:700;padding:6px 8px;border:1px solid #d1d5db}
 .st.hadir{background:#d1fae5;color:#047857}.st.izin{background:#dbeafe;color:#1d4ed8}
 .st.sakit{background:#fef9c3;color:#a16207}.st.bolos{background:#ffedd5;color:#c2410c}.st.alpa{background:#fee2e2;color:#b91c1c}
 .rk td,.rk th{padding:4px 5px;text-align:center;font-size:11px}
 .rk td.n{text-align:left;position:sticky;left:0;background:#fff}
-.cH{color:#16a34a;font-weight:700}.cS{background:#fef9c3}.cI{background:#dbeafe}.cA{background:#fee2e2;color:#b91c1c;font-weight:700}.cL{background:#fef2f2;color:#fca5a5}
+.cH{color:#16a34a;font-weight:700}.cB{background:#ffedd5;color:#c2410c;font-weight:700}.cS{background:#fef9c3}.cI{background:#dbeafe}.cA{background:#fee2e2;color:#b91c1c;font-weight:700}.cL{background:#fef2f2;color:#fca5a5}
 dialog{border:0;border-radius:14px;padding:20px;width:min(560px,94vw)}
 dialog::backdrop{background:rgba(0,0,0,.5)}
 dialog label{margin-top:10px}dialog input,dialog select,dialog textarea{width:100%}
@@ -146,9 +132,10 @@ dialog label{margin-top:10px}dialog input,dialog select,dialog textarea{width:10
 <div id="toast"></div>
 <div id="offb" class="hidden"></div>
 <div id="load" class="hidden"><i></i></div>
-<div id="pr"></div>
 <dialog id="dlg"></dialog>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
 // ======================= KONFIG & UTIL =======================
 const API_URL = 'https://script.google.com/macros/s/AKfycbwiWT3pZCosH3cwWjTkMaa6ftFSpsKO-71rQdU9LCvJl5Xvo7IRP1TOoBAXA4vJZYnx/exec';
@@ -213,8 +200,8 @@ const opt = (arr, sel, first) => (first !== undefined ? `<option value="">${firs
 // ======================= LOGIN / SESI =======================
 const EYE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYEOFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-function togglePwd(b) {
-  const i = $('#pwd'), show = i.type === 'password';
+function togglePwd(b, id) {
+  const i = $('#' + (id || 'pwd')), show = i.type === 'password';
   i.type = show ? 'text' : 'password'; b.innerHTML = show ? EYEOFF : EYE;
   b.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Lihat password');
 }
@@ -254,7 +241,7 @@ function logout() { store.del(SESSION_KEY); location.reload(); }
 
 // ======================= NAVIGASI (sidebar) =======================
 const MENU = {
-  admin:    [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Data Siswa', vSiswa, '🎓'], ['Rekap Bulanan', vRekap, '📅'], ['Hari Libur', vLibur, '🏖️'], ['Manajemen Kelas', vKelasMgr, '🏫'], ['Kenaikan Kelas', vNaik, '⬆️']],
+  admin:    [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Data Siswa', vSiswa, '🎓'], ['Rekap Bulanan', vRekap, '📅'], ['Hari Libur', vLibur, '🏖️'], ['Manajemen Kelas', vKelasMgr, '🏫'], ['Kenaikan Kelas', vNaik, '⬆️'], ['Data User', vUser, '👥']],
   guru:     [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Rekap Bulanan', vRekap, '📅']],
   pimpinan: [['Rekap Bulanan', vRekap, '📅']],
   siswa:    [['Absensi Saya', vSiswaDash, '✅']]
@@ -328,18 +315,18 @@ async function vHadir() {
   const mine = myKelas(), by = {};
   all.forEach(s => { const k = s.kelas || 'Tanpa Kelas'; (by[k] = by[k] || []).push(s); });
   const keys = (mine.length ? mine : Object.keys(by)).sort(natural);   // guru multi-kelas: semua kelas miliknya
-  dh.kelas = keys.map(k => ({ k, list: (by[k] || []).sort((a, b) => a.nama.localeCompare(b.nama)), saved: {}, lock: {}, open: false }));
+  dh.kelas = keys.map(k => ({ k, list: (by[k] || []).sort((a, b) => a.nama.localeCompare(b.nama)), saved: {}, open: false }));
   $('#view').innerHTML = `<div class="card row"><div><label>Tanggal</label><input type="date" id="dhT" value="${dh.tgl}" onchange="dhLoad()"></div>
-    <div class="mu" style="flex:1;min-width:200px">Pilih kelas untuk membuka daftar siswa. Ubah status = langsung tersimpan &amp; terkunci 🔒 (ketuk untuk mengubah).</div></div><div id="dhC"></div>`;
+    <div class="mu" style="flex:1;min-width:200px">Pilih kelas untuk membuka daftar siswa. Ubah status = langsung tersimpan, dan bisa diubah kapan saja.</div></div><div id="dhC"></div>`;
   dhDraw(); dhLoad();   // tampil instan, status server menyusul
 }
 async function dhLoad() {
   dh.tgl = $('#dhT').value;
   await Promise.all(dh.kelas.map(async c => {
-    c.saved = {}; c.lock = {};
+    c.saved = {};
     try {
       const r = await api('getDaftarHadirByKelasAndTanggal', c.k, dh.tgl);
-      if (r && r.success && r.data) Object.entries(r.data).forEach(([n, d]) => { c.saved[n] = String((d && d.status) || d || '').toLowerCase(); c.lock[n] = 1; });
+      if (r && r.success && r.data) Object.entries(r.data).forEach(([n, d]) => { c.saved[n] = String((d && d.status) || d || '').toLowerCase(); });
     } catch (e) {}
   }));
   if ($('#dhC')) dhDraw();
@@ -348,8 +335,7 @@ const dhN = c => c.list.filter(s => c.saved[s.nisn]).length;
 function dhCnt(ci) { const c = dh.kelas[ci], e = $('#ak' + ci); if (e) e.textContent = dhN(c) + '/' + c.list.length + ' terisi'; }
 function dhCell(ci, si) {
   const c = dh.kelas[ci], s = c.list[si], v = c.saved[s.nisn] || '';
-  if (c.lock[s.nisn]) return `<div class="lk" onclick="dhUnlock(${ci},${si})" title="Terkunci — ketuk untuk mengubah"><select disabled class="st ${v}"><option>${cap(v)} 🔒</option></select></div>`;
-  return `<select class="st ${v}" onchange="dhSet(${ci},${si},this)"><option value="">Pilih</option>${STATUS.map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${cap(x)}</option>`).join('')}</select>`;
+  return `<select class="st ${v}" onchange="dhSet(${ci},${si},this)">${v ? '' : '<option value="">Pilih</option>'}${STATUS.map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${cap(x)}</option>`).join('')}</select>`;
 }
 function dhBody(ci) {
   const c = dh.kelas[ci];
@@ -360,7 +346,7 @@ function dhBody(ci) {
 function dhDraw() {
   $('#dhC').innerHTML = dh.kelas.map((c, ci) => `<div class="acc ${c.open ? 'open' : ''}" id="ac${ci}">
     <div class="ah" onclick="dhTog(${ci})"><span class="chev">▶</span><b>${esc(c.k)}</b><small id="ak${ci}"></small>
-    <button class="btn g s" onclick="event.stopPropagation();dhAll(${ci})">✓ Semua Hadir</button></div>
+    <button class="btn g s" onclick="event.stopPropagation();dhAll(${ci})">✓ Sisanya Hadir</button></div>
     <div class="ab" id="ab${ci}">${c.open ? dhBody(ci) : ''}</div></div>`).join('') || '<div class="card mu">Tidak ada kelas.</div>';
   dh.kelas.forEach((c, ci) => dhCnt(ci));
 }
@@ -370,41 +356,28 @@ function dhTog(ci) {
   if (c.open) $('#ab' + ci).innerHTML = dhBody(ci);
 }
 const dhRef = (ci, si) => { const e = $('#c' + ci + '_' + si); if (e) e.innerHTML = dhCell(ci, si); dhCnt(ci); };
-function dhClosed(kelas) {
-  const b = +dh.tgl.slice(5, 7) - 1, t = +dh.tgl.slice(0, 4);
-  if (tutupList().some(a => a.bulan === b && a.tahun === t && (!a.kelas || a.kelas === kelas))) { toast('Bulan ini sudah ditutup (diarsipkan).', true); return true; }
-  return false;
-}
 async function dhSet(ci, si, el) {
   const c = dh.kelas[ci], s = c.list[si], v = el.value;
-  if (!v) { delete c.saved[s.nisn]; el.className = 'st'; dhCnt(ci); return; }
-  if (dhClosed(c.k)) { el.value = c.saved[s.nisn] || ''; return; }
+  if (!v) return dhRef(ci, si);
   el.className = 'st ' + v; el.disabled = true;
   try {
     const r = await apiW('submitDaftarHadirGuru', [{ nisn: s.nisn, nama: s.nama, kelas: c.k, status: v }], dh.tgl, oleh());
     if (!r || !r.success) throw new Error((r && r.message) || 'Gagal menyimpan');
     c.saved[s.nisn] = v;
-    if (r.offline) toast('📥 Tersimpan offline — terkirim saat online'); else { c.lock[s.nisn] = 1; toast(s.nama.split(' ')[0] + ' → ' + v); }
+    toast(r.offline ? '📥 Tersimpan offline — terkirim saat online' : s.nama.split(' ')[0] + ' → ' + v);
   } catch (e) { toast(e.message, true); }
   dhRef(ci, si);
 }
-function dhUnlock(ci, si) {
-  const c = dh.kelas[ci], s = c.list[si];
-  if (!confirm(`Status ${s.nama} sudah terkirim & terkunci.\nBuka kunci untuk mengubahnya?`)) return;
-  delete c.lock[s.nisn]; dhRef(ci, si);
-}
 async function dhAll(ci) {
-  const c = dh.kelas[ci];
-  if (dhClosed(c.k)) return;
-  const t = c.list.filter(s => !c.lock[s.nisn]);
-  if (!t.length) return toast('Semua siswa sudah terisi & terkunci.');
-  if (!confirm(`Tandai ${t.length} siswa ${c.k} HADIR?`)) return;
+  const c = dh.kelas[ci], t = c.list.filter(s => !c.saved[s.nisn]);
+  if (!t.length) return toast('Semua siswa sudah terisi.');
+  if (!confirm(`Tandai ${t.length} siswa ${c.k} yang belum terisi sebagai HADIR?`)) return;
   busy(true);
   try {
     const r = await apiW('submitDaftarHadirGuru', t.map(s => ({ nisn: s.nisn, nama: s.nama, kelas: c.k, status: 'hadir' })), dh.tgl, oleh());
     if (!r || !r.success) throw new Error((r && r.message) || 'Gagal menyimpan');
-    t.forEach(s => { c.saved[s.nisn] = 'hadir'; if (!r.offline) c.lock[s.nisn] = 1; });
-    busy(false); dhDraw(); toast(r.offline ? '📥 Tersimpan offline' : 'Semua siswa ditandai hadir');
+    t.forEach(s => { c.saved[s.nisn] = 'hadir'; });
+    busy(false); dhDraw(); toast(r.offline ? '📥 Tersimpan offline' : t.length + ' siswa ditandai hadir');
   } catch (e) { fail(e); }
 }
 
@@ -472,17 +445,16 @@ async function vRekap() {
     <div><label>Kelas</label><select id="rK">${opt(ks, ks[0], mine.length ? undefined : 'Semua Kelas')}</select></div>
     <div><label>Bulan</label><select id="rB">${BULAN.map((b, i) => `<option value="${i}" ${i === now.getMonth() ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
     <div><label>Tahun</label><select id="rT">${[0, 1, 2, 3, 4].map(i => `<option>${yr - i}</option>`).join('')}</select></div>
-    <button class="btn" onclick="rLoad()">Tampilkan</button><button class="btn g" onclick="rPrint()">🖨 Cetak PDF</button>
-    ${user.role === 'admin' ? '<button class="btn g" onclick="tutupBulan()">🔒 Tutup Bulan</button><button class="btn g" onclick="arsipPanel()">Arsip</button>' : ''}</div>
-    <div id="rBd" class="err hidden" style="background:#fffbeb;color:#b45309;margin:0 0 12px"></div><div id="rAr" class="card hidden"></div>
+    <button class="btn" onclick="rLoad()">Tampilkan</button><button class="btn g" onclick="rPdf()">⬇ Unduh PDF</button>
+    ${user.role === 'admin' ? '<button class="btn r" onclick="hapusBulan()">🗑 Hapus Data Bulan</button>' : ''}</div>
     <div class="card tw" id="rO"><span class="mu">Pilih filter lalu klik Tampilkan.</span></div>
-    <div class="mu">H: Hadir · S: Sakit · I: Izin · A: Alpa · L: Libur. Persentase = Hadir ÷ Hari Efektif × 100%.</div>`;
+    <div class="mu">H: Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa · L: Libur. Persentase = Hadir ÷ Hari Efektif × 100%.</div>`;
   if (mine.length) rLoad();   // guru: langsung tampil kelas pertamanya
 }
 function rTable(d, kelas) {
-  const days = Array.from({ length: d.daysInMonth }, (_, i) => i + 1), cols = 2 + d.daysInMonth + 5;
+  const days = Array.from({ length: d.daysInMonth }, (_, i) => i + 1), cols = 2 + d.daysInMonth + 6;
   const row = (s, n) => `<tr><td>${n}</td><td class="n">${esc(s.nama)}</td>${s.dailyCodes.map(x => `<td class="c${x.code}">${x.code}</td>`).join('')}
-    <td class="cH">${s.stats.h}</td><td>${s.stats.s}</td><td>${s.stats.i}</td><td class="cA">${s.stats.a}</td><td><b>${s.stats.percent}%</b></td></tr>`;
+    <td class="cH">${s.stats.h}</td><td>${s.stats.s}</td><td>${s.stats.i}</td><td class="cB">${s.stats.b}</td><td class="cA">${s.stats.a}</td><td><b>${s.stats.percent}%</b></td></tr>`;
   let body = '';
   if (kelas) body = d.students.map((s, i) => row(s, i + 1)).join('');
   else {
@@ -490,10 +462,10 @@ function rTable(d, kelas) {
     d.students.forEach(s => (g[s.kelas || 'Tanpa Kelas'] = g[s.kelas || 'Tanpa Kelas'] || []).push(s));
     Object.keys(g).sort(natural).forEach(k => { body += `<tr><td colspan="${cols}" style="background:var(--pl);color:#fff;text-align:left;padding:5px 8px"><b>Kelas ${esc(k)}</b> (${g[k].length})</td></tr>` + g[k].map((s, i) => row(s, i + 1)).join(''); });
   }
-  return `<table class="rk"><thead><tr><th>No</th><th>Nama</th>${days.map(x => `<th>${x}</th>`).join('')}<th>H</th><th>S</th><th>I</th><th>A</th><th>%</th></tr></thead><tbody>${body || `<tr><td colspan="${cols}">Tidak ada data.</td></tr>`}</tbody></table>`;
+  return `<table class="rk"><thead><tr><th>No</th><th>Nama</th>${days.map(x => `<th>${x}</th>`).join('')}<th>H</th><th>S</th><th>I</th><th>B</th><th>A</th><th>%</th></tr></thead><tbody>${body || `<tr><td colspan="${cols}">Tidak ada data.</td></tr>`}</tbody></table>`;
 }
 async function rLoad() {
-  rBadge(); busy(true);
+  busy(true);
   try {
     const k = $('#rK').value, b = +$('#rB').value, t = +$('#rT').value;
     const r = await api('getMonthlyReportData', b, t, k);
@@ -503,13 +475,45 @@ async function rLoad() {
     $('#rO').innerHTML = rTable(r.data, k);
   } catch (e) { fail(e); }
 }
-// Cetak PDF: memakai dialog cetak browser (A4 landscape) → pilih "Simpan sebagai PDF" / printer
-function rPrint() {
-  if (!rLast) return toast('Klik Tampilkan dulu sebelum mencetak.', true);
-  const { d, k, b, t } = rLast;
-  $('#pr').innerHTML = `<h3>REKAPITULASI ABSENSI BULANAN SISWA</h3><div class="pm">Kelas: <b>${esc(k || 'Semua Kelas')}</b> &nbsp;|&nbsp; Periode: <b>${BULAN[b]} ${t}</b></div>${rTable(d, k)}
-    <div class="pf">H: Hadir · S: Sakit · I: Izin · A: Alpa · L: Libur &nbsp;|&nbsp; Dicetak: ${new Date().toLocaleString('id-ID')}</div>`;
-  setTimeout(() => window.print(), 80);
+// Unduh PDF: file PDF dibuat langsung di browser (A4 landscape) lalu otomatis terunduh
+function rPdf() {
+  if (!rLast) return toast('Klik Tampilkan dulu sebelum mengunduh.', true);
+  if (!window.jspdf) return toast('Pustaka PDF belum termuat. Periksa koneksi internet lalu muat ulang halaman.', true);
+  const { d, k, b, t } = rLast, nd = d.daysInMonth, cols = 2 + nd + 6;
+  const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+  doc.text('REKAPITULASI ABSENSI BULANAN SISWA', 148.5, 10, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  doc.text('Kelas: ' + (k || 'Semua Kelas') + '   |   Periode: ' + BULAN[b] + ' ' + t, 148.5, 15, { align: 'center' });
+  const row = (s, n) => [n, s.nama, ...s.dailyCodes.map(x => x.code), s.stats.h, s.stats.s, s.stats.i, s.stats.b, s.stats.a, s.stats.percent + '%'];
+  const body = [];
+  if (k) d.students.forEach((s, i) => body.push(row(s, i + 1)));
+  else {
+    const g = {};
+    d.students.forEach(s => (g[s.kelas || 'Tanpa Kelas'] = g[s.kelas || 'Tanpa Kelas'] || []).push(s));
+    Object.keys(g).sort(natural).forEach(kk => {
+      body.push([{ content: 'Kelas ' + kk + ' (' + g[kk].length + ')', colSpan: cols, styles: { halign: 'left', fontStyle: 'bold', fillColor: [79, 70, 229], textColor: 255 } }]);
+      g[kk].forEach((s, i) => body.push(row(s, i + 1)));
+    });
+  }
+  const warna = { H: [22, 163, 74], S: [161, 98, 7], I: [29, 78, 216], B: [194, 65, 12], A: [185, 28, 28], L: [252, 165, 165] };
+  const latar = { S: [254, 249, 195], I: [219, 234, 254], B: [255, 237, 213], A: [254, 226, 226], L: [254, 242, 242] };
+  doc.autoTable({
+    head: [['No', 'Nama', ...Array.from({ length: nd }, (_, i) => String(i + 1)), 'H', 'S', 'I', 'B', 'A', '%']],
+    body, startY: 19, theme: 'grid', margin: { left: 7, right: 7, top: 8, bottom: 8 },
+    styles: { fontSize: 6, cellPadding: 0.7, halign: 'center', valign: 'middle', lineWidth: 0.1, lineColor: [150, 150, 150] },
+    headStyles: { fillColor: [67, 56, 202], textColor: 255 },
+    columnStyles: { 0: { cellWidth: 6 }, 1: { halign: 'left', cellWidth: 38 } },
+    didParseCell(h) {
+      const c = h.cell.raw;
+      if (h.section !== 'body' || typeof c !== 'string' || h.column.index < 2 || h.column.index >= 2 + nd) return;
+      if (warna[c]) { h.cell.styles.textColor = warna[c]; h.cell.styles.fontStyle = 'bold'; }
+      if (latar[c]) h.cell.styles.fillColor = latar[c];
+    },
+    didDrawPage(h) { doc.setFontSize(7); doc.setTextColor(90); doc.text('H: Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa · L: Libur   |   Diunduh: ' + new Date().toLocaleString('id-ID') + '   |   Hal. ' + h.pageNumber, 7, 205); doc.setTextColor(0); }
+  });
+  doc.save('Rekap_Absensi_' + (k || 'Semua_Kelas').replace(/\s+/g, '_') + '_' + BULAN[b] + '_' + t + '.pdf');
+  toast('PDF diunduh');
 }
 
 // ======================= HARI LIBUR (admin) =======================
@@ -608,34 +612,19 @@ async function nArsip() {
   try { const r = await api('archiveAndResetYear', n); busy(false); toast(r.success ? 'Data berhasil diarsipkan' : r.message, !r.success); } catch (e) { fail(e); }
 }
 
-// ======================= TUTUP BULAN (admin, di Rekap Bulanan) =======================
-const ARS = 'ep_arsip_bulanan_v1';
-const tutupList = () => store.get(ARS) || [];
-function rBadge() {
-  const el = $('#rBd'); if (!el) return;
-  const b = +$('#rB').value, t = +$('#rT').value, k = $('#rK').value;
-  const f = tutupList().find(a => a.bulan === b && a.tahun === t && (a.kelas || '') === k);
-  el.classList.toggle('hidden', !f);
-  if (f) el.textContent = `🔒 Rekap ${BULAN[b]} ${t} (${k || 'Semua Kelas'}) sudah DITUTUP ${new Date(f.tgl).toLocaleDateString('id-ID')} oleh ${f.oleh}.`;
-}
-async function tutupBulan() {
-  const b = +$('#rB').value, t = +$('#rT').value, k = $('#rK').value;
-  if (!confirm(`Tutup ${BULAN[b]} ${t} (${k || 'Semua Kelas'})?\n\nAbsensi bulan ini dicadangkan ke sheet "arsip_absensi", lalu DIHAPUS dari rekap utama dan bulan dikunci.`)) return;
+// ======================= HAPUS DATA BULAN (admin, di Rekap Bulanan) =======================
+// Menghapus permanen absensi satu bulan agar spreadsheet tetap ringan. Unduh PDF dulu sebelum menghapus.
+async function hapusBulan() {
+  const b = +$('#rB').value, t = +$('#rT').value, k = $('#rK').value, lbl = BULAN[b] + ' ' + t + ' (' + (k || 'Semua Kelas') + ')';
+  if (!confirm('HAPUS data absensi ' + lbl + '?\n\nData dihapus PERMANEN dari spreadsheet dan tidak bisa dikembalikan.\nPastikan rekap sudah diunduh lewat tombol "Unduh PDF".')) return;
+  if ((prompt('Ketik HAPUS untuk melanjutkan:') || '').trim().toUpperCase() !== 'HAPUS') return toast('Dibatalkan.', true);
   busy(true);
   try {
-    const r = await api('arsipkanAbsensiBulanan', user.token, b, t, k); busy(false);
-    if (!r || !r.success) return toast((r && r.message) || 'Gagal menutup bulan.', true);
-    store.set(ARS, [{ id: Date.now(), bulan: b, tahun: t, kelas: k, kelasText: k || 'Semua Kelas', tgl: new Date().toISOString(), oleh: oleh(), deleted: r.deleted || 0 }, ...tutupList().filter(a => !(a.bulan === b && a.tahun === t && (a.kelas || '') === k))]);
-    toast(`Bulan ditutup — ${r.deleted || 0} baris diarsipkan`); rBadge(); rLoad();
+    const r = await api('hapusAbsensiBulan', b, t, k); busy(false);
+    if (!r || !r.success) return toast((r && r.message) || 'Gagal menghapus data.', true);
+    toast(r.message); rLoad();
   } catch (e) { fail(e); }
 }
-function arsipPanel() {
-  const p = $('#rAr'); p.classList.toggle('hidden');
-  const l = tutupList();
-  p.innerHTML = l.map(a => `<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)"><span>🔒 <b>${BULAN[a.bulan]} ${a.tahun}</b> — ${esc(a.kelasText || 'Semua Kelas')} <small class="mu">(${a.deleted} baris · ${new Date(a.tgl).toLocaleDateString('id-ID')} · ${esc(a.oleh)})</small></span>
-    <button class="btn g s" onclick="arsipDel(${a.id})">Hapus</button></div>`).join('') || '<span class="mu">Belum ada bulan yang ditutup.</span>';
-}
-function arsipDel(id) { if (confirm('Hapus catatan arsip ini dari perangkat? (Bulan akan terbuka kembali untuk absensi.)')) { store.set(ARS, tutupList().filter(a => a.id !== id)); arsipPanel(); arsipPanel(); rBadge(); } }
 
 // ======================= EKSTRAKURIKULER =======================
 const EK = 'ep_ekskul_v1', HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -745,6 +734,71 @@ async function ekHapus(id) {
     if (!r || !r.success) return toast((r && r.message) || 'Gagal menghapus.', true);
     ek.ekskul = ek.ekskul.filter(x => x.id !== id); ek.absensi = ek.absensi.filter(a => a.ekskulId !== id);
     store.set(EK, ek); toast('Ekskul dihapus'); ekDraw();
+  } catch (e) { fail(e); }
+}
+
+// ======================= DATA USER (admin) =======================
+let us = [];
+const ROLE_INFO = {
+  admin: 'Akses penuh: semua menu, kelola data siswa, kelas, libur, ekskul, dan user.',
+  guru: 'Daftar Hadir, Ekstrakurikuler, dan Rekap Bulanan — hanya untuk kelas yang dicentang di bawah.',
+  pimpinan: 'Hanya melihat Rekap Bulanan (tanpa mengubah data).'
+};
+async function vUser() {
+  await getKelas();
+  const r = await api('getUsers');
+  us = (r && r.data) || [];
+  const hak = u => u.role === 'admin' ? 'Semua menu' : u.role === 'pimpinan' ? 'Lihat rekap' : (u.kelas ? 'Kelas: ' + esc(u.kelas.split(',').join(', ')) : 'Semua kelas');
+  $('#view').innerHTML = `<h2>Data User</h2>
+    <div class="card row" style="justify-content:space-between"><span class="mu">${us.length} user terdaftar · ${us.filter(u => u.role === 'admin').length} admin · ${us.filter(u => u.role === 'guru').length} guru · ${us.filter(u => u.role === 'pimpinan').length} pimpinan</span><button class="btn" onclick="uForm()">+ Tambah User</button></div>
+    <div class="card tw"><table><thead><tr><th>No</th><th>Username</th><th>Nama</th><th>Role</th><th>Hak Akses</th><th>Aksi</th></tr></thead><tbody>
+    ${us.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.username)}</td><td>${esc(u.nama)}</td><td><span class="bdg ${esc(u.role)}">${esc(u.role)}</span></td><td style="white-space:normal">${hak(u)}</td>
+    <td><button class="btn g s" onclick="uForm(${i})">Edit</button> <button class="btn r s" onclick="uDel(${i})">Hapus</button></td></tr>`).join('') || '<tr><td colspan="6" class="mu ctr">Belum ada user.</td></tr>'}
+    </tbody></table></div>
+    <div class="mu">Perubahan hak akses berlaku setelah user yang bersangkutan login ulang.</div>`;
+}
+function uRole(v) {
+  $('#uKb').classList.toggle('hidden', v !== 'guru');
+  $('#uInfo').textContent = ROLE_INFO[v] || '';
+}
+function uForm(i) {
+  const e = i !== undefined, u = e ? us[i] : { role: 'guru' };
+  const mine = new Set(String(u.kelas || '').split(',').map(x => x.trim()).filter(Boolean));
+  const ks = [...new Set([...kelasList, ...mine])].sort(natural);
+  $('#dlg').innerHTML = `<form onsubmit="uSave(event,${e})"><h2>${e ? 'Edit' : 'Tambah'} User</h2>
+    <label>Username</label><input name="username" required autocapitalize="none" autocomplete="off" value="${esc(u.username || '')}" ${e ? 'readonly' : ''}>
+    <label>Nama Lengkap</label><input name="nama" required value="${esc(u.nama || '')}">
+    <label>Password ${e ? '(kosongkan jika tidak diubah)' : '(min. 6 karakter)'}</label>
+    <div class="pw"><input name="password" id="upw" type="password" autocomplete="new-password" ${e ? '' : 'required'}><button type="button" class="eye" onclick="togglePwd(this,'upw')" aria-label="Lihat password">${EYE}</button></div>
+    <label>Role</label><select name="role" onchange="uRole(this.value)">${['admin', 'guru', 'pimpinan'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${cap(r)}</option>`).join('')}</select>
+    <div class="mu" id="uInfo" style="margin-top:6px;font-size:12px"></div>
+    <div id="uKb"><label>Kelas yang dipegang</label><div class="ukb">${ks.map(k => `<label style="display:flex;gap:6px;text-transform:none;font-weight:400;color:var(--tx);margin:2px 0"><input type="checkbox" class="ukc" style="width:auto" value="${esc(k)}" ${mine.has(k) ? 'checked' : ''}>${esc(k)}</label>`).join('') || '<span class="mu">Belum ada kelas.</span>'}</div></div>
+    <div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn g" onclick="$('#dlg').close()">Batal</button><button class="btn">Simpan</button></div></form>`;
+  $('#dlg').showModal();
+  uRole(u.role);
+}
+async function uSave(ev, isEdit) {
+  ev.preventDefault();
+  const d = Object.fromEntries(new FormData(ev.target));
+  d.kelas = d.role === 'guru' ? [...document.querySelectorAll('.ukc:checked')].map(c => c.value).join(',') : '';
+  if (d.role === 'guru' && !d.kelas && !confirm('Tidak ada kelas dipilih — guru ini akan bisa mengakses SEMUA kelas.\nLanjutkan?')) return;
+  busy(true);
+  try {
+    const r = isEdit ? await api('updateUser', d.username, d) : await api('addUser', d);
+    busy(false);
+    if (!r.success) return toast(r.message, true);
+    $('#dlg').close(); toast(r.message || 'Tersimpan'); vUser().catch(fail);
+  } catch (e) { fail(e); }
+}
+async function uDel(i) {
+  const u = us[i];
+  if (!confirm(`Hapus user "${u.username}" (${u.nama})?`)) return;
+  busy(true);
+  try {
+    const r = await api('deleteUser', u.username);
+    busy(false);
+    if (!r.success) return toast(r.message, true);
+    toast(r.message || 'User dihapus'); vUser().catch(fail);
   } catch (e) { fail(e); }
 }
 
