@@ -81,7 +81,7 @@ h2{margin:0 0 14px;font-size:18px}
 .st.sakit{background:#fef9c3;color:#a16207}.st.bolos{background:#ffedd5;color:#c2410c}.st.alpa{background:#fee2e2;color:#b91c1c}
 .rk td,.rk th{padding:4px 5px;text-align:center;font-size:11px}
 .rk td.n{text-align:left;position:sticky;left:0;background:#fff}
-.cH{color:#16a34a;font-weight:700}.rk td.cH{font-size:17px;line-height:1}.cB{background:#ffedd5;color:#c2410c;font-weight:700}.cS{background:#fef9c3}.cI{background:#dbeafe}.cA{background:#fee2e2;color:#b91c1c;font-weight:700}.cL{background:#fef2f2;color:#fca5a5}
+.cH{color:#16a34a;font-weight:700}.rk td.dot{color:#15803d;font-size:24px;font-weight:900;line-height:1;padding:0 3px}.cB{background:#ffedd5;color:#c2410c;font-weight:700}.cS{background:#fef9c3}.cI{background:#dbeafe}.cA{background:#fee2e2;color:#b91c1c;font-weight:700}.cL{background:#fef2f2;color:#fca5a5}
 dialog{border:0;border-radius:14px;padding:20px;width:min(560px,94vw)}
 dialog::backdrop{background:rgba(0,0,0,.5)}
 dialog label{margin-top:10px}dialog input,dialog select,dialog textarea{width:100%}
@@ -453,7 +453,7 @@ async function vRekap() {
 }
 function rTable(d, kelas) {
   const days = Array.from({ length: d.daysInMonth }, (_, i) => i + 1), cols = 2 + d.daysInMonth + 6;
-  const row = (s, n) => `<tr><td>${n}</td><td class="n">${esc(s.nama)}</td>${s.dailyCodes.map(x => `<td class="c${x.code}">${x.code === 'H' ? '•' : x.code}</td>`).join('')}
+  const row = (s, n) => `<tr><td>${n}</td><td class="n">${esc(s.nama)}</td>${s.dailyCodes.map(x => x.code === 'H' ? '<td class="dot">•</td>' : `<td class="c${x.code}">${x.code}</td>`).join('')}
     <td class="cH">${s.stats.h}</td><td>${s.stats.s}</td><td>${s.stats.i}</td><td class="cB">${s.stats.b}</td><td class="cA">${s.stats.a}</td><td><b>${s.stats.percent}%</b></td></tr>`;
   let body = '';
   if (kelas) body = d.students.map((s, i) => row(s, i + 1)).join('');
@@ -496,7 +496,7 @@ function rPdf() {
       g[kk].forEach((s, i) => body.push(row(s, i + 1)));
     });
   }
-  const warna = { H: [22, 163, 74], S: [161, 98, 7], I: [29, 78, 216], B: [194, 65, 12], A: [185, 28, 28], L: [252, 165, 165] };
+  const warna = { H: [21, 128, 61], S: [161, 98, 7], I: [29, 78, 216], B: [194, 65, 12], A: [185, 28, 28], L: [252, 165, 165] };
   const latar = { S: [254, 249, 195], I: [219, 234, 254], B: [255, 237, 213], A: [254, 226, 226], L: [254, 242, 242] };
   doc.autoTable({
     head: [['No', 'Nama', ...Array.from({ length: nd }, (_, i) => String(i + 1)), 'H', 'S', 'I', 'B', 'A', '%']],
@@ -507,7 +507,7 @@ function rPdf() {
     didParseCell(h) {
       const c = h.cell.raw;
       if (h.section !== 'body' || typeof c !== 'string' || h.column.index < 2 || h.column.index >= 2 + nd) return;
-      if (c === 'H') { h.cell.text = ['•']; h.cell.styles.fontSize = 11; }
+      if (c === 'H') { h.cell.text = ['•']; h.cell.styles.fontSize = 14; }
       if (warna[c]) { h.cell.styles.textColor = warna[c]; h.cell.styles.fontStyle = 'bold'; }
       if (latar[c]) h.cell.styles.fillColor = latar[c];
     },
@@ -703,7 +703,8 @@ async function ekForm(id) {
   let gurus = [];
   try {
     await getSiswa();
-    try { const ur = await api('getUsers'); gurus = ((ur && ur.data) || []).filter(u => u.role === 'guru'); } catch (x) {}
+    try { const ur = await api('getUsers'); gurus = ((ur && ur.data) || []).filter(u => String(u.role).toLowerCase() === 'guru'); } catch (x) { toast('Gagal memuat daftar guru: ' + (x.message || x), true); }
+    if (!gurus.length) toast('Belum ada user ber-role Guru. Tambahkan dulu di menu Data User.', true);
   } catch (e) { busy(false); return fail(e); }
   busy(false);
   const e = id ? ek.ekskul.find(x => x.id === id) : null, on = new Set((e ? e.anggota : []).map(a => a.nisn)), by = {};
@@ -760,9 +761,9 @@ async function vUser() {
   us = (r && r.data) || [];
   const hak = u => u.role === 'admin' ? 'Semua menu' : u.role === 'pimpinan' ? 'Lihat rekap' : (u.kelas ? 'Kelas: ' + esc(u.kelas.split(',').join(', ')) : 'Semua kelas');
   $('#view').innerHTML = `<h2>Data User</h2>
-    <div class="card row" style="justify-content:space-between"><span class="mu">${us.length} user terdaftar · ${us.filter(u => u.role === 'admin').length} admin · ${us.filter(u => u.role === 'guru').length} guru · ${us.filter(u => u.role === 'pimpinan').length} pimpinan</span><button class="btn" onclick="uForm()">+ Tambah User</button></div>
+    <div class="card row" style="justify-content:space-between"><span class="mu">${us.length} user terdaftar · ${us.filter(u => u.role === 'admin').length} admin · ${us.filter(u => u.role === 'guru').length} guru · ${us.filter(u => u.role === 'pimpinan').length} pimpinan</span><span><button class="btn g" onclick="uPdf()">⬇ Unduh PDF</button> <button class="btn" onclick="uForm()">+ Tambah User</button></span></div>
     <div class="card tw"><table><thead><tr><th>No</th><th>Username</th><th>Nama</th><th>Role</th><th>Hak Akses</th><th>Aksi</th></tr></thead><tbody>
-    ${us.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.username)}</td><td>${esc(u.nama)}</td><td><span class="bdg ${esc(u.role)}">${esc(u.role)}</span></td><td style="white-space:normal">${hak(u)}</td>
+    ${us.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.username)}${u.pwDefault ? ' <small class="mu">🔑 123456</small>' : ''}</td><td>${esc(u.nama)}</td><td><span class="bdg ${esc(u.role)}">${esc(u.role)}</span></td><td style="white-space:normal">${hak(u)}</td>
     <td><button class="btn g s" onclick="uForm(${i})">Edit</button> <button class="btn r s" onclick="uDel(${i})">Hapus</button></td></tr>`).join('') || '<tr><td colspan="6" class="mu ctr">Belum ada user.</td></tr>'}
     </tbody></table></div>
     <div class="mu">Perubahan hak akses berlaku setelah user yang bersangkutan login ulang.</div>`;
@@ -776,10 +777,10 @@ function uForm(i) {
   const mine = new Set(String(u.kelas || '').split(',').map(x => x.trim()).filter(Boolean));
   const ks = [...new Set([...kelasList, ...mine])].sort(natural);
   $('#dlg').innerHTML = `<form onsubmit="uSave(event,${e})"><h2>${e ? 'Edit' : 'Tambah'} User</h2>
-    <label>Username</label><input name="username" required autocapitalize="none" autocomplete="off" value="${esc(u.username || '')}" ${e ? 'readonly' : ''}>
+    <label>Username ${e ? '' : '(kosongkan = otomatis dari nama)'}</label><input name="username" ${e ? 'required' : 'placeholder="Otomatis dari nama"'} autocapitalize="none" autocomplete="off" value="${esc(u.username || '')}" ${e ? 'readonly' : ''}>
     <label>Nama Lengkap</label><input name="nama" required value="${esc(u.nama || '')}">
-    <label>Password ${e ? '(kosongkan jika tidak diubah)' : '(min. 6 karakter)'}</label>
-    <div class="pw"><input name="password" id="upw" type="password" autocomplete="new-password" ${e ? '' : 'required'}><button type="button" class="eye" onclick="togglePwd(this,'upw')" aria-label="Lihat password">${EYE}</button></div>
+    <label>Password ${e ? '(kosongkan jika tidak diubah)' : '(kosongkan = 123456)'}</label>
+    <div class="pw"><input name="password" id="upw" type="password" autocomplete="new-password" ${e ? '' : 'placeholder="Default: 123456"'}><button type="button" class="eye" onclick="togglePwd(this,'upw')" aria-label="Lihat password">${EYE}</button></div>
     <label>Role</label><select name="role" onchange="uRole(this.value)">${['admin', 'guru', 'pimpinan'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${cap(r)}</option>`).join('')}</select>
     <div class="mu" id="uInfo" style="margin-top:6px;font-size:12px"></div>
     <div id="uKb"><label>Kelas yang dipegang</label><div class="ukb">${ks.map(k => `<label style="display:flex;gap:6px;text-transform:none;font-weight:400;color:var(--tx);margin:2px 0"><input type="checkbox" class="ukc" style="width:auto" value="${esc(k)}" ${mine.has(k) ? 'checked' : ''}>${esc(k)}</label>`).join('') || '<span class="mu">Belum ada kelas.</span>'}</div></div>
@@ -810,6 +811,29 @@ async function uDel(i) {
     if (!r.success) return toast(r.message, true);
     toast(r.message || 'User dihapus'); vUser().catch(fail);
   } catch (e) { fail(e); }
+}
+
+// Unduh daftar akun (A4 portrait). Password yang sudah di-hash tidak bisa ditampilkan.
+function uPdf() {
+  if (!us.length) return toast('Belum ada data user.', true);
+  if (!window.jspdf) return toast('Pustaka PDF belum termuat. Periksa koneksi internet lalu muat ulang halaman.', true);
+  const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+  doc.text('DATA AKUN PENGGUNA E-PRESENT', 105, 14, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  doc.text("Manba'ul Huda  |  Dicetak: " + new Date().toLocaleString('id-ID'), 105, 19, { align: 'center' });
+  const body = us.map((u, i) => [i + 1, u.nama, u.username, u.pw || '(sudah diganti)']);
+  doc.autoTable({
+    head: [['No', 'Nama', 'Username', 'Password']], body, startY: 24, theme: 'grid',
+    margin: { left: 12, right: 12, top: 12, bottom: 16 },
+    styles: { fontSize: 10, cellPadding: 2.2, lineWidth: 0.1, lineColor: [150, 150, 150] },
+    headStyles: { fillColor: [67, 56, 202], textColor: 255 },
+    columnStyles: { 0: { cellWidth: 12, halign: 'center' } },
+    didParseCell(h) { if (h.section === 'body' && h.column.index === 3 && h.cell.raw === '(sudah diganti)') h.cell.styles.textColor = [150, 150, 150]; },
+    didDrawPage(h) { doc.setFontSize(8); doc.setTextColor(120); doc.text('Dokumen rahasia — jangan disebarluaskan. Hal. ' + h.pageNumber, 12, 290); doc.setTextColor(0); }
+  });
+  doc.save('Data_User_E-Present.pdf');
+  toast('PDF diunduh');
 }
 
 // ======================= STATUS KONEKSI =======================
