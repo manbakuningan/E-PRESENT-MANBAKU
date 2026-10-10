@@ -73,7 +73,7 @@ button{transition:transform .1s,opacity .15s}button:active{transform:scale(.97)}
 .dht select{width:100%;font-size:12px;padding:5px 3px}
 .dht .lk select{opacity:1;color:inherit}
 h2{margin:0 0 14px;font-size:18px}
-.bdg{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;text-transform:uppercase}
+.bdg{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;text-transform:uppercase;background:#e5e7eb;color:#374151}
 .bdg.admin{background:#ede9fe;color:#6d28d9}.bdg.guru{background:#d1fae5;color:#047857}.bdg.pimpinan{background:#dbeafe;color:#1d4ed8}
 .ukb{max-height:26vh;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:2px 10px}
 .st{border-radius:8px;font-weight:700;padding:6px 8px;border:1px solid #d1d5db}
@@ -147,7 +147,14 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const today = () => new Date().toISOString().slice(0, 10);
 const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const STATUS = ['hadir','izin','sakit','bolos','alpa'];
-let user = null, kelasList = [], siswaCache = null, siswa = [], siswaAll = null;
+let user = null, kelasList = [], siswaCache = null, siswa = [], siswaAll = null, roleList = [];
+
+// ----- Hak akses: dibaca dari login/getAkses (diatur admin di menu Pengaturan) -----
+const LV = { v: 1, c: 2 };
+const can = (k, l) => user.role === 'admin' || (LV[(user.izin || {})[k]] || 0) >= LV[l || 'v'];   // l: 'v' lihat, 'c' CRUD
+const scoped = () => user.role !== 'admin' && !!user.scoped;                                       // dibatasi kelas/ekskul yang dipegang
+const ekAdm = () => can('ekskul', 'c') && !scoped();                                               // boleh kelola ekskul penuh
+const isSc = r => !!(roleList.find(x => x.role === r) || {}).scoped;
 
 async function api(fn, ...args) {
   for (let i = 1; i <= 3; i++) {
@@ -204,7 +211,7 @@ async function getKelas() {
   return kelasList;
 }
 const natural = (a, b) => String(a).localeCompare(String(b), 'id', { numeric: true });
-const myKelas = () => (user.role === 'guru' && user.kelas) ? String(user.kelas).split(',').map(k => k.trim()).filter(Boolean) : [];
+const myKelas = () => (scoped() && user.kelas) ? String(user.kelas).split(',').map(k => k.trim()).filter(Boolean) : [];
 const opt = (arr, sel, first) => (first !== undefined ? `<option value="">${first}</option>` : '') + arr.map(k => `<option ${k === sel ? 'selected' : ''}>${esc(k)}</option>`).join('');
 
 // ======================= LOGIN / SESI =======================
@@ -251,18 +258,19 @@ function logout() { store.del(SESSION_KEY); location.reload(); }
 
 // ======================= NAVIGASI (sidebar) =======================
 const MENU = {
-  admin:    [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Data Siswa', vSiswa, '🎓'], ['Rekap Bulanan', vRekap, '📅'], ['Hari Libur', vLibur, '🏖️'], ['Manajemen Kelas', vKelasMgr, '🏫'], ['Kenaikan Kelas', vNaik, '⬆️'], ['Data User', vUser, '👥']],
-  guru:     [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Data Siswa', vSiswa, '🎓'], ['Rekap Bulanan', vRekap, '📅'], ['Pengaturan', vPengaturan, '⚙️']],
-  pimpinan: [['Rekap Bulanan', vRekap, '📅'], ['Pengaturan', vPengaturan, '⚙️']],
-  siswa:    [['Absensi Saya', vSiswaDash, '✅'], ['Riwayat Kehadiran', vSiswaRiwayat, '🗓️']]
+  siswa: [['Absensi Saya', vSiswaDash, '✅'], ['Riwayat Kehadiran', vSiswaRiwayat, '🗓️']]
 };
 let curMenu = [];
-// Guru hanya mendapat menu sesuai hak: menu kelas butuh kelas dicentang, Ekstrakurikuler butuh ekskul dicentang; Pengaturan selalu ada
+// Semua menu staf; elemen ke-4 = kunci menu untuk hak akses (diatur admin di Pengaturan)
+const MENU_ALL = [['Daftar Hadir', vHadir, '📋', 'hadir'], ['Ekstrakurikuler', vEkskul, '🏅', 'ekskul'], ['Data Siswa', vSiswa, '🎓', 'siswa'], ['Rekap Bulanan', vRekap, '📅', 'rekap'], ['Hari Libur', vLibur, '🏖️', 'libur'], ['Manajemen Kelas', vKelasMgr, '🏫', 'kelas'], ['Kenaikan Kelas', vNaik, '⬆️', 'naik'], ['Data User', vUser, '👥', 'user']];
+// Admin: semua menu + Pengaturan (role). Lainnya: menu yang haknya minimal "Lihat" + Pengaturan akun.
+// Role terbatas: menu kelas butuh kelas dicentang, Ekstrakurikuler butuh ekskul dicentang.
 function menuFor(u) {
-  const m = MENU[u.role] || MENU.siswa;
-  if (u.role !== 'guru') return m;
-  const kls = !!String(u.kelas || '').trim(), eks = !!String(u.ekskul || '').trim();
-  return m.filter(x => x[0] === 'Pengaturan' || (x[0] === 'Ekstrakurikuler' ? eks : kls));
+  if (u.role === 'siswa') return MENU.siswa;
+  if (u.role === 'admin') return MENU_ALL.concat([['Pengaturan', vRoles, '⚙️', 'pengaturan']]);
+  const iz = u.izin || {}, sc = !!u.scoped, kls = !!String(u.kelas || '').trim(), eks = !!String(u.ekskul || '').trim();
+  return MENU_ALL.filter(x => (LV[iz[x[3]]] || 0) >= 1 && (!sc || (x[3] === 'ekskul' ? eks : ['hadir', 'siswa', 'rekap'].includes(x[3]) ? kls : true)))
+    .concat([['Pengaturan', vPengaturan, '⚙️', 'akun']]);
 }
 const side = on => { $('#side').classList.toggle('open', on); $('#ov').classList.toggle('on', on); };
 function start(u) {
@@ -359,10 +367,10 @@ async function vHadir() {
   const all = await getSiswa();
   const mine = myKelas(), by = {};
   all.forEach(s => { const k = s.kelas || 'Tanpa Kelas'; (by[k] = by[k] || []).push(s); });
-  const keys = (user.role === 'guru' ? mine : Object.keys(by)).sort(natural);   // guru: hanya kelas miliknya
+  const keys = (scoped() ? mine : Object.keys(by)).sort(natural);   // role terbatas: hanya kelas miliknya
   dh.kelas = keys.map(k => ({ k, list: (by[k] || []).sort((a, b) => a.nama.localeCompare(b.nama)), saved: {}, open: false }));
   $('#view').innerHTML = `<div class="card row"><div><label>Tanggal</label><input type="date" id="dhT" value="${dh.tgl}" onchange="dhLoad()"></div>
-    <div class="mu" style="flex:1;min-width:200px">Pilih kelas untuk membuka daftar siswa. Ubah status = langsung tersimpan, dan bisa diubah kapan saja.</div></div><div id="dhC"></div>`;
+    <div class="mu" style="flex:1;min-width:200px">Pilih kelas untuk membuka daftar siswa. ${can('hadir', 'c') ? 'Ubah status = langsung tersimpan, dan bisa diubah kapan saja.' : 'Akses Anda: hanya lihat.'}</div></div><div id="dhC"></div>`;
   dhDraw(); dhLoad();   // tampil instan, status server menyusul
 }
 async function dhLoad() {
@@ -380,7 +388,7 @@ const dhN = c => c.list.filter(s => c.saved[s.nisn]).length;
 function dhCnt(ci) { const c = dh.kelas[ci], e = $('#ak' + ci); if (e) e.textContent = dhN(c) + '/' + c.list.length + ' terisi'; }
 function dhCell(ci, si) {
   const c = dh.kelas[ci], s = c.list[si], v = c.saved[s.nisn] || '';
-  return `<select class="st ${v}" onchange="dhSet(${ci},${si},this)">${v ? '' : '<option value="">Pilih</option>'}${STATUS.map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${cap(x)}</option>`).join('')}</select>`;
+  return `<select class="st ${v}" ${can('hadir', 'c') ? '' : 'disabled'} onchange="dhSet(${ci},${si},this)">${v ? '' : '<option value="">Pilih</option>'}${STATUS.map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${cap(x)}</option>`).join('')}</select>`;
 }
 function dhBody(ci) {
   const c = dh.kelas[ci];
@@ -391,7 +399,7 @@ function dhBody(ci) {
 function dhDraw() {
   $('#dhC').innerHTML = dh.kelas.map((c, ci) => `<div class="acc ${c.open ? 'open' : ''}" id="ac${ci}">
     <div class="ah" onclick="dhTog(${ci})"><span class="chev">▶</span><b>${esc(c.k)}</b><small id="ak${ci}"></small>
-    <button class="btn g s" onclick="event.stopPropagation();dhAll(${ci})">✓ Sisanya Hadir</button></div>
+    ${can('hadir', 'c') ? `<button class="btn g s" onclick="event.stopPropagation();dhAll(${ci})">✓ Sisanya Hadir</button>` : ''}</div>
     <div class="ab" id="ab${ci}">${c.open ? dhBody(ci) : ''}</div></div>`).join('') || '<div class="card mu">Tidak ada kelas.</div>';
   dh.kelas.forEach((c, ci) => dhCnt(ci));
 }
@@ -426,24 +434,24 @@ async function dhAll(ci) {
   } catch (e) { fail(e); }
 }
 
-// ======================= DATA SISWA (admin) =======================
+// ======================= DATA SISWA =======================
 let sq = '', sk = '';
-// kelas yang boleh dikelola: guru → kelas yang dipegang (kosong = tanpa akses), admin → semua
-const sKelas = () => user.role === 'guru' ? myKelas().slice().sort(natural) : kelasList.slice().sort(natural);
+// kelas yang boleh dikelola: role terbatas → kelas yang dipegang (kosong = tanpa akses), lainnya → semua
+const sKelas = () => scoped() ? myKelas().slice().sort(natural) : kelasList.slice().sort(natural);
 async function vSiswa() {
   await getSiswa(true); await getKelas();
-  if (user.role === 'guru' && !myKelas().length) { $('#view').innerHTML = '<div class="card mu">Anda belum memegang kelas apa pun. Hubungi admin untuk mengatur hak akses.</div>'; return; }
+  if (scoped() && !myKelas().length) { $('#view').innerHTML = '<div class="card mu">Anda belum memegang kelas apa pun. Hubungi admin untuk mengatur hak akses.</div>'; return; }
   $('#view').innerHTML = `<h2>Data Siswa</h2><div class="card row">
     <div><label>Cari</label><input id="sQ" placeholder="Nama / NISN" oninput="sq=this.value.toLowerCase();sDraw()" value="${esc(sq)}"></div>
     <div><label>Kelas</label><select id="sK" onchange="sk=this.value;sDraw()">${opt(sKelas(), sk, 'Semua Kelas')}</select></div>
-    <button class="btn" onclick="sForm()">+ Tambah</button></div>
+    <button class="btn ${can('siswa', 'c') ? '' : 'hidden'}" onclick="sForm()">+ Tambah</button></div>
     <div class="card tw"><table><thead><tr><th>No</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>L/P</th><th>Aksi</th></tr></thead><tbody id="sB"></tbody></table></div>`;
   sDraw();
 }
 function sDraw() {
   siswa = siswaCache.filter(s => (!sk || s.kelas === sk) && (!sq || (s.nama + ' ' + s.nisn).toLowerCase().includes(sq)));
   $('#sB').innerHTML = siswa.map((s, i) => `<tr><td>${i + 1}</td><td>${esc(s.nama)}</td><td>${esc(s.nisn)}</td><td>${esc(s.kelas)}</td><td>${s.jenisKelamin === 'Perempuan' ? 'P' : s.jenisKelamin ? 'L' : '-'}</td>
-    <td><button class="btn g s" onclick="sForm(${i})">Edit</button> <button class="btn r s" onclick="sDel(${i})">Hapus</button></td></tr>`).join('')
+    <td>${can('siswa', 'c') ? `<button class="btn g s" onclick="sForm(${i})">Edit</button> <button class="btn r s" onclick="sDel(${i})">Hapus</button>` : '-'}</td></tr>`).join('')
     || '<tr><td colspan="6" class="mu ctr">Data tidak ditemukan.</td></tr>';
 }
 function sForm(i) {
@@ -451,7 +459,7 @@ function sForm(i) {
   $('#dlg').innerHTML = `<form onsubmit="sSave(event,${e})"><h2>${e ? 'Edit' : 'Tambah'} Siswa</h2>
     <label>Nama Lengkap</label><input name="nama" required value="${esc(s.nama || '')}">
     <label>NISN</label><input name="nisn" required value="${esc(s.nisn || '')}">
-    <label>Kelas</label>${user.role === 'guru' ? `<select name="kelas" required>${opt(sKelas(), s.kelas || sk)}</select>` : `<input name="kelas" required list="kl" value="${esc(s.kelas || '')}"><datalist id="kl">${kelasList.map(k => `<option>${esc(k)}</option>`).join('')}</datalist>`}
+    <label>Kelas</label>${scoped() ? `<select name="kelas" required>${opt(sKelas(), s.kelas || sk)}</select>` : `<input name="kelas" required list="kl" value="${esc(s.kelas || '')}"><datalist id="kl">${kelasList.map(k => `<option>${esc(k)}</option>`).join('')}</datalist>`}
     <label>Jenis Kelamin</label><select name="jenisKelamin"><option ${s.jenisKelamin === 'Perempuan' ? '' : 'selected'}>Laki-laki</option><option ${s.jenisKelamin === 'Perempuan' ? 'selected' : ''}>Perempuan</option></select>
     <input type="hidden" name="old" value="${esc(s.nisn || '')}">
     <div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn g" onclick="$('#dlg').close()">Batal</button><button class="btn">Simpan</button></div></form>`;
@@ -488,17 +496,17 @@ let rLast = null;
 async function vRekap() {
   await getKelas(); rLast = null;
   const mine = myKelas(), now = new Date(), yr = now.getFullYear();
-  const ks = user.role === 'guru' ? mine : kelasList.slice().sort(natural);
-  if (user.role === 'guru' && !mine.length) { $('#view').innerHTML = '<div class="card mu">Anda belum memegang kelas apa pun. Hubungi admin untuk mengatur hak akses.</div>'; return; }
+  const ks = scoped() ? mine : kelasList.slice().sort(natural);
+  if (scoped() && !mine.length) { $('#view').innerHTML = '<div class="card mu">Anda belum memegang kelas apa pun. Hubungi admin untuk mengatur hak akses.</div>'; return; }
   $('#view').innerHTML = `<div class="card row">
-    <div><label>Kelas</label><select id="rK">${opt(ks, ks[0], user.role === 'guru' ? undefined : 'Semua Kelas')}</select></div>
+    <div><label>Kelas</label><select id="rK">${opt(ks, ks[0], scoped() ? undefined : 'Semua Kelas')}</select></div>
     <div><label>Bulan</label><select id="rB">${BULAN.map((b, i) => `<option value="${i}" ${i === now.getMonth() ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
     <div><label>Tahun</label><select id="rT">${[0, 1, 2, 3, 4].map(i => `<option>${yr - i}</option>`).join('')}</select></div>
     <button class="btn" onclick="rLoad()">Tampilkan</button><button class="btn g" onclick="rPdf()">⬇ Unduh PDF</button>
-    ${user.role === 'admin' ? '<button class="btn r" onclick="hapusBulan()">🗑 Hapus Data Bulan</button>' : ''}</div>
+    ${can('rekap', 'c') ? '<button class="btn r" onclick="hapusBulan()">🗑 Hapus Data Bulan</button>' : ''}</div>
     <div class="card tw" id="rO"><span class="mu">Pilih filter lalu klik Tampilkan.</span></div>
     <div class="mu">• : Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa · L: Libur. Persentase = Hadir ÷ Hari Efektif × 100%.</div>`;
-  if (mine.length) rLoad();   // guru: langsung tampil kelas pertamanya
+  if (mine.length) rLoad();   // role terbatas: langsung tampil kelas pertamanya
 }
 function rTable(d, kelas) {
   const days = Array.from({ length: d.daysInMonth }, (_, i) => i + 1), cols = 2 + d.daysInMonth + 6;
@@ -566,17 +574,17 @@ function rPdf() {
   toast('PDF diunduh');
 }
 
-// ======================= HARI LIBUR (admin) =======================
+// ======================= HARI LIBUR =======================
 async function vLibur() {
   const r = await api('getHariLibur');
   const l = (r && r.success) ? r.data : [];
   $('#view').innerHTML = `<h2>Hari Libur</h2>
-    <form class="card row" onsubmit="lAdd(event)">
+    <form class="card row ${can('libur', 'c') ? '' : 'hidden'}" onsubmit="lAdd(event)">
       <div><label>Mulai</label><input type="date" name="a" required></div><div><label>Akhir</label><input type="date" name="b" required></div>
       <div style="flex:1;min-width:180px"><label>Keterangan</label><input name="k" required style="width:100%" placeholder="Contoh: Maulid Nabi"></div><button class="btn">Tambah</button></form>
     <div class="card tw"><table><thead><tr><th>No</th><th>Tanggal</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>
     ${l.map((x, i) => `<tr><td>${i + 1}</td><td>${new Date(x.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</td><td>${esc(x.keterangan)}</td>
-    <td><button class="btn r s" onclick="lDel('${esc(x.tanggal)}')">Hapus</button></td></tr>`).join('') || '<tr><td colspan="4" class="mu ctr">Belum ada hari libur.</td></tr>'}
+    <td><button class="btn r s ${can('libur', 'c') ? '' : 'hidden'}" onclick="lDel('${esc(x.tanggal)}')">Hapus</button></td></tr>`).join('') || '<tr><td colspan="4" class="mu ctr">Belum ada hari libur.</td></tr>'}
     </tbody></table></div>`;
 }
 async function lAdd(ev) {
@@ -596,16 +604,16 @@ async function lDel(t) {
   try { await api('deleteHariLibur', t); busy(false); toast('Hari libur dihapus'); vLibur().catch(fail); } catch (e) { fail(e); }
 }
 
-// ======================= MANAJEMEN KELAS (admin) =======================
+// ======================= MANAJEMEN KELAS =======================
 let kl = [];
 async function vKelasMgr() {
   const r = await api('getKelasMaster');
   kl = (r && r.data) || [];
   $('#view').innerHTML = `<h2>Manajemen Kelas</h2>
-    <div class="card row"><div><label>Nama Kelas Baru</label><input id="kN" placeholder="Contoh: 10-A" onkeydown="if(event.key==='Enter')kAdd()"></div>
+    <div class="card row ${can('kelas', 'c') ? '' : 'hidden'}"><div><label>Nama Kelas Baru</label><input id="kN" placeholder="Contoh: 10-A" onkeydown="if(event.key==='Enter')kAdd()"></div>
     <button class="btn" onclick="kAdd()">+ Tambah</button><span class="mu">${kl.length} kelas terdaftar</span></div>
     <div class="card tw"><table><thead><tr><th>No</th><th>Kelas</th><th>Aksi</th></tr></thead><tbody>
-    ${kl.map((k, i) => `<tr><td>${i + 1}</td><td><b>${esc(k.nama)}</b></td><td><button class="btn g s" onclick="kEdit(${i})">Edit</button> <button class="btn r s" onclick="kDel(${i})">Hapus</button></td></tr>`).join('') || '<tr><td colspan="3" class="mu ctr">Belum ada kelas.</td></tr>'}
+    ${kl.map((k, i) => `<tr><td>${i + 1}</td><td><b>${esc(k.nama)}</b></td><td><span class="${can('kelas', 'c') ? '' : 'hidden'}"><button class="btn g s" onclick="kEdit(${i})">Edit</button> <button class="btn r s" onclick="kDel(${i})">Hapus</button></span></td></tr>`).join('') || '<tr><td colspan="3" class="mu ctr">Belum ada kelas.</td></tr>'}
     </tbody></table></div>`;
 }
 async function kDo(fn, ...a) {
@@ -617,7 +625,7 @@ function kAdd() { const n = $('#kN').value.trim(); if (!n) return toast('Masukka
 function kEdit(i) { const n = prompt('Nama kelas baru:', kl[i].nama); if (n && n.trim() && n.trim() !== kl[i].nama) kDo('updateKelas', kl[i].rowIndex, n.trim()); }
 function kDel(i) { if (confirm(`Hapus kelas "${kl[i].nama}"?\n(Tidak bisa jika masih ada siswa.)`)) kDo('deleteKelas', kl[i].rowIndex, kl[i].nama); }
 
-// ======================= KENAIKAN KELAS (admin) =======================
+// ======================= KENAIKAN KELAS =======================
 let nL = [];
 async function vNaik() {
   await getKelas();
@@ -625,7 +633,7 @@ async function vNaik() {
   $('#view').innerHTML = `<h2>Kenaikan Kelas</h2><div class="card row">
     <div><label>Kelas Asal</label><select id="nA">${opt(ks, '', '-- Pilih --')}</select></div>
     <div><label>Naik ke</label><select id="nT"><option value="">-- Pilih --</option><option value="LULUS">🎓 LULUS (Alumni)</option>${opt(ks)}</select></div>
-    <button class="btn" onclick="nLoad()">Load Siswa</button><button class="btn g" onclick="nArsip()">Tutup Tahun (Arsip)</button></div><div id="nO"></div>`;
+    <button class="btn" onclick="nLoad()">Load Siswa</button><button class="btn g ${can('naik', 'c') ? '' : 'hidden'}" onclick="nArsip()">Tutup Tahun (Arsip)</button></div><div id="nO"></div>`;
 }
 async function nLoad() {
   const a = $('#nA').value, t = $('#nT').value;
@@ -640,7 +648,7 @@ async function nLoad() {
       ${nL.map((s, i) => `<tr><td>${i + 1}</td><td>${esc(s.nama)}</td><td>${esc(s.nisn)}</td><td>
       <label style="display:inline;text-transform:none;color:#059669"><input type="radio" name="s${i}" value="NAIK" checked> ${lbl}</label> &nbsp;
       <label style="display:inline;text-transform:none;color:#dc2626"><input type="radio" name="s${i}" value="TINGGAL"> Tinggal Kelas</label></td></tr>`).join('') || '<tr><td colspan="4" class="mu ctr">Tidak ada siswa.</td></tr>'}
-      </tbody></table></div>${nL.length ? '<button class="btn" style="width:100%;padding:12px" onclick="nRun()">Simpan &amp; Proses Kenaikan Kelas</button>' : ''}`;
+      </tbody></table></div>${nL.length && can('naik', 'c') ? '<button class="btn" style="width:100%;padding:12px" onclick="nRun()">Simpan &amp; Proses Kenaikan Kelas</button>' : ''}`;
   } catch (e) { fail(e); }
 }
 async function nRun() {
@@ -662,7 +670,7 @@ async function nArsip() {
   try { const r = await api('archiveAndResetYear', n); busy(false); toast(r.success ? 'Data berhasil diarsipkan' : r.message, !r.success); } catch (e) { fail(e); }
 }
 
-// ======================= HAPUS DATA BULAN (admin, di Rekap Bulanan) =======================
+// ======================= HAPUS DATA BULAN (di Rekap Bulanan, butuh hak CRUD Rekap) =======================
 // Menghapus permanen absensi satu bulan agar spreadsheet tetap ringan. Unduh PDF dulu sebelum menghapus.
 async function hapusBulan() {
   const b = +$('#rB').value, t = +$('#rT').value, k = $('#rK').value, lbl = BULAN[b] + ' ' + t + ' (' + (k || 'Semua Kelas') + ')';
@@ -679,9 +687,9 @@ async function hapusBulan() {
 // ======================= EKSTRAKURIKULER =======================
 const EK = 'ep_ekskul_v1', HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 let ek = { ekskul: [], absensi: [] }, ekId = null, ekTab = 'a', ekSt = {}, ekTgl = today();
-// Guru hanya melihat ekskul yang dicentang di akunnya (Data User); tanpa centang = tanpa akses
+// Role terbatas hanya melihat ekskul yang dicentang di akunnya (Data User); tanpa centang = tanpa akses
 const ekVis = () => {
-  if (user.role === 'guru') {
+  if (scoped()) {
     const mine = String(user.ekskul || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
     return ek.ekskul.filter(e => mine.includes(String(e.nama || '').toLowerCase()));
   }
@@ -699,7 +707,7 @@ async function vEkskul() {
   } catch (e) {}
 }
 function ekDraw() {
-  const adm = user.role === 'admin', kel = adm || user.role === 'guru';
+  const adm = ekAdm(), kel = can('ekskul', 'c');
   $('#view').innerHTML = `<h2>Ekstrakurikuler</h2><div class="row" style="margin-bottom:12px">
     <button class="btn ${ekTab === 'a' ? '' : 'g'}" onclick="ekTab='a';ekDraw()">Absensi</button>
     <button class="btn ${ekTab === 'r' ? '' : 'g'}" onclick="ekTab='r';ekDraw()">Rekap Bulanan</button>
@@ -720,9 +728,9 @@ function ekAbs() {
     <div><label>Tanggal</label><input type="date" value="${ekTgl}" onchange="ekTgl=this.value;ekAbs()"></div>
     <div class="mu">Pembina: <b>${esc(e.pembina)}</b> · ${esc(e.hari)} ${esc(e.jamMulai)}–${esc(e.jamSelesai)} · ${e.anggota.length} anggota</div></div>
     <div class="card tw" style="max-height:55vh"><table><thead><tr><th>No</th><th>Nama</th><th>Status</th></tr></thead><tbody>
-    ${e.anggota.map((s, i) => { const v = ekSt[s.nisn] || ''; return `<tr><td>${i + 1}</td><td>${esc(s.nama)}</td><td><select class="st ${v}" onchange="ekSet(${i},this)"><option value="">Pilih Status</option>${STATUS.map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${cap(x)}</option>`).join('')}</select></td></tr>`; }).join('') || '<tr><td colspan="3" class="mu ctr">Belum ada anggota.</td></tr>'}
+    ${e.anggota.map((s, i) => { const v = ekSt[s.nisn] || ''; return `<tr><td>${i + 1}</td><td>${esc(s.nama)}</td><td><select class="st ${v}" ${can('ekskul', 'c') ? '' : 'disabled'} onchange="ekSet(${i},this)"><option value="">Pilih Status</option>${STATUS.map(x => `<option value="${x}" ${v === x ? 'selected' : ''}>${cap(x)}</option>`).join('')}</select></td></tr>`; }).join('') || '<tr><td colspan="3" class="mu ctr">Belum ada anggota.</td></tr>'}
     </tbody></table></div>
-    <div class="card row"><span>Terisi: <b id="ekCnt"></b></span><span style="flex:1"></span><button class="btn g" onclick="ekAll()">✓ Tandai Semua Hadir</button><button class="btn" onclick="ekKirim()">Kirim Absensi</button></div>
+    <div class="card row"><span>Terisi: <b id="ekCnt"></b></span><span style="flex:1"></span><button class="btn g ${can('ekskul', 'c') ? '' : 'hidden'}" onclick="ekAll()">✓ Tandai Semua Hadir</button><button class="btn ${can('ekskul', 'c') ? '' : 'hidden'}" onclick="ekKirim()">Kirim Absensi</button></div>
     ${riw.length ? `<div class="card"><b>Riwayat Terakhir</b>${riw.map(a => `<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)"><span>${new Date(a.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} <small class="mu">${Object.keys(a.data).length} diisi · ${Object.values(a.data).filter(v => v === 'hadir').length} hadir · ${esc(a.oleh)}</small></span><button class="btn g s" onclick="ekTgl='${esc(a.tanggal)}';ekAbs()">Buka</button></div>`).join('')}</div>` : ''}`;
   ekCnt();
 }
@@ -816,7 +824,7 @@ function ekRPdf() {
 }
 
 function ekKelola() {
-  const adm = user.role === 'admin', l = adm ? ek.ekskul : ekVis();
+  const adm = ekAdm(), l = adm ? ek.ekskul : ekVis();
   $('#ekW').innerHTML = `<div class="card row" style="justify-content:space-between"><span class="mu">${adm ? 'Atur ekskul, pembina, jadwal, dan anggota.' : 'Tambah atau keluarkan anggota ekskul yang Anda pegang.'}</span>${adm ? '<button class="btn" onclick="ekForm()">+ Tambah Ekskul</button>' : ''}</div>
     ${l.map(e => `<div class="card row" style="justify-content:space-between"><div><b>${esc(e.nama)}</b> <small class="mu">${e.anggota.length} anggota</small><div class="mu">Pembina: ${esc(e.pembina)} · ${esc(e.hari)} ${esc(e.jamMulai)}–${esc(e.jamSelesai)}</div></div>
     <div><button class="btn g s" onclick="ekForm('${esc(e.id)}')">${adm ? 'Edit' : 'Kelola Anggota'}</button>${adm ? ` <button class="btn r s" onclick="ekHapus('${esc(e.id)}')">Hapus</button>` : ''}</div></div>`).join('') || '<div class="card mu">Belum ada ekskul yang Anda pegang. Hubungi admin.</div>'}`;
@@ -831,15 +839,15 @@ async function ekForm(id) {
   let gurus = [];
   try {
     await getSiswaAll();
-    if (user.role === 'admin') {
-      try { const ur = await api('getUsers'); gurus = ((ur && ur.data) || []).filter(u => String(u.role).toLowerCase() === 'guru'); } catch (x) { toast('Gagal memuat daftar guru: ' + (x.message || x), true); }
+    if (ekAdm()) {
+      try { const ur = await api('getGuruList'); gurus = (ur && ur.data) || []; } catch (x) { toast('Gagal memuat daftar guru: ' + (x.message || x), true); }
       if (!gurus.length) toast('Belum ada user ber-role Guru. Tambahkan dulu di menu Data User.', true);
     }
   } catch (e) { busy(false); return fail(e); }
   busy(false);
   const e = id ? ek.ekskul.find(x => x.id === id) : null, on = new Set((e ? e.anggota : []).map(a => a.nisn)), by = {};
   siswaAll.forEach(s => (by[s.kelas || 'Tanpa Kelas'] = by[s.kelas || 'Tanpa Kelas'] || []).push(s));
-  const adm = user.role === 'admin';
+  const adm = ekAdm();
   $('#dlg').innerHTML = `<form onsubmit="ekSave(event,'${e ? esc(e.id) : ''}')"><h2>${adm ? (e ? 'Edit' : 'Tambah') + ' Ekskul' : 'Kelola Anggota — ' + esc(e.nama)}</h2>
     ${adm ? `<label>Nama Ekskul</label><input name="nama" required value="${esc(e && e.nama)}">
     <label>Guru Pembina</label><select name="pembina" required><option value="">-- Pilih Guru --</option>${pbOpt(gurus, e && e.pembina)}</select>
@@ -880,10 +888,10 @@ async function ekHapus(id) {
   } catch (e) { fail(e); }
 }
 
-// ======================= DATA USER (admin) =======================
+// ======================= DATA USER =======================
 let us = [], ekNames = [];
 const ROLE_INFO = {
-  admin: 'Akses penuh: semua menu, kelola data siswa, kelas, libur, ekskul, dan user.',
+  admin: 'Akses penuh: semua menu, kelola data siswa, kelas, libur, ekskul, user, dan pengaturan role.',
   guru: 'Daftar Hadir, Data Siswa (tambah/ubah/hapus), dan Rekap Bulanan hanya untuk kelas yang dicentang; Ekstrakurikuler hanya untuk ekskul yang dicentang. Tanpa centang = tanpa akses.',
   pimpinan: 'Hanya melihat Rekap Bulanan (tanpa mengubah data).'
 };
@@ -891,24 +899,26 @@ async function vUser() {
   await getKelas();
   const r = await api('getUsers');
   us = (r && r.data) || [];
+  roleList = ((await api('getRoles')) || {}).data || [];
   try { const er = await api('getEkskulList'); ekNames = ((er && er.data && er.data.ekskul) || []).map(e => e.nama); } catch (e) { ekNames = []; }
   const hak = u => esc(uHakTxt(u)).replace(/; /g, '<br>');
   $('#view').innerHTML = `<h2>Data User</h2>
-    <div class="card row" style="justify-content:space-between"><span class="mu">${us.length} user terdaftar · ${us.filter(u => u.role === 'admin').length} admin · ${us.filter(u => u.role === 'guru').length} guru · ${us.filter(u => u.role === 'pimpinan').length} pimpinan</span><span><button class="btn g" onclick="uPdf()">⬇ Unduh PDF</button> <button class="btn" onclick="uForm()">+ Tambah User</button></span></div>
+    <div class="card row" style="justify-content:space-between"><span class="mu">${us.length} user terdaftar · ${roleList.map(r => us.filter(u => u.role === r.role).length + ' ' + esc(r.label.toLowerCase())).join(' · ')}</span><span><button class="btn g" onclick="uPdf()">⬇ Unduh PDF</button> <button class="btn ${can('user', 'c') ? '' : 'hidden'}" onclick="uForm()">+ Tambah User</button></span></div>
     <div class="card tw"><table><thead><tr><th>No</th><th>Username</th><th>Nama</th><th>Role</th><th>Hak Akses</th><th>Aksi</th></tr></thead><tbody>
     ${us.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.username)}${u.pwDefault ? ' <small class="mu">🔑 123456</small>' : ''}</td><td>${esc(u.nama)}</td><td><span class="bdg ${esc(u.role)}">${esc(u.role)}</span></td><td style="white-space:normal">${hak(u)}</td>
-    <td><button class="btn g s" onclick="uForm(${i})">Edit</button> <button class="btn r s" onclick="uDel(${i})">Hapus</button></td></tr>`).join('') || '<tr><td colspan="6" class="mu ctr">Belum ada user.</td></tr>'}
+    <td><span class="${can('user', 'c') ? '' : 'hidden'}"><button class="btn g s" onclick="uForm(${i})">Edit</button> <button class="btn r s" onclick="uDel(${i})">Hapus</button></span></td></tr>`).join('') || '<tr><td colspan="6" class="mu ctr">Belum ada user.</td></tr>'}
     </tbody></table></div>
-    <div class="mu">Perubahan hak akses berlaku setelah user yang bersangkutan login ulang.</div>`;
+    <div class="mu">Hak akses tiap role diatur di menu Pengaturan. Perubahan kelas/ekskul & role berlaku setelah user yang bersangkutan login ulang.</div>`;
 }
 // Ringkasan hak akses (teks biasa) — dipakai di tabel dan PDF
-const uHakTxt = u => u.role === 'admin' ? 'Semua menu' : u.role === 'pimpinan' ? 'Lihat rekap'
+const uHakTxt = u => u.role === 'admin' ? 'Semua menu' : !isSc(u.role) ? 'Sesuai pengaturan role'
   : (!u.kelas && !u.ekskul) ? 'Tanpa akses (belum ada kelas/ekskul)'
   : 'Kelas: ' + (u.kelas ? u.kelas.split(',').join(', ') : '-') + '; Ekskul: ' + (u.ekskul ? u.ekskul.split(',').join(', ') : '-');
 function uRole(v) {
-  $('#uKb').classList.toggle('hidden', v !== 'guru');
-  $('#uEb').classList.toggle('hidden', v !== 'guru');
-  $('#uInfo').textContent = ROLE_INFO[v] || '';
+  const r = roleList.find(x => x.role === v) || { izin: {} };
+  $('#uKb').classList.toggle('hidden', !r.scoped);
+  $('#uEb').classList.toggle('hidden', !r.scoped);
+  $('#uInfo').textContent = izinTxt(r) + (r.scoped ? ' — hanya untuk kelas/ekskul yang dicentang.' : '');
 }
 function uForm(i) {
   const e = i !== undefined, u = e ? us[i] : { role: 'guru' };
@@ -922,7 +932,7 @@ function uForm(i) {
     <label>Nama Lengkap</label><input name="nama" required value="${esc(u.nama || '')}">
     <label>Password ${e ? '(kosongkan jika tidak diubah)' : '(kosongkan = 123456)'}</label>
     <div class="pw"><input name="password" id="upw" type="password" autocomplete="new-password" ${e ? '' : 'placeholder="Default: 123456"'}><button type="button" class="eye" onclick="togglePwd(this,'upw')" aria-label="Lihat password">${EYE}</button></div>
-    <label>Role</label><select name="role" onchange="uRole(this.value)">${['admin', 'guru', 'pimpinan'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${cap(r)}</option>`).join('')}</select>
+    <label>Role</label><select name="role" onchange="uRole(this.value)">${roleList.map(r => `<option value="${esc(r.role)}" ${u.role === r.role ? 'selected' : ''}>${esc(r.label)}</option>`).join('')}</select>
     <div class="mu" id="uInfo" style="margin-top:6px;font-size:12px"></div>
     <div id="uKb"><label>Kelas yang dipegang</label><div class="ukb">${ks.map(k => chk('ukc', k, mine.has(k))).join('') || '<span class="mu">Belum ada kelas.</span>'}</div></div>
     <div id="uEb"><label>Ekstrakurikuler yang dipegang</label><div class="ukb">${eks.map(k => chk('ukx', k, myEk.has(k))).join('') || '<span class="mu">Belum ada ekskul.</span>'}</div></div>
@@ -933,9 +943,9 @@ function uForm(i) {
 async function uSave(ev, isEdit) {
   ev.preventDefault();
   const d = Object.fromEntries(new FormData(ev.target));
-  d.kelas = d.role === 'guru' ? [...document.querySelectorAll('.ukc:checked')].map(c => c.value).join(',') : '';
-  d.ekskul = d.role === 'guru' ? [...document.querySelectorAll('.ukx:checked')].map(c => c.value).join(',') : '';
-  if (d.role === 'guru' && !d.kelas && !d.ekskul && !confirm('Tidak ada kelas maupun ekskul dipilih — guru ini tidak akan punya akses apa pun.\nLanjutkan?')) return;
+  d.kelas = isSc(d.role) ? [...document.querySelectorAll('.ukc:checked')].map(c => c.value).join(',') : '';
+  d.ekskul = isSc(d.role) ? [...document.querySelectorAll('.ukx:checked')].map(c => c.value).join(',') : '';
+  if (isSc(d.role) && !d.kelas && !d.ekskul && !confirm('Tidak ada kelas maupun ekskul dipilih — user ini tidak akan punya akses apa pun.\nLanjutkan?')) return;
   busy(true);
   try {
     const r = isEdit ? await api('updateUser', d.username, d) : await api('addUser', d);
@@ -979,10 +989,63 @@ function uPdf() {
   toast('PDF diunduh');
 }
 
-// ======================= PENGATURAN AKUN (guru / pimpinan) =======================
+// ======================= PENGATURAN ROLE & HAK AKSES (admin) =======================
+let rlL = [];
+const izinTxt = r => r.role === 'admin' ? 'Semua menu (CRUD)'
+  : (MENU_ALL.filter(m => (r.izin || {})[m[3]]).map(m => m[0] + ' (' + (r.izin[m[3]] === 'c' ? 'CRUD' : 'Lihat') + ')').join('; ') || 'Belum ada akses menu');
+async function vRoles() {
+  const r = await api('getRoles');
+  rlL = roleList = (r && r.data) || [];
+  $('#view').innerHTML = `<div class="card row" style="justify-content:space-between"><span class="mu">${rlL.length} role · atur menu yang bisa diakses dan tingkat aksesnya (Lihat / CRUD)</span><button class="btn" onclick="rlForm()">+ Tambah Role</button></div>
+    <div class="card tw"><table><thead><tr><th>No</th><th>Role</th><th>Cakupan</th><th>Hak Akses Menu</th><th>User</th><th>Aksi</th></tr></thead><tbody>
+    ${rlL.map((x, i) => `<tr><td>${i + 1}</td><td><b>${esc(x.label)}</b><div class="mu" style="font-size:11px">${esc(x.role)}</div></td>
+      <td>${x.role === 'admin' ? 'Semua' : x.scoped ? 'Terbatas kelas/ekskul' : 'Semua data'}</td>
+      <td style="white-space:normal;min-width:240px">${esc(izinTxt(x)).replace(/; /g, '<br>')}</td><td>${x.jumlah}</td>
+      <td>${x.role === 'admin' ? '🔒 Terkunci' : `<button class="btn g s" onclick="rlForm(${i})">Edit</button> ${x.sistem ? '' : `<button class="btn r s" onclick="rlDel(${i})">Hapus</button>`}`}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="mu">Lihat = hanya melihat data · CRUD = boleh tambah/ubah/hapus/simpan. Admin selalu akses penuh. Hak akses dicek server setiap permintaan; tampilan menu user menyesuaikan saat aplikasi dibuka ulang.</div>`;
+}
+function rlForm(i) {
+  const e = i !== undefined, r = e ? rlL[i] : { role: '', label: '', scoped: false, izin: {} };
+  $('#dlg').innerHTML = `<form onsubmit="rlSave(event,${e})"><h2>${e ? 'Edit' : 'Tambah'} Role</h2>
+    <label>Kode Role ${e ? '' : '(huruf kecil/angka/_ , 2-20 karakter)'}</label><input name="role" required pattern="[a-z0-9_]{2,20}" autocapitalize="none" value="${esc(r.role)}" ${e ? 'readonly' : ''}>
+    <label>Nama Tampilan</label><input name="label" required value="${esc(r.label)}">
+    <label style="display:flex;gap:6px;text-transform:none;font-weight:400;color:var(--tx)"><input type="checkbox" name="scoped" style="width:auto" ${r.scoped ? 'checked' : ''}> Dibatasi kelas &amp; ekskul yang dipegang (dicentang di Data User)</label>
+    <label>Hak Akses Menu</label>
+    <div class="tw"><table class="rk"><thead><tr><th>Menu</th><th>Tidak ada</th><th>Lihat</th><th>CRUD</th></tr></thead><tbody>
+    ${MENU_ALL.map(m => `<tr><td class="n">${m[0]}</td>${['', 'v', 'c'].map(v => `<td><input type="radio" name="m_${m[3]}" value="${v}" style="width:auto" ${((r.izin || {})[m[3]] || '') === v ? 'checked' : ''}></td>`).join('')}</tr>`).join('')}
+    </tbody></table></div>
+    <div class="mu" style="font-size:12px;margin-top:6px">Lihat = hanya melihat data. CRUD = boleh tambah/ubah/hapus/simpan. Menu Pengaturan ini khusus admin.</div>
+    <div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn g" onclick="$('#dlg').close()">Batal</button><button class="btn">Simpan</button></div></form>`;
+  $('#dlg').showModal();
+}
+async function rlSave(ev, isEdit) {
+  ev.preventDefault();
+  const f = ev.target, izin = {};
+  MENU_ALL.forEach(m => { const v = f['m_' + m[3]].value; if (v) izin[m[3]] = v; });
+  busy(true);
+  try {
+    const r = await api('saveRole', { role: f.role.value.trim().toLowerCase(), label: f.label.value.trim(), scoped: f.scoped.checked, izin, baru: !isEdit });
+    busy(false);
+    if (!r.success) return toast(r.message, true);
+    $('#dlg').close(); toast(r.message); vRoles().catch(fail);
+  } catch (e) { fail(e); }
+}
+async function rlDel(i) {
+  const x = rlL[i];
+  if (!confirm(`Hapus role "${x.label}"?\n(Tidak bisa jika masih dipakai user.)`)) return;
+  busy(true);
+  try {
+    const r = await api('deleteRole', x.role); busy(false);
+    toast(r.message, !r.success);
+    if (r.success) vRoles().catch(fail);
+  } catch (e) { fail(e); }
+}
+
+// ======================= PENGATURAN AKUN (non-admin) =======================
 function vPengaturan() {
   const pw = (id, name, ph, auto) => `<div class="pw"><input name="${name}" id="${id}" type="password" autocomplete="${auto}" ${ph ? `placeholder="${ph}"` : ''}><button type="button" class="eye" onclick="togglePwd(this,'${id}')" aria-label="Lihat password">${EYE}</button></div>`;
-  const tanpa = user.role === 'guru' && !String(user.kelas || '').trim() && !String(user.ekskul || '').trim();
+  const tanpa = scoped() && !String(user.kelas || '').trim() && !String(user.ekskul || '').trim();
   $('#view').innerHTML = (tanpa ? '<div class="card mu">Akun Anda belum memegang kelas atau ekskul apa pun, sehingga menu lain belum tersedia. Hubungi admin untuk mengatur hak akses.</div>' : '') + `<form class="card fm" onsubmit="pSave(event)">
     <b>Pengaturan Akun</b>
     <label>Nama</label><input value="${esc(user.nama)}" disabled>
@@ -1016,8 +1079,16 @@ async function pSave(ev) {
 })();
 
 // ======================= INIT =======================
+// Segarkan hak akses dari server (agar perubahan dari admin langsung berlaku tanpa login ulang)
+async function refreshAkses() {
+  try {
+    const r = await api('getAkses');
+    if (!r || !r.success || JSON.stringify([r.izin, r.scoped]) === JSON.stringify([user.izin, user.scoped])) return;
+    user = { ...user, izin: r.izin, scoped: r.scoped }; store.set(SESSION_KEY, user); start(user);
+  } catch (e) {}
+}
 const saved = store.get(SESSION_KEY);
-if (saved && saved.success) start(saved);
+if (saved && saved.success) { start(saved); if (saved.role !== 'siswa') refreshAkses(); }
 </script>
 </body>
 </html>
