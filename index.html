@@ -85,6 +85,8 @@ h2{margin:0 0 14px;font-size:18px}
 dialog{border:0;border-radius:14px;padding:20px;width:min(560px,94vw)}
 dialog::backdrop{background:rgba(0,0,0,.5)}
 dialog label{margin-top:10px}dialog input,dialog select,dialog textarea{width:100%}
+/* form pengaturan akun */
+.fm{max-width:460px}.fm label{margin-top:12px}.fm input{width:100%}
 #toast{position:fixed;top:14px;right:14px;z-index:99;display:flex;flex-direction:column;gap:6px}
 #toast div{padding:10px 14px;border-radius:10px;color:#fff;font-weight:600;background:#059669;box-shadow:0 4px 14px rgba(0,0,0,.2)}
 #toast div.e{background:#dc2626}
@@ -242,9 +244,9 @@ function logout() { store.del(SESSION_KEY); location.reload(); }
 // ======================= NAVIGASI (sidebar) =======================
 const MENU = {
   admin:    [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Data Siswa', vSiswa, '🎓'], ['Rekap Bulanan', vRekap, '📅'], ['Hari Libur', vLibur, '🏖️'], ['Manajemen Kelas', vKelasMgr, '🏫'], ['Kenaikan Kelas', vNaik, '⬆️'], ['Data User', vUser, '👥']],
-  guru:     [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Rekap Bulanan', vRekap, '📅']],
-  pimpinan: [['Rekap Bulanan', vRekap, '📅']],
-  siswa:    [['Absensi Saya', vSiswaDash, '✅']]
+  guru:     [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Rekap Bulanan', vRekap, '📅'], ['Pengaturan', vPengaturan, '⚙️']],
+  pimpinan: [['Rekap Bulanan', vRekap, '📅'], ['Pengaturan', vPengaturan, '⚙️']],
+  siswa:    [['Absensi Saya', vSiswaDash, '✅'], ['Riwayat Kehadiran', vSiswaRiwayat, '🗓️']]
 };
 const side = on => { $('#side').classList.toggle('open', on); $('#ov').classList.toggle('on', on); };
 function start(u) {
@@ -276,6 +278,33 @@ async function vSiswaDash() {
     <div class="card"><div class="mu">${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
     <div style="font-size:20px;font-weight:800;margin:6px 0">${status}</div>
     ${!a && !r.isLibur ? '<div class="err">Anda belum tercatat absen hari ini. Hubungi guru kelas.</div>' : ''}</div>`;
+}
+
+// ======================= RIWAYAT KEHADIRAN SISWA =======================
+let rw = [];
+async function vSiswaRiwayat() {
+  const r = await api('getRiwayatSiswa');
+  rw = (r && r.success) ? r.data : [];
+  const bln = [...new Set(rw.map(x => x.tanggal.slice(0, 7)))];   // sudah urut terbaru
+  $('#view').innerHTML = `<div class="card row"><div><label>Bulan</label><select id="rwB" onchange="rwDraw()">
+      <option value="">Semua</option>${bln.map(b => `<option value="${b}">${BULAN[+b.slice(5) - 1]} ${b.slice(0, 4)}</option>`).join('')}</select></div>
+      <div class="mu" style="flex:1;min-width:180px">${esc(user.nama)} · Kelas ${esc(user.kelas)}</div></div>
+    <div class="row" id="rwS" style="margin-bottom:14px"></div>
+    <div class="card tw"><table><thead><tr><th>No</th><th>Tanggal</th><th>Status</th></tr></thead><tbody id="rwT"></tbody></table></div>
+    <div class="mu">Hanya menampilkan data absensi yang masih tersimpan. Data bulan yang sudah dihapus admin tidak muncul lagi.</div>`;
+  rwDraw();
+}
+function rwDraw() {
+  const b = $('#rwB').value, l = rw.filter(x => !b || x.tanggal.startsWith(b));
+  const n = {}; STATUS.forEach(s => n[s] = 0);
+  l.forEach(x => { const k = x.status.toLowerCase(); if (k in n) n[k]++; });
+  const pct = l.length ? Math.round(n.hadir / l.length * 1000) / 10 : 0;
+  $('#rwS').innerHTML = STATUS.map(s => `<div class="card ctr" style="flex:1;min-width:76px;margin:0;padding:10px"><div style="font-size:20px;font-weight:800">${n[s]}</div><div class="mu">${cap(s)}</div></div>`).join('')
+    + `<div class="card ctr" style="flex:1;min-width:76px;margin:0;padding:10px"><div style="font-size:20px;font-weight:800">${pct}%</div><div class="mu">Kehadiran</div></div>`;
+  $('#rwT').innerHTML = l.map((x, i) => `<tr><td>${i + 1}</td>
+    <td>${new Date(x.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</td>
+    <td><span class="st ${esc(x.status.toLowerCase())}" style="display:inline-block">${esc(x.status)}</span></td></tr>`).join('')
+    || '<tr><td colspan="3" class="mu ctr">Belum ada data absensi (belum diisi atau sudah dihapus admin).</td></tr>';
 }
 
 // ======================= OFFLINE QUEUE (IndexedDB) =======================
@@ -630,8 +659,13 @@ async function hapusBulan() {
 // ======================= EKSTRAKURIKULER =======================
 const EK = 'ep_ekskul_v1', HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 let ek = { ekskul: [], absensi: [] }, ekId = null, ekTab = 'a', ekSt = {}, ekTgl = today();
+// Guru melihat ekskul yang namanya tercantum sebagai pembina ATAU yang dicentang di akunnya (Data User)
 const ekVis = () => {
-  if (user.role === 'guru') { const n = String(user.nama || '').toLowerCase().trim(); if (n) return ek.ekskul.filter(e => String(e.pembina || '').toLowerCase().includes(n)); }
+  if (user.role === 'guru') {
+    const n = String(user.nama || '').toLowerCase().trim();
+    const mine = String(user.ekskul || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+    if (n || mine.length) return ek.ekskul.filter(e => (n && String(e.pembina || '').toLowerCase().includes(n)) || mine.includes(String(e.nama || '').toLowerCase()));
+  }
   return ek.ekskul;
 };
 async function vEkskul() {
@@ -649,8 +683,11 @@ function ekDraw() {
   const adm = user.role === 'admin';
   $('#view').innerHTML = `<h2>Ekstrakurikuler</h2><div class="row" style="margin-bottom:12px">
     <button class="btn ${ekTab === 'a' ? '' : 'g'}" onclick="ekTab='a';ekDraw()">Absensi</button>
+    <button class="btn ${ekTab === 'r' ? '' : 'g'}" onclick="ekTab='r';ekDraw()">Rekap Bulanan</button>
     ${adm ? `<button class="btn ${ekTab === 'k' ? '' : 'g'}" onclick="ekTab='k';ekDraw()">Kelola Ekskul</button>` : ''}</div><div id="ekW"></div>`;
-  (ekTab === 'k' && adm) ? ekKelola() : ekAbs();
+  if (ekTab === 'k' && adm) ekKelola();
+  else if (ekTab === 'r') ekRekap();
+  else ekAbs();
 }
 function ekAbs() {
   const l = ekVis();
@@ -688,6 +725,77 @@ async function ekKirim() {
     store.set(EK, ek); toast(r.offline ? '📥 Tersimpan offline — terkirim saat online' : 'Absensi ekskul tersimpan'); ekAbs();
   } catch (x) { fail(x); }
 }
+
+// ----- Rekap bulanan ekskul -----
+let ekRB = new Date().getMonth(), ekRT = new Date().getFullYear();
+const EKK = { hadir: 'H', sakit: 'S', izin: 'I', bolos: 'B', alpa: 'A' };
+function ekRData(e) {
+  const pre = ekRT + '-' + String(ekRB + 1).padStart(2, '0');
+  const ses = ek.absensi.filter(a => a.ekskulId === e.id && String(a.tanggal).startsWith(pre)).sort((a, b) => a.tanggal < b.tanggal ? -1 : 1);
+  const rows = e.anggota.map(s => {
+    const st = { hadir: 0, izin: 0, sakit: 0, bolos: 0, alpa: 0 };
+    const codes = ses.map(a => { const v = String((a.data || {})[s.nisn] || '').toLowerCase(); if (v in st) { st[v]++; return v; } return ''; });
+    return { s, codes, st, pct: ses.length ? Math.round(st.hadir / ses.length * 1000) / 10 : 0 };
+  });
+  return { ses, rows };
+}
+function ekRTable(d) {
+  if (!d.ses.length) return '<span class="mu">Belum ada absensi ekskul pada bulan ini.</span>';
+  const cell = c => !c ? '<td></td>' : c === 'hadir' ? '<td class="dot">•</td>' : `<td class="c${EKK[c]}">${EKK[c]}</td>`;
+  return `<div class="mu" style="margin-bottom:8px">Jumlah pertemuan: <b>${d.ses.length}</b></div>
+    <table class="rk"><thead><tr><th>No</th><th>Nama</th>${d.ses.map(a => `<th>${+String(a.tanggal).slice(8, 10)}</th>`).join('')}<th>H</th><th>S</th><th>I</th><th>B</th><th>A</th><th>%</th></tr></thead><tbody>
+    ${d.rows.map((r, i) => `<tr><td>${i + 1}</td><td class="n">${esc(r.s.nama)}</td>${r.codes.map(cell).join('')}
+      <td class="cH">${r.st.hadir}</td><td>${r.st.sakit}</td><td>${r.st.izin}</td><td class="cB">${r.st.bolos}</td><td class="cA">${r.st.alpa}</td><td><b>${r.pct}%</b></td></tr>`).join('')}
+    </tbody></table>`;
+}
+function ekRekap() {
+  const l = ekVis();
+  if (!l.some(e => e.id === ekId)) ekId = l[0] && l[0].id;
+  const e = l.find(x => x.id === ekId);
+  if (!e) { $('#ekW').innerHTML = `<div class="card mu">${ek.ekskul.length ? 'Anda bukan pembina ekskul yang terdaftar. Hubungi admin.' : 'Belum ada ekskul terdaftar.'}</div>`; return; }
+  const yr = new Date().getFullYear();
+  $('#ekW').innerHTML = `<div class="card row">
+    <div><label>Ekskul</label><select onchange="ekId=this.value;ekRekap()">${l.map(x => `<option value="${esc(x.id)}" ${x.id === ekId ? 'selected' : ''}>${esc(x.nama)}</option>`).join('')}</select></div>
+    <div><label>Bulan</label><select onchange="ekRB=+this.value;ekRekap()">${BULAN.map((b, i) => `<option value="${i}" ${i === ekRB ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
+    <div><label>Tahun</label><select onchange="ekRT=+this.value;ekRekap()">${[0, 1, 2, 3, 4].map(i => `<option ${yr - i === ekRT ? 'selected' : ''}>${yr - i}</option>`).join('')}</select></div>
+    <button class="btn g" onclick="ekRPdf()">⬇ Unduh PDF</button></div>
+    <div class="card tw">${ekRTable(ekRData(e))}</div>
+    <div class="mu">• : Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa · kosong: belum diisi. Angka di header = tanggal pertemuan. Persentase = Hadir ÷ jumlah pertemuan × 100%.</div>`;
+}
+function ekRPdf() {
+  const e = ekCur();
+  if (!e) return toast('Belum ada ekskul.', true);
+  const d = ekRData(e);
+  if (!d.ses.length) return toast('Tidak ada data absensi pada bulan ini.', true);
+  if (!window.jspdf) return toast('Pustaka PDF belum termuat. Periksa koneksi internet lalu muat ulang halaman.', true);
+  const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+  doc.text('REKAPITULASI ABSENSI EKSTRAKURIKULER', 148.5, 11, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  doc.text(e.nama + '   |   Pembina: ' + e.pembina + '   |   Periode: ' + BULAN[ekRB] + ' ' + ekRT + '   |   Pertemuan: ' + d.ses.length, 148.5, 16.5, { align: 'center' });
+  const body = d.rows.map((r, i) => [i + 1, r.s.nama, r.s.kelas || '', ...r.codes.map(c => c ? EKK[c] : ''), r.st.hadir, r.st.sakit, r.st.izin, r.st.bolos, r.st.alpa, r.pct + '%']);
+  const nd = d.ses.length;
+  const warna = { H: [21, 128, 61], S: [161, 98, 7], I: [29, 78, 216], B: [194, 65, 12], A: [185, 28, 28] };
+  const latar = { S: [254, 249, 195], I: [219, 234, 254], B: [255, 237, 213], A: [254, 226, 226] };
+  doc.autoTable({
+    head: [['No', 'Nama', 'Kelas', ...d.ses.map(a => String(+String(a.tanggal).slice(8, 10))), 'H', 'S', 'I', 'B', 'A', '%']],
+    body, startY: 21, theme: 'grid', margin: { left: 7, right: 7, top: 8, bottom: 10 },
+    styles: { fontSize: 8, cellPadding: 1.2, halign: 'center', valign: 'middle', lineWidth: 0.1, lineColor: [150, 150, 150] },
+    headStyles: { fillColor: [67, 56, 202], textColor: 255 },
+    columnStyles: { 0: { cellWidth: 8 }, 1: { halign: 'left', cellWidth: 55 }, 2: { cellWidth: 18 } },
+    didParseCell(h) {
+      const c = h.cell.raw;
+      if (h.section !== 'body' || typeof c !== 'string' || h.column.index < 3 || h.column.index >= 3 + nd) return;
+      if (c === 'H') { h.cell.text = ['•']; h.cell.styles.fontSize = 14; }
+      if (warna[c]) { h.cell.styles.textColor = warna[c]; h.cell.styles.fontStyle = 'bold'; }
+      if (latar[c]) h.cell.styles.fillColor = latar[c];
+    },
+    didDrawPage(h) { doc.setFontSize(7); doc.setTextColor(90); doc.text('• = Hadir · S: Sakit · I: Izin · B: Bolos · A: Alpa   |   Diunduh: ' + new Date().toLocaleString('id-ID') + '   |   Hal. ' + h.pageNumber, 7, 205); doc.setTextColor(0); }
+  });
+  doc.save('Rekap_Ekskul_' + e.nama.replace(/\s+/g, '_') + '_' + BULAN[ekRB] + '_' + ekRT + '.pdf');
+  toast('PDF diunduh');
+}
+
 function ekKelola() {
   $('#ekW').innerHTML = `<div class="card row" style="justify-content:space-between"><span class="mu">Atur ekskul, pembina, jadwal, dan anggota.</span><button class="btn" onclick="ekForm()">+ Tambah Ekskul</button></div>
     ${ek.ekskul.map(e => `<div class="card row" style="justify-content:space-between"><div><b>${esc(e.nama)}</b> <small class="mu">${e.anggota.length} anggota</small><div class="mu">Pembina: ${esc(e.pembina)} · ${esc(e.hari)} ${esc(e.jamMulai)}–${esc(e.jamSelesai)}</div></div>
@@ -749,17 +857,19 @@ async function ekHapus(id) {
 }
 
 // ======================= DATA USER (admin) =======================
-let us = [];
+let us = [], ekNames = [];
 const ROLE_INFO = {
   admin: 'Akses penuh: semua menu, kelola data siswa, kelas, libur, ekskul, dan user.',
-  guru: 'Daftar Hadir, Ekstrakurikuler, dan Rekap Bulanan — hanya untuk kelas yang dicentang di bawah.',
+  guru: 'Daftar Hadir, Ekstrakurikuler, dan Rekap Bulanan — hanya untuk kelas dan ekskul yang dicentang di bawah.',
   pimpinan: 'Hanya melihat Rekap Bulanan (tanpa mengubah data).'
 };
 async function vUser() {
   await getKelas();
   const r = await api('getUsers');
   us = (r && r.data) || [];
-  const hak = u => u.role === 'admin' ? 'Semua menu' : u.role === 'pimpinan' ? 'Lihat rekap' : (u.kelas ? 'Kelas: ' + esc(u.kelas.split(',').join(', ')) : 'Semua kelas');
+  try { const er = await api('getEkskulList'); ekNames = ((er && er.data && er.data.ekskul) || []).map(e => e.nama); } catch (e) { ekNames = []; }
+  const hak = u => u.role === 'admin' ? 'Semua menu' : u.role === 'pimpinan' ? 'Lihat rekap'
+    : (u.kelas ? 'Kelas: ' + esc(u.kelas.split(',').join(', ')) : 'Semua kelas') + (u.ekskul ? '<br>Ekskul: ' + esc(u.ekskul.split(',').join(', ')) : '');
   $('#view').innerHTML = `<h2>Data User</h2>
     <div class="card row" style="justify-content:space-between"><span class="mu">${us.length} user terdaftar · ${us.filter(u => u.role === 'admin').length} admin · ${us.filter(u => u.role === 'guru').length} guru · ${us.filter(u => u.role === 'pimpinan').length} pimpinan</span><span><button class="btn g" onclick="uPdf()">⬇ Unduh PDF</button> <button class="btn" onclick="uForm()">+ Tambah User</button></span></div>
     <div class="card tw"><table><thead><tr><th>No</th><th>Username</th><th>Nama</th><th>Role</th><th>Hak Akses</th><th>Aksi</th></tr></thead><tbody>
@@ -770,12 +880,16 @@ async function vUser() {
 }
 function uRole(v) {
   $('#uKb').classList.toggle('hidden', v !== 'guru');
+  $('#uEb').classList.toggle('hidden', v !== 'guru');
   $('#uInfo').textContent = ROLE_INFO[v] || '';
 }
 function uForm(i) {
   const e = i !== undefined, u = e ? us[i] : { role: 'guru' };
   const mine = new Set(String(u.kelas || '').split(',').map(x => x.trim()).filter(Boolean));
   const ks = [...new Set([...kelasList, ...mine])].sort(natural);
+  const myEk = new Set(String(u.ekskul || '').split(',').map(x => x.trim()).filter(Boolean));
+  const eks = [...new Set([...ekNames, ...myEk])].sort(natural);
+  const chk = (cls, k, on) => `<label style="display:flex;gap:6px;text-transform:none;font-weight:400;color:var(--tx);margin:2px 0"><input type="checkbox" class="${cls}" style="width:auto" value="${esc(k)}" ${on ? 'checked' : ''}>${esc(k)}</label>`;
   $('#dlg').innerHTML = `<form onsubmit="uSave(event,${e})"><h2>${e ? 'Edit' : 'Tambah'} User</h2>
     <label>Username ${e ? '' : '(kosongkan = otomatis dari nama)'}</label><input name="username" ${e ? 'required' : 'placeholder="Otomatis dari nama"'} autocapitalize="none" autocomplete="off" value="${esc(u.username || '')}" ${e ? 'readonly' : ''}>
     <label>Nama Lengkap</label><input name="nama" required value="${esc(u.nama || '')}">
@@ -783,7 +897,8 @@ function uForm(i) {
     <div class="pw"><input name="password" id="upw" type="password" autocomplete="new-password" ${e ? '' : 'placeholder="Default: 123456"'}><button type="button" class="eye" onclick="togglePwd(this,'upw')" aria-label="Lihat password">${EYE}</button></div>
     <label>Role</label><select name="role" onchange="uRole(this.value)">${['admin', 'guru', 'pimpinan'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${cap(r)}</option>`).join('')}</select>
     <div class="mu" id="uInfo" style="margin-top:6px;font-size:12px"></div>
-    <div id="uKb"><label>Kelas yang dipegang</label><div class="ukb">${ks.map(k => `<label style="display:flex;gap:6px;text-transform:none;font-weight:400;color:var(--tx);margin:2px 0"><input type="checkbox" class="ukc" style="width:auto" value="${esc(k)}" ${mine.has(k) ? 'checked' : ''}>${esc(k)}</label>`).join('') || '<span class="mu">Belum ada kelas.</span>'}</div></div>
+    <div id="uKb"><label>Kelas yang dipegang</label><div class="ukb">${ks.map(k => chk('ukc', k, mine.has(k))).join('') || '<span class="mu">Belum ada kelas.</span>'}</div></div>
+    <div id="uEb"><label>Ekstrakurikuler yang dipegang</label><div class="ukb">${eks.map(k => chk('ukx', k, myEk.has(k))).join('') || '<span class="mu">Belum ada ekskul.</span>'}</div></div>
     <div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn g" onclick="$('#dlg').close()">Batal</button><button class="btn">Simpan</button></div></form>`;
   $('#dlg').showModal();
   uRole(u.role);
@@ -792,6 +907,7 @@ async function uSave(ev, isEdit) {
   ev.preventDefault();
   const d = Object.fromEntries(new FormData(ev.target));
   d.kelas = d.role === 'guru' ? [...document.querySelectorAll('.ukc:checked')].map(c => c.value).join(',') : '';
+  d.ekskul = d.role === 'guru' ? [...document.querySelectorAll('.ukx:checked')].map(c => c.value).join(',') : '';
   if (d.role === 'guru' && !d.kelas && !confirm('Tidak ada kelas dipilih — guru ini akan bisa mengakses SEMUA kelas.\nLanjutkan?')) return;
   busy(true);
   try {
@@ -834,6 +950,33 @@ function uPdf() {
   });
   doc.save('Data_User_E-Present.pdf');
   toast('PDF diunduh');
+}
+
+// ======================= PENGATURAN AKUN (guru / pimpinan) =======================
+function vPengaturan() {
+  const pw = (id, name, ph, auto) => `<div class="pw"><input name="${name}" id="${id}" type="password" autocomplete="${auto}" ${ph ? `placeholder="${ph}"` : ''}><button type="button" class="eye" onclick="togglePwd(this,'${id}')" aria-label="Lihat password">${EYE}</button></div>`;
+  $('#view').innerHTML = `<form class="card fm" onsubmit="pSave(event)">
+    <b>Pengaturan Akun</b>
+    <label>Nama</label><input value="${esc(user.nama)}" disabled>
+    <label>Username</label><input name="username" required minlength="3" autocapitalize="none" autocomplete="off" value="${esc(user.username)}">
+    <label>Password Baru (kosongkan jika tidak diubah)</label>${pw('pBaru', 'baru', 'Minimal 6 karakter', 'new-password')}
+    <label>Ulangi Password Baru</label>${pw('pKonf', 'konf', '', 'new-password')}
+    <label>Password Saat Ini (wajib untuk menyimpan)</label>${pw('pLama', 'lama', '', 'current-password')}
+    <button class="btn" style="margin-top:16px">Simpan Perubahan</button></form>`;
+}
+async function pSave(ev) {
+  ev.preventDefault();
+  const f = ev.target, baru = f.baru.value;
+  if (baru && baru !== f.konf.value) return toast('Konfirmasi password baru tidak cocok.', true);
+  busy(true);
+  try {
+    const r = await api('updateAkunSaya', f.lama.value, f.username.value.trim(), baru);
+    busy(false);
+    if (!r.success) return toast(r.message, true);
+    user = { ...user, username: r.username, token: r.token };   // token baru sesuai username baru
+    store.set(SESSION_KEY, user);
+    toast(r.message); vPengaturan();
+  } catch (e) { fail(e); }
 }
 
 // ======================= STATUS KONEKSI =======================
