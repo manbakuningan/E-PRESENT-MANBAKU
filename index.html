@@ -147,7 +147,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const today = () => new Date().toISOString().slice(0, 10);
 const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const STATUS = ['hadir','izin','sakit','bolos','alpa'];
-let user = null, kelasList = [], siswaCache = null, siswa = [];
+let user = null, kelasList = [], siswaCache = null, siswa = [], siswaAll = null;
 
 async function api(fn, ...args) {
   for (let i = 1; i <= 3; i++) {
@@ -181,7 +181,15 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
+// Semua siswa (ringkas) untuk memilih anggota ekskul — guru tetap bisa memilih dari semua kelas
+async function getSiswaAll() {
+  if (siswaAll) return siswaAll;
+  const r = await api('getSiswaEkskul');
+  siswaAll = ((r && r.success) ? r.data : []).map(s => ({ nisn: String(s.nisn || '').trim(), nama: String(s.nama || '').trim(), kelas: String(s.kelas || '').trim() }));
+  return siswaAll;
+}
 async function getSiswa(force) {
+  if (force) siswaAll = null;
   if (siswaCache && !force) return siswaCache;
   const r = await api('getSiswaList', '');
   const list = (r && r.success) ? r.data : (Array.isArray(r) ? r : []);
@@ -244,21 +252,29 @@ function logout() { store.del(SESSION_KEY); location.reload(); }
 // ======================= NAVIGASI (sidebar) =======================
 const MENU = {
   admin:    [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Data Siswa', vSiswa, '🎓'], ['Rekap Bulanan', vRekap, '📅'], ['Hari Libur', vLibur, '🏖️'], ['Manajemen Kelas', vKelasMgr, '🏫'], ['Kenaikan Kelas', vNaik, '⬆️'], ['Data User', vUser, '👥']],
-  guru:     [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Rekap Bulanan', vRekap, '📅'], ['Pengaturan', vPengaturan, '⚙️']],
+  guru:     [['Daftar Hadir', vHadir, '📋'], ['Ekstrakurikuler', vEkskul, '🏅'], ['Data Siswa', vSiswa, '🎓'], ['Rekap Bulanan', vRekap, '📅'], ['Pengaturan', vPengaturan, '⚙️']],
   pimpinan: [['Rekap Bulanan', vRekap, '📅'], ['Pengaturan', vPengaturan, '⚙️']],
   siswa:    [['Absensi Saya', vSiswaDash, '✅'], ['Riwayat Kehadiran', vSiswaRiwayat, '🗓️']]
 };
+let curMenu = [];
+// Guru hanya mendapat menu sesuai hak: menu kelas butuh kelas dicentang, Ekstrakurikuler butuh ekskul dicentang; Pengaturan selalu ada
+function menuFor(u) {
+  const m = MENU[u.role] || MENU.siswa;
+  if (u.role !== 'guru') return m;
+  const kls = !!String(u.kelas || '').trim(), eks = !!String(u.ekskul || '').trim();
+  return m.filter(x => x[0] === 'Pengaturan' || (x[0] === 'Ekstrakurikuler' ? eks : kls));
+}
 const side = on => { $('#side').classList.toggle('open', on); $('#ov').classList.toggle('on', on); };
 function start(u) {
   user = u;
   $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
   $('#uNm').textContent = u.nama || u.username || ''; $('#uRl').textContent = u.role;
-  const m = MENU[u.role] || MENU.siswa;
+  const m = curMenu = menuFor(u);
   $('#nav').innerHTML = m.map((x, i) => `<button onclick="go(${i})"><span>${x[2]}</span>${x[0]}</button>`).join('');
   go(0);
 }
 function go(i) {
-  const m = MENU[user.role] || MENU.siswa;
+  const m = curMenu;
   document.querySelectorAll('#nav button').forEach((b, j) => b.classList.toggle('on', i === j));
   $('#ttl').textContent = m[i][0]; side(false);
   $('#view').innerHTML = '<div class="card mu">Memuat...</div>';
@@ -343,7 +359,7 @@ async function vHadir() {
   const all = await getSiswa();
   const mine = myKelas(), by = {};
   all.forEach(s => { const k = s.kelas || 'Tanpa Kelas'; (by[k] = by[k] || []).push(s); });
-  const keys = (mine.length ? mine : Object.keys(by)).sort(natural);   // guru multi-kelas: semua kelas miliknya
+  const keys = (user.role === 'guru' ? mine : Object.keys(by)).sort(natural);   // guru: hanya kelas miliknya
   dh.kelas = keys.map(k => ({ k, list: (by[k] || []).sort((a, b) => a.nama.localeCompare(b.nama)), saved: {}, open: false }));
   $('#view').innerHTML = `<div class="card row"><div><label>Tanggal</label><input type="date" id="dhT" value="${dh.tgl}" onchange="dhLoad()"></div>
     <div class="mu" style="flex:1;min-width:200px">Pilih kelas untuk membuka daftar siswa. Ubah status = langsung tersimpan, dan bisa diubah kapan saja.</div></div><div id="dhC"></div>`;
@@ -412,11 +428,14 @@ async function dhAll(ci) {
 
 // ======================= DATA SISWA (admin) =======================
 let sq = '', sk = '';
+// kelas yang boleh dikelola: guru → kelas yang dipegang (kosong = tanpa akses), admin → semua
+const sKelas = () => user.role === 'guru' ? myKelas().slice().sort(natural) : kelasList.slice().sort(natural);
 async function vSiswa() {
   await getSiswa(true); await getKelas();
+  if (user.role === 'guru' && !myKelas().length) { $('#view').innerHTML = '<div class="card mu">Anda belum memegang kelas apa pun. Hubungi admin untuk mengatur hak akses.</div>'; return; }
   $('#view').innerHTML = `<h2>Data Siswa</h2><div class="card row">
     <div><label>Cari</label><input id="sQ" placeholder="Nama / NISN" oninput="sq=this.value.toLowerCase();sDraw()" value="${esc(sq)}"></div>
-    <div><label>Kelas</label><select id="sK" onchange="sk=this.value;sDraw()">${opt(kelasList.slice().sort(natural), sk, 'Semua Kelas')}</select></div>
+    <div><label>Kelas</label><select id="sK" onchange="sk=this.value;sDraw()">${opt(sKelas(), sk, 'Semua Kelas')}</select></div>
     <button class="btn" onclick="sForm()">+ Tambah</button></div>
     <div class="card tw"><table><thead><tr><th>No</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>L/P</th><th>Aksi</th></tr></thead><tbody id="sB"></tbody></table></div>`;
   sDraw();
@@ -432,7 +451,7 @@ function sForm(i) {
   $('#dlg').innerHTML = `<form onsubmit="sSave(event,${e})"><h2>${e ? 'Edit' : 'Tambah'} Siswa</h2>
     <label>Nama Lengkap</label><input name="nama" required value="${esc(s.nama || '')}">
     <label>NISN</label><input name="nisn" required value="${esc(s.nisn || '')}">
-    <label>Kelas</label><input name="kelas" required list="kl" value="${esc(s.kelas || '')}"><datalist id="kl">${kelasList.map(k => `<option>${esc(k)}</option>`).join('')}</datalist>
+    <label>Kelas</label>${user.role === 'guru' ? `<select name="kelas" required>${opt(sKelas(), s.kelas || sk)}</select>` : `<input name="kelas" required list="kl" value="${esc(s.kelas || '')}"><datalist id="kl">${kelasList.map(k => `<option>${esc(k)}</option>`).join('')}</datalist>`}
     <label>Jenis Kelamin</label><select name="jenisKelamin"><option ${s.jenisKelamin === 'Perempuan' ? '' : 'selected'}>Laki-laki</option><option ${s.jenisKelamin === 'Perempuan' ? 'selected' : ''}>Perempuan</option></select>
     <input type="hidden" name="old" value="${esc(s.nisn || '')}">
     <div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn g" onclick="$('#dlg').close()">Batal</button><button class="btn">Simpan</button></div></form>`;
@@ -469,9 +488,10 @@ let rLast = null;
 async function vRekap() {
   await getKelas(); rLast = null;
   const mine = myKelas(), now = new Date(), yr = now.getFullYear();
-  const ks = mine.length ? mine : kelasList.slice().sort(natural);
+  const ks = user.role === 'guru' ? mine : kelasList.slice().sort(natural);
+  if (user.role === 'guru' && !mine.length) { $('#view').innerHTML = '<div class="card mu">Anda belum memegang kelas apa pun. Hubungi admin untuk mengatur hak akses.</div>'; return; }
   $('#view').innerHTML = `<div class="card row">
-    <div><label>Kelas</label><select id="rK">${opt(ks, ks[0], mine.length ? undefined : 'Semua Kelas')}</select></div>
+    <div><label>Kelas</label><select id="rK">${opt(ks, ks[0], user.role === 'guru' ? undefined : 'Semua Kelas')}</select></div>
     <div><label>Bulan</label><select id="rB">${BULAN.map((b, i) => `<option value="${i}" ${i === now.getMonth() ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
     <div><label>Tahun</label><select id="rT">${[0, 1, 2, 3, 4].map(i => `<option>${yr - i}</option>`).join('')}</select></div>
     <button class="btn" onclick="rLoad()">Tampilkan</button><button class="btn g" onclick="rPdf()">⬇ Unduh PDF</button>
@@ -632,7 +652,7 @@ async function nRun() {
   try {
     const r = await api('processIndividualPromotion', a, t, data); busy(false);
     toast(r.success ? 'Data berhasil diperbarui' : r.message, !r.success);
-    if (r.success) { siswaCache = null; vNaik().catch(fail); }
+    if (r.success) { siswaCache = null; siswaAll = null; vNaik().catch(fail); }
   } catch (e) { fail(e); }
 }
 async function nArsip() {
@@ -659,12 +679,11 @@ async function hapusBulan() {
 // ======================= EKSTRAKURIKULER =======================
 const EK = 'ep_ekskul_v1', HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 let ek = { ekskul: [], absensi: [] }, ekId = null, ekTab = 'a', ekSt = {}, ekTgl = today();
-// Guru melihat ekskul yang namanya tercantum sebagai pembina ATAU yang dicentang di akunnya (Data User)
+// Guru hanya melihat ekskul yang dicentang di akunnya (Data User); tanpa centang = tanpa akses
 const ekVis = () => {
   if (user.role === 'guru') {
-    const n = String(user.nama || '').toLowerCase().trim();
     const mine = String(user.ekskul || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
-    if (n || mine.length) return ek.ekskul.filter(e => (n && String(e.pembina || '').toLowerCase().includes(n)) || mine.includes(String(e.nama || '').toLowerCase()));
+    return ek.ekskul.filter(e => mine.includes(String(e.nama || '').toLowerCase()));
   }
   return ek.ekskul;
 };
@@ -680,12 +699,12 @@ async function vEkskul() {
   } catch (e) {}
 }
 function ekDraw() {
-  const adm = user.role === 'admin';
+  const adm = user.role === 'admin', kel = adm || user.role === 'guru';
   $('#view').innerHTML = `<h2>Ekstrakurikuler</h2><div class="row" style="margin-bottom:12px">
     <button class="btn ${ekTab === 'a' ? '' : 'g'}" onclick="ekTab='a';ekDraw()">Absensi</button>
     <button class="btn ${ekTab === 'r' ? '' : 'g'}" onclick="ekTab='r';ekDraw()">Rekap Bulanan</button>
-    ${adm ? `<button class="btn ${ekTab === 'k' ? '' : 'g'}" onclick="ekTab='k';ekDraw()">Kelola Ekskul</button>` : ''}</div><div id="ekW"></div>`;
-  if (ekTab === 'k' && adm) ekKelola();
+    ${kel ? `<button class="btn ${ekTab === 'k' ? '' : 'g'}" onclick="ekTab='k';ekDraw()">${adm ? 'Kelola Ekskul' : 'Kelola Anggota'}</button>` : ''}</div><div id="ekW"></div>`;
+  if (ekTab === 'k' && kel) ekKelola();
   else if (ekTab === 'r') ekRekap();
   else ekAbs();
 }
@@ -693,7 +712,7 @@ function ekAbs() {
   const l = ekVis();
   if (!l.some(e => e.id === ekId)) ekId = l[0] && l[0].id;
   const e = l.find(x => x.id === ekId);
-  if (!e) { $('#ekW').innerHTML = `<div class="card mu">${ek.ekskul.length ? 'Anda bukan pembina ekskul yang terdaftar. Hubungi admin.' : 'Belum ada ekskul terdaftar.'}</div>`; return; }
+  if (!e) { $('#ekW').innerHTML = `<div class="card mu">${ek.ekskul.length ? 'Anda belum memegang ekskul apa pun. Hubungi admin.' : 'Belum ada ekskul terdaftar.'}</div>`; return; }
   const rec = ek.absensi.find(a => a.ekskulId === e.id && a.tanggal === ekTgl);
   ekSt = rec ? { ...rec.data } : {};
   const riw = ek.absensi.filter(a => a.ekskulId === e.id).slice(0, 8);
@@ -752,7 +771,7 @@ function ekRekap() {
   const l = ekVis();
   if (!l.some(e => e.id === ekId)) ekId = l[0] && l[0].id;
   const e = l.find(x => x.id === ekId);
-  if (!e) { $('#ekW').innerHTML = `<div class="card mu">${ek.ekskul.length ? 'Anda bukan pembina ekskul yang terdaftar. Hubungi admin.' : 'Belum ada ekskul terdaftar.'}</div>`; return; }
+  if (!e) { $('#ekW').innerHTML = `<div class="card mu">${ek.ekskul.length ? 'Anda belum memegang ekskul apa pun. Hubungi admin.' : 'Belum ada ekskul terdaftar.'}</div>`; return; }
   const yr = new Date().getFullYear();
   $('#ekW').innerHTML = `<div class="card row">
     <div><label>Ekskul</label><select onchange="ekId=this.value;ekRekap()">${l.map(x => `<option value="${esc(x.id)}" ${x.id === ekId ? 'selected' : ''}>${esc(x.nama)}</option>`).join('')}</select></div>
@@ -797,9 +816,10 @@ function ekRPdf() {
 }
 
 function ekKelola() {
-  $('#ekW').innerHTML = `<div class="card row" style="justify-content:space-between"><span class="mu">Atur ekskul, pembina, jadwal, dan anggota.</span><button class="btn" onclick="ekForm()">+ Tambah Ekskul</button></div>
-    ${ek.ekskul.map(e => `<div class="card row" style="justify-content:space-between"><div><b>${esc(e.nama)}</b> <small class="mu">${e.anggota.length} anggota</small><div class="mu">Pembina: ${esc(e.pembina)} · ${esc(e.hari)} ${esc(e.jamMulai)}–${esc(e.jamSelesai)}</div></div>
-    <div><button class="btn g s" onclick="ekForm('${esc(e.id)}')">Edit</button> <button class="btn r s" onclick="ekHapus('${esc(e.id)}')">Hapus</button></div></div>`).join('') || '<div class="card mu">Belum ada ekskul.</div>'}`;
+  const adm = user.role === 'admin', l = adm ? ek.ekskul : ekVis();
+  $('#ekW').innerHTML = `<div class="card row" style="justify-content:space-between"><span class="mu">${adm ? 'Atur ekskul, pembina, jadwal, dan anggota.' : 'Tambah atau keluarkan anggota ekskul yang Anda pegang.'}</span>${adm ? '<button class="btn" onclick="ekForm()">+ Tambah Ekskul</button>' : ''}</div>
+    ${l.map(e => `<div class="card row" style="justify-content:space-between"><div><b>${esc(e.nama)}</b> <small class="mu">${e.anggota.length} anggota</small><div class="mu">Pembina: ${esc(e.pembina)} · ${esc(e.hari)} ${esc(e.jamMulai)}–${esc(e.jamSelesai)}</div></div>
+    <div><button class="btn g s" onclick="ekForm('${esc(e.id)}')">${adm ? 'Edit' : 'Kelola Anggota'}</button>${adm ? ` <button class="btn r s" onclick="ekHapus('${esc(e.id)}')">Hapus</button>` : ''}</div></div>`).join('') || '<div class="card mu">Belum ada ekskul yang Anda pegang. Hubungi admin.</div>'}`;
 }
 const pbOpt = (gurus, sel) => {
   const names = [...new Set(gurus.map(g => g.nama))].sort((a, b) => a.localeCompare(b));
@@ -810,19 +830,23 @@ async function ekForm(id) {
   busy(true);
   let gurus = [];
   try {
-    await getSiswa();
-    try { const ur = await api('getUsers'); gurus = ((ur && ur.data) || []).filter(u => String(u.role).toLowerCase() === 'guru'); } catch (x) { toast('Gagal memuat daftar guru: ' + (x.message || x), true); }
-    if (!gurus.length) toast('Belum ada user ber-role Guru. Tambahkan dulu di menu Data User.', true);
+    await getSiswaAll();
+    if (user.role === 'admin') {
+      try { const ur = await api('getUsers'); gurus = ((ur && ur.data) || []).filter(u => String(u.role).toLowerCase() === 'guru'); } catch (x) { toast('Gagal memuat daftar guru: ' + (x.message || x), true); }
+      if (!gurus.length) toast('Belum ada user ber-role Guru. Tambahkan dulu di menu Data User.', true);
+    }
   } catch (e) { busy(false); return fail(e); }
   busy(false);
   const e = id ? ek.ekskul.find(x => x.id === id) : null, on = new Set((e ? e.anggota : []).map(a => a.nisn)), by = {};
-  siswaCache.forEach(s => (by[s.kelas || 'Tanpa Kelas'] = by[s.kelas || 'Tanpa Kelas'] || []).push(s));
-  $('#dlg').innerHTML = `<form onsubmit="ekSave(event,'${e ? esc(e.id) : ''}')"><h2>${e ? 'Edit' : 'Tambah'} Ekskul</h2>
-    <label>Nama Ekskul</label><input name="nama" required value="${esc(e && e.nama)}">
+  siswaAll.forEach(s => (by[s.kelas || 'Tanpa Kelas'] = by[s.kelas || 'Tanpa Kelas'] || []).push(s));
+  const adm = user.role === 'admin';
+  $('#dlg').innerHTML = `<form onsubmit="ekSave(event,'${e ? esc(e.id) : ''}')"><h2>${adm ? (e ? 'Edit' : 'Tambah') + ' Ekskul' : 'Kelola Anggota — ' + esc(e.nama)}</h2>
+    ${adm ? `<label>Nama Ekskul</label><input name="nama" required value="${esc(e && e.nama)}">
     <label>Guru Pembina</label><select name="pembina" required><option value="">-- Pilih Guru --</option>${pbOpt(gurus, e && e.pembina)}</select>
     <div class="row"><div style="flex:1"><label>Hari</label><select name="hari">${opt(HARI, e && e.hari)}</select></div>
     <div style="flex:1"><label>Mulai</label><input type="time" name="jamMulai" value="${esc(e ? e.jamMulai : '15:30')}"></div>
-    <div style="flex:1"><label>Selesai</label><input type="time" name="jamSelesai" value="${esc(e ? e.jamSelesai : '17:00')}"></div></div>
+    <div style="flex:1"><label>Selesai</label><input type="time" name="jamSelesai" value="${esc(e ? e.jamSelesai : '17:00')}"></div></div>`
+    : `<input type="hidden" name="nama" value="${esc(e.nama)}"><input type="hidden" name="pembina" value="${esc(e.pembina)}"><input type="hidden" name="hari" value="${esc(e.hari)}"><input type="hidden" name="jamMulai" value="${esc(e.jamMulai)}"><input type="hidden" name="jamSelesai" value="${esc(e.jamSelesai)}">`}
     <label>Anggota (<span id="ekJ">${on.size}</span> dipilih)</label><input placeholder="Cari nama..." oninput="ekCari(this.value)">
     <div id="ekL" style="max-height:30vh;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:6px;margin-top:6px" onchange="$('#ekJ').textContent=document.querySelectorAll('.ekc:checked').length">
     ${Object.keys(by).sort(natural).map(k => `<div><small><b style="color:var(--pl)">${esc(k)}</b></small>${by[k].map(s => `<label style="display:flex;gap:6px;text-transform:none;font-weight:400;color:var(--tx);margin:2px 0" data-n="${esc(s.nama.toLowerCase())}"><input type="checkbox" class="ekc" style="width:auto" value="${esc(s.nisn)}" ${on.has(s.nisn) ? 'checked' : ''}>${esc(s.nama)}</label>`).join('')}</div>`).join('')}</div>
@@ -832,7 +856,7 @@ async function ekForm(id) {
 const ekCari = q => { q = q.toLowerCase().trim(); document.querySelectorAll('#ekL label').forEach(l => l.style.display = (!q || l.dataset.n.includes(q)) ? 'flex' : 'none'); };
 async function ekSave(ev, id) {
   ev.preventDefault();
-  const f = Object.fromEntries(new FormData(ev.target)), m = new Map(siswaCache.map(s => [s.nisn, s]));
+  const f = Object.fromEntries(new FormData(ev.target)), m = new Map((siswaAll || []).map(s => [s.nisn, s]));
   f.anggota = [...document.querySelectorAll('.ekc:checked')].map(c => { const s = m.get(c.value) || {}; return { nisn: c.value, nama: s.nama || c.value, kelas: s.kelas || '' }; });
   if (!f.anggota.length) return toast('Pilih minimal satu anggota.', true);
   f.id = id; busy(true);
@@ -860,7 +884,7 @@ async function ekHapus(id) {
 let us = [], ekNames = [];
 const ROLE_INFO = {
   admin: 'Akses penuh: semua menu, kelola data siswa, kelas, libur, ekskul, dan user.',
-  guru: 'Daftar Hadir, Ekstrakurikuler, dan Rekap Bulanan — hanya untuk kelas dan ekskul yang dicentang di bawah.',
+  guru: 'Daftar Hadir, Data Siswa (tambah/ubah/hapus), dan Rekap Bulanan hanya untuk kelas yang dicentang; Ekstrakurikuler hanya untuk ekskul yang dicentang. Tanpa centang = tanpa akses.',
   pimpinan: 'Hanya melihat Rekap Bulanan (tanpa mengubah data).'
 };
 async function vUser() {
@@ -868,8 +892,7 @@ async function vUser() {
   const r = await api('getUsers');
   us = (r && r.data) || [];
   try { const er = await api('getEkskulList'); ekNames = ((er && er.data && er.data.ekskul) || []).map(e => e.nama); } catch (e) { ekNames = []; }
-  const hak = u => u.role === 'admin' ? 'Semua menu' : u.role === 'pimpinan' ? 'Lihat rekap'
-    : (u.kelas ? 'Kelas: ' + esc(u.kelas.split(',').join(', ')) : 'Semua kelas') + (u.ekskul ? '<br>Ekskul: ' + esc(u.ekskul.split(',').join(', ')) : '');
+  const hak = u => esc(uHakTxt(u)).replace(/; /g, '<br>');
   $('#view').innerHTML = `<h2>Data User</h2>
     <div class="card row" style="justify-content:space-between"><span class="mu">${us.length} user terdaftar · ${us.filter(u => u.role === 'admin').length} admin · ${us.filter(u => u.role === 'guru').length} guru · ${us.filter(u => u.role === 'pimpinan').length} pimpinan</span><span><button class="btn g" onclick="uPdf()">⬇ Unduh PDF</button> <button class="btn" onclick="uForm()">+ Tambah User</button></span></div>
     <div class="card tw"><table><thead><tr><th>No</th><th>Username</th><th>Nama</th><th>Role</th><th>Hak Akses</th><th>Aksi</th></tr></thead><tbody>
@@ -878,6 +901,10 @@ async function vUser() {
     </tbody></table></div>
     <div class="mu">Perubahan hak akses berlaku setelah user yang bersangkutan login ulang.</div>`;
 }
+// Ringkasan hak akses (teks biasa) — dipakai di tabel dan PDF
+const uHakTxt = u => u.role === 'admin' ? 'Semua menu' : u.role === 'pimpinan' ? 'Lihat rekap'
+  : (!u.kelas && !u.ekskul) ? 'Tanpa akses (belum ada kelas/ekskul)'
+  : 'Kelas: ' + (u.kelas ? u.kelas.split(',').join(', ') : '-') + '; Ekskul: ' + (u.ekskul ? u.ekskul.split(',').join(', ') : '-');
 function uRole(v) {
   $('#uKb').classList.toggle('hidden', v !== 'guru');
   $('#uEb').classList.toggle('hidden', v !== 'guru');
@@ -908,7 +935,7 @@ async function uSave(ev, isEdit) {
   const d = Object.fromEntries(new FormData(ev.target));
   d.kelas = d.role === 'guru' ? [...document.querySelectorAll('.ukc:checked')].map(c => c.value).join(',') : '';
   d.ekskul = d.role === 'guru' ? [...document.querySelectorAll('.ukx:checked')].map(c => c.value).join(',') : '';
-  if (d.role === 'guru' && !d.kelas && !confirm('Tidak ada kelas dipilih — guru ini akan bisa mengakses SEMUA kelas.\nLanjutkan?')) return;
+  if (d.role === 'guru' && !d.kelas && !d.ekskul && !confirm('Tidak ada kelas maupun ekskul dipilih — guru ini tidak akan punya akses apa pun.\nLanjutkan?')) return;
   busy(true);
   try {
     const r = isEdit ? await api('updateUser', d.username, d) : await api('addUser', d);
@@ -938,13 +965,13 @@ function uPdf() {
   doc.text('DATA AKUN PENGGUNA E-PRESENT', 105, 14, { align: 'center' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
   doc.text("Manba'ul Huda  |  Dicetak: " + new Date().toLocaleString('id-ID'), 105, 19, { align: 'center' });
-  const body = us.map((u, i) => [i + 1, u.nama, u.username, u.pw || '(sudah diganti)']);
+  const body = us.map((u, i) => [i + 1, u.nama, u.username, u.pw || '(sudah diganti)', cap(u.role) + '\n' + uHakTxt(u).replace(/; /g, '\n')]);
   doc.autoTable({
-    head: [['No', 'Nama', 'Username', 'Password']], body, startY: 24, theme: 'grid',
+    head: [['No', 'Nama', 'Username', 'Password', 'Hak Akses']], body, startY: 24, theme: 'grid',
     margin: { left: 12, right: 12, top: 12, bottom: 16 },
-    styles: { fontSize: 10, cellPadding: 2.2, lineWidth: 0.1, lineColor: [150, 150, 150] },
+    styles: { fontSize: 9, cellPadding: 2, lineWidth: 0.1, lineColor: [150, 150, 150], valign: 'top' },
     headStyles: { fillColor: [67, 56, 202], textColor: 255 },
-    columnStyles: { 0: { cellWidth: 12, halign: 'center' } },
+    columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 4: { cellWidth: 60 } },
     didParseCell(h) { if (h.section === 'body' && h.column.index === 3 && h.cell.raw === '(sudah diganti)') h.cell.styles.textColor = [150, 150, 150]; },
     didDrawPage(h) { doc.setFontSize(8); doc.setTextColor(120); doc.text('Dokumen rahasia — jangan disebarluaskan. Hal. ' + h.pageNumber, 12, 290); doc.setTextColor(0); }
   });
@@ -955,7 +982,8 @@ function uPdf() {
 // ======================= PENGATURAN AKUN (guru / pimpinan) =======================
 function vPengaturan() {
   const pw = (id, name, ph, auto) => `<div class="pw"><input name="${name}" id="${id}" type="password" autocomplete="${auto}" ${ph ? `placeholder="${ph}"` : ''}><button type="button" class="eye" onclick="togglePwd(this,'${id}')" aria-label="Lihat password">${EYE}</button></div>`;
-  $('#view').innerHTML = `<form class="card fm" onsubmit="pSave(event)">
+  const tanpa = user.role === 'guru' && !String(user.kelas || '').trim() && !String(user.ekskul || '').trim();
+  $('#view').innerHTML = (tanpa ? '<div class="card mu">Akun Anda belum memegang kelas atau ekskul apa pun, sehingga menu lain belum tersedia. Hubungi admin untuk mengatur hak akses.</div>' : '') + `<form class="card fm" onsubmit="pSave(event)">
     <b>Pengaturan Akun</b>
     <label>Nama</label><input value="${esc(user.nama)}" disabled>
     <label>Username</label><input name="username" required minlength="3" autocapitalize="none" autocomplete="off" value="${esc(user.username)}">
